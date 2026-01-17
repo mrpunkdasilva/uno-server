@@ -1,6 +1,6 @@
 import crypto from 'node:crypto'
 import PlayerRepository from '../../infra/repositories/player.repository.js';
-
+import playerResponseDtoSchema from '../../presentation/dtos/playerResponse.dto.js';
 
 class PlayerService {
     constructor() {
@@ -29,6 +29,24 @@ class PlayerService {
 
             playerData.password = crypto.hash('sha256', playerData.password);
             // ALGORITMO PARA TESTES - TROCAR DEPOIS
+
+            const newUser = await this.playerRepository.create(playerData);
+            const userObject = newUser.toObject();
+            const dataToReturn = { ...userObject, id: userObject._id.toString() }
+
+            const responseDto = playerResponseDtoSchema.parse(dataToReturn);
+            return responseDto;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async getPlayerById(id) {
+        try {
+            const player = await this.playerRepository.findById(id);
+            if (!player) {
+                throw new Error('Player not found');
+            }
 
             return await this.playerRepository.create(playerData);
         } catch (error) {
@@ -78,14 +96,22 @@ class PlayerService {
                 }
             }
 
-            if (updateData.Username && updateData.Username !== player.Username) {
+            if (updateData.username && updateData.username !== player.username) {
                 const existingPlayer = await this.playerRepository.findByUsername(updateData.Username);
                 if (existingPlayer) {
                     throw new Error('Username already in use');
                 }
             }
 
-            return await this.playerRepository.update(id, updateData);
+            if (updateData.password) updateData.password = crypto.hash('sha256', updateData.password);
+            // ALGORITMO DE CRIPTOGRAFIA PARA TESTES
+
+            const updatedPlayer = await this.playerRepository.update(id, updateData);
+            const userObject = updatedPlayer.toObject();
+            const dataToReturn = { ...userObject, id: userObject._id.toString() }
+
+            const responseDto = playerResponseDtoSchema.parse(dataToReturn);
+            return responseDto;
         } catch (error) {
             throw error;
         }
