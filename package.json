@@ -5,9 +5,12 @@
   "license": "ISC",
   "author": "",
   "type": "module",
-  "main": "index.js",
+  "main": "src/app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "start:dev": "nodemon src/app.js",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.js\"",
+    "lint:fix": "eslint \"{src,apps,libs,test}/**/*.js\" --fix",
+    "format": "prettier --write \"{src,apps,libs,test}/**/*.js\"",
     "prepare": "husky",
     "lint-commit": "git-commit-msg-linter"
   },
