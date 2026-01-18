@@ -1,12 +1,11 @@
-import mongoose from 'mongoose'
+import mongoose from 'mongoose';
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect("mongodb://mongoadmin:mongopasswd@localhost:27017/?authSource=admin");
-    // CONFIGURAR DOTENV NAO ESQUECER !!!
+    const conn = await mongoose.connect(process.env.MONGO_URI);
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error(error);
+    console.error("MongoDB connection error:", error.message);
     process.exit(1);
   }
 };

@@ -1,0 +1,77 @@
+{
+	"info": {
+		"_postman_id": "b8e79f1a-7a57-4f5a-a1ef-f53257de4845",
+		"name": "UnoAPI",
+		"description": "Postman Collection for uno project endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "48646938"
+	},
+	"item": [
+		{
+			"name": "GAMES",
+			"item": [
+				{
+					"name": "createGame",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tile\": \"uno\",\n  \"status\": \"Active\",\n  \"maxPlayers\": 4\n\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://localhost:3000/api/game/"
+					},
+					"response": []
+				},
+				{
+					"name": "getGamebyID",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "deleteGameById",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": "http://localhost:3000/api/games/696d51695d0fe5cf676ce903"
+					},
+					"response": []
+				},
+				{
+					"name": "updateGameById",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"uno 2\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://localhost:3000/api/games/696d51695d0fe5cf676ce903"
+					},
+					"response": []
+				},
+				{
+					"name": "getGames",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

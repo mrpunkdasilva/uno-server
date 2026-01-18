@@ -27,11 +27,11 @@ class gameRepository{
     }
 
     async update(id, updateData) {
-        try {
-            return await Game.findByIdAndUpdate(id, updateData, { new: true });
-        } catch (error) {
-            throw error;
-        }
+        return Game.findByIdAndUpdate(
+        id,
+        { $set: updateData },
+        { new: true, runValidators: true }
+        );
     }
 
     async delete(id) {

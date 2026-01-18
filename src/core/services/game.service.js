@@ -1,15 +1,26 @@
-import gameRepository from "../../infra/repositories/game.repository";
-import gameResponseDtoSchema from "../../presentation/dtos/gameResponse";
-import updateGameDtoSchema from "../../presentation/dtos/updateGame";
+import gameRepository from "../../infra/repositories/game.repository.js";
+import gameResponseDtoSchema from "../../presentation/dtos/gameResponse.dto.js";
+import updateGameDtoSchema from "../../presentation/dtos/updateGame.dto.js";
 
 class gameService{
     constructor(){
-        this.gameRepository() = new gameRepository();
+        this.gameRepository = new gameRepository();
     }
 
     async getAllGames() {
         try {
             return await this.gameRepository.findAll();
+        } catch (error) {
+            throw error;
+        }
+    }
+    async getGameById(id) {
+        try {
+            const game = await this.gameRepository.findById(id);
+            if (!game) {
+                throw new Error('Game not found');
+            }
+            return game;
         } catch (error) {
             throw error;
         }
@@ -72,3 +83,4 @@ class gameService{
     }
 
 }
+export default gameService;

@@ -4,8 +4,9 @@ const gameResponseDtoSchema = z.object({
     id: z.string(),
     title: z.string(),
     status: z.string(),
-    maxPlayers: z.number(),  createdAt: z.date(),
-    updatedAt: z.date()
+    maxPlayers: z.number(),  
+    createdAt: z.date().optional(),
+    updatedAt: z.date().optional()
 })
 
 export default gameResponseDtoSchema;

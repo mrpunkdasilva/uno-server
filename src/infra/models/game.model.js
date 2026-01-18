@@ -17,9 +17,12 @@ const gameSchema = mongoose.Schema({
     players: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "Player"
-  }]
+  }]},
+  {
+    timestamps: true
+  }
     
-})
+)
 
 const Game = mongoose.model('Game', gameSchema)
 
