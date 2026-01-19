@@ -1,46 +1,30 @@
-import Game from '../models/game.model.js'
+import Game from '../models/game.model.js';
 
-class gameRepository{
-    async findAll() {
-        try {
-            return await Game.find();
-        } catch (error) {
-            throw error;
-        }
-    }
+class GameRepository {
+  async findAll() {
+    return await Game.find();
+  }
 
-    async createGame(gameData){
-        try {
-           const game = new Game(gameData);
-            return await game.save();
-        } catch (error) {
-            throw error;
-        }
-    }
+  async createGame(gameData) {
+    const game = new Game(gameData);
+    return await game.save();
+  }
 
-    async findById(id) {
-        try {
-            return await Game.findById(id);
-        } catch (error) {
-            throw error;
-        }
-    }
+  async findById(id) {
+    return await Game.findById(id);
+  }
 
-    async update(id, updateData) {
-        return Game.findByIdAndUpdate(
-        id,
-        { $set: updateData },
-        { new: true, runValidators: true }
-        );
-    }
+  async update(id, updateData) {
+    return Game.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true },
+    );
+  }
 
-    async delete(id) {
-        try {
-            return await Game.findByIdAndDelete(id);
-        } catch (error) {
-            throw error;
-        }
-    }
+  async delete(id) {
+    return await Game.findByIdAndDelete(id);
+  }
 }
 
-export default gameRepository;
+export default GameRepository;

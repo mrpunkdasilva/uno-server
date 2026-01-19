@@ -1,10 +1,10 @@
-import { Router } from 'express'
-import playerRoutes from './player.routes.js'
-import gameRoutes from  '../routes/game.routes.js'
+import { Router } from 'express';
+import playerRoutes from './player.routes.js';
+import gameRoutes from '../routes/game.routes.js';
 
-const router = Router()
+const router = Router();
 
-router.use('/api/players', playerRoutes)
-router.use('/api/games', gameRoutes)
+router.use('/api/players', playerRoutes);
+router.use('/api/games', gameRoutes);
 
 export default router;

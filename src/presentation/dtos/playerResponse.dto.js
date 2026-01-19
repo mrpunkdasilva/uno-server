@@ -1,4 +1,3 @@
-// Player Response DTO using Zod
 import { z } from 'zod';
 
 const playerResponseDtoSchema = z.object({
@@ -6,7 +5,7 @@ const playerResponseDtoSchema = z.object({
   username: z.string(),
   email: z.email(),
   createdAt: z.date(),
-  updatedAt: z.date()
+  updatedAt: z.date(),
 });
 
 export default playerResponseDtoSchema;
