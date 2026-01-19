@@ -1,62 +1,34 @@
 import Player from '../models/player.model.js';
 
 class PlayerRepository {
-    async findAll() {
-        try {
-            return await Player.find();
-        } catch (error) {
-            throw error;
-        }
-    }
+  async findAll() {
+    return await Player.find();
+  }
 
-    async create(playerData) {
-        try {
-           const player = new Player(playerData);
-            return await player.save();
-        } catch (error) {
-            throw error;
-        }
-    }
+  async create(playerData) {
+    const player = new Player(playerData);
+    return await player.save();
+  }
 
-    async findById(id) {
-        try {
-            return await Player.findById(id);
-        } catch (error) {
-            throw error;
-        }
-    }
+  async findById(id) {
+    return await Player.findById(id);
+  }
 
-    async findByEmail(email) {
-        try {
-            return await Player.findOne({ email });
-        } catch (error) {
-            throw error;
-        }
-    }
+  async findByEmail(email) {
+    return await Player.findOne({ email });
+  }
 
-    async findByUsername(username) {
-        try {
-            return await Player.findOne({ username });
-        } catch (error) {
-            throw error;
-        }
-    }
+  async findByUsername(username) {
+    return await Player.findOne({ username });
+  }
 
-    async update(id, updateData) {
-        try {
-            return await Player.findByIdAndUpdate(id, updateData, { new: true });
-        } catch (error) {
-            throw error;
-        }
-    }
+  async update(id, updateData) {
+    return await Player.findByIdAndUpdate(id, updateData, { new: true });
+  }
 
-    async delete(id) {
-        try {
-            return await Player.findByIdAndDelete(id);
-        } catch (error) {
-            throw error;
-        }
-    }
+  async delete(id) {
+    return await Player.findByIdAndDelete(id);
+  }
 }
 
 export default PlayerRepository;
