@@ -3,8 +3,8 @@ import PlayerRepository from '../../infra/repositories/player.repository.js';
 import playerResponseDtoSchema from '../../presentation/dtos/playerResponse.dto.js';
 
 class PlayerService {
-  constructor() {
-    this.playerRepository = new PlayerRepository();
+  constructor(playerRepository) {
+    this.playerRepository = playerRepository || new PlayerRepository();
   }
 
   async getAllPlayers() {
