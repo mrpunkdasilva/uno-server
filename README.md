@@ -44,7 +44,6 @@ The API currently implements the following functionalities for player management
 ### Prerequisites
 
 *   [Node.js](https://nodejs.org/) (version 20.19.0 or higher)
-*   [npm](https://www.npmjs.com/) (usually installed with Node.js)
 *   [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/)
 
 ### Database Configuration
@@ -66,8 +65,10 @@ The simplest way to set up the MongoDB database is by using Docker Compose.
 1.  **Install dependencies:**
 
     ```bash
-    npm install
+    npm ci
     ```
+
+    (Use `npm install` for local development if preferred, but `npm ci` is recommended for CI/CD environments).
 
 2.  **Configure environment variables:**
 
@@ -78,19 +79,43 @@ The simplest way to set up the MongoDB database is by using Docker Compose.
     MONGO_URI=mongodb://mongoadmin:mongopasswd@localhost:27017/?authSource=admin
     ```
 
-3.  **Start the server:**
+3.  **Start the development server:**
 
     ```bash
-    npm start
+    npm run start:dev
     ```
 
-    If you do not have `nodemon` installed globally or prefer not to, you can run it with:
+    The server will be running on `http://localhost:3000`.
 
-    ```bash
-    node src/app.js
-    ```
+### Code Quality and Testing
 
-The server will be running on `http://localhost:3000`.
+This project uses several tools to ensure code quality and maintainability:
+
+*   **ESLint**: For static code analysis to catch errors and enforce coding styles.
+*   **Prettier**: An opinionated code formatter.
+*   **Husky & lint-staged**: To run linters and formatters on staged Git files, ensuring code quality before commits.
+*   **Jest**: A JavaScript Testing Framework for writing unit and integration tests.
+
+**Available Scripts:**
+
+*   `npm run lint`: Runs ESLint across all `.js` files in `src/`.
+*   `npm run lint:fix`: Runs ESLint and automatically fixes fixable issues.
+*   `npm run format`: Runs Prettier to format all relevant files (`.js`, `.json`, `.md`).
+*   `npm test`: Executes all Jest tests and generates a code coverage report.
+
+**Test Coverage and GitLab Pages:**
+
+Test coverage reports are automatically generated and published to [GitLab Pages](https://docs.gitlab.com/ee/user/project/pages/) as part of the CI/CD pipeline. You can access the detailed HTML reports through your project's GitLab Pages URL (e.g., `https://your-namespace.gitlab.io/your-project/-/jobs/artifacts/main/raw/coverage/lcov-report/index.html?job=pages` - *replace `your-namespace` and `your-project` with actual values*).
+
+### Continuous Integration/Continuous Deployment (CI/CD)
+
+The project utilizes GitLab CI/CD for automated pipeline execution, configured in the `.gitlab-ci.yml` file. The pipeline includes the following stages:
+
+*   **Install**: Installs project dependencies (`npm ci`).
+*   **Lint**: Runs code linting (`npm run lint`) and checks code formatting (`npm run format -- --check`).
+*   **Test**: Executes unit and integration tests (`npm test`) and generates coverage reports.
+*   **Deploy**: Publishes the test coverage reports to GitLab Pages.
+
 
 ## Project Structure
 
