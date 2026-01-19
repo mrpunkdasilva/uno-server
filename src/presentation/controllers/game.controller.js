@@ -1,4 +1,4 @@
-import GameService from '../../core/services/gameService.js';
+import GameService from '../../core/services/game.service.js';
 
 class GameController {
   constructor() {

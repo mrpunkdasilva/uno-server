@@ -1,6 +1,6 @@
-import GameRepository from '../../infra/repositories/gameRepository.js';
 import gameResponseDtoSchema from '../../presentation/dtos/gameResponse.dto.js';
 import updateGameDtoSchema from '../../presentation/dtos/updateGame.dto.js';
+import GameRepository from '../../infra/repositories/game.repository.js';
 
 class GameService {
   constructor() {
