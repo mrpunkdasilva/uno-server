@@ -1,0 +1,52 @@
+stages:
+  - install
+  - lint
+  - test
+  - deploy
+
+cache:
+  paths:
+    - node_modules/
+
+install_dependencies:
+  stage: install
+  image: node:20
+  script:
+    - npm ci
+
+lint_check:
+  stage: lint
+  image: node:20
+  script:
+    - npm run lint
+    - npm run format -- --check
+  dependencies:
+    - install_dependencies
+
+test_suite:
+  stage: test
+  image: node:20
+  script:
+    - npm test
+  dependencies:
+    - install_dependencies
+  artifacts:
+    when: always
+    paths:
+      - coverage/
+  coverage: '/All files[^|]*\|[^|]*\s+([\d.]+)/'
+
+pages:
+  stage: deploy
+  image: node:20
+  script:
+    - mkdir .public
+    - cp -r coverage/lcov-report/* .public
+    - mv .public public
+  artifacts:
+    paths:
+      - public
+  dependencies:
+    - test_suite
+  only:
+    - main
