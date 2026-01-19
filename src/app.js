@@ -11,9 +11,10 @@ const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(Router)
+app.use(Router);
 
 const PORT = process.env.PORT || 3000;
+console.log('Isso é um teste para Husky e lint-staged');
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
