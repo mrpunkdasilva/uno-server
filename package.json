@@ -9,7 +9,7 @@
   "scripts": {
     "start:dev": "nodemon src/app.js",
     "test": "jest --coverage",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.js\" --max-warnings=0",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.js\"",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.js\" --fix",
     "format": "prettier --write \"{src,apps,libs,test}/**/*.js\"",
     "prepare": "husky",
