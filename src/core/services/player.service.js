@@ -3,7 +3,9 @@ import PlayerRepository from '../../infra/repositories/player.repository.js';
 import playerResponseDtoSchema from '../../presentation/dtos/playerResponse.dto.js';
 
 /**
- *
+ * Service class for managing player operations including CRUD operations,
+ * authentication, and data validation. Handles password hashing and ensures
+ * data integrity through DTO validation.
  */
 class PlayerService {
   /**
@@ -15,7 +17,9 @@ class PlayerService {
   }
 
   /**
-   *
+   * Retrieves all players from the database
+   * @returns {Promise<Array>} Array of all player objects formatted as response DTOs
+   * @throws {Error} When database operation fails
    */
   async getAllPlayers() {
     const players = await this.playerRepository.findAll();
@@ -30,8 +34,10 @@ class PlayerService {
   }
 
   /**
-   *
-   * @param playerData
+   * Creates a new player with the provided player data
+   * @param {Object} playerData - The data for creating a new player
+   * @returns {Promise<Object>} The created player object formatted as response DTO
+   * @throws {Error} When player with email or username already exists, or when creation fails
    */
   async createPlayer(playerData) {
     const existingPlayerByEmail = await this.playerRepository.findByEmail(
@@ -61,8 +67,10 @@ class PlayerService {
   }
 
   /**
-   *
-   * @param id
+   * Retrieves a player by their ID
+   * @param {string} id - The ID of the player to retrieve
+   * @returns {Promise<Object>} The player object formatted as response DTO
+   * @throws {Error} When player is not found
    */
   async getPlayerById(id) {
     const player = await this.playerRepository.findById(id);
@@ -75,8 +83,10 @@ class PlayerService {
   }
 
   /**
-   *
-   * @param email
+   * Retrieves a player by their email address
+   * @param {string} email - The email address of the player to retrieve
+   * @returns {Promise<Object>} The player object formatted as response DTO
+   * @throws {Error} When player is not found
    */
   async getPlayerByEmail(email) {
     const player = await this.playerRepository.findByEmail(email);
@@ -89,8 +99,10 @@ class PlayerService {
   }
 
   /**
-   *
-   * @param username
+   * Retrieves a player by their username
+   * @param {string} username - The username of the player to retrieve
+   * @returns {Promise<Object>} The player object formatted as response DTO
+   * @throws {Error} When player is not found
    */
   async getPlayerByUsername(username) {
     const player = await this.playerRepository.findByUsername(username);
@@ -103,9 +115,11 @@ class PlayerService {
   }
 
   /**
-   *
-   * @param id
-   * @param updateData
+   * Updates an existing player with new data
+   * @param {string} id - The ID of the player to update
+   * @param {Object} updateData - The data to update the player with
+   * @returns {Promise<Object>} The updated player object formatted as response DTO
+   * @throws {Error} When player is not found, email/username already in use, or update fails
    */
   async updatePlayer(id, updateData) {
     const player = await this.playerRepository.findById(id);
@@ -144,8 +158,10 @@ class PlayerService {
   }
 
   /**
-   *
-   * @param id
+   * Deletes a player by their ID
+   * @param {string} id - The ID of the player to delete
+   * @returns {Promise<Object>} The deleted player object
+   * @throws {Error} When player is not found or deletion fails
    */
   async deletePlayer(id) {
     const player = await this.playerRepository.findById(id);

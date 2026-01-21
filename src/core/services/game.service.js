@@ -14,14 +14,19 @@ class GameService {
   }
 
   /**
-   *
+   * Retrieves all games from the database
+   * @returns {Promise<Array>} Array of all game objects
+   * @throws {Error} When database operation fails
    */
   async getAllGames() {
     return await this.gameRepository.findAll();
   }
+
   /**
-   *
-   * @param id
+   * Retrieves a game by its ID
+   * @param {string} id - The ID of the game to retrieve
+   * @returns {Promise<Object>} The game object if found
+   * @throws {Error} When game is not found
    */
   async getGameById(id) {
     const game = await this.gameRepository.findById(id);
@@ -32,8 +37,10 @@ class GameService {
   }
 
   /**
-   *
-   * @param gameData
+   * Creates a new game with the provided game data
+   * @param {Object} gameData - The data for creating a new game
+   * @returns {Promise<Object>} The created game object formatted as response DTO
+   * @throws {Error} When game creation fails or validation errors occur
    */
   async createGame(gameData) {
     const game = await this.gameRepository.createGame(gameData);
@@ -50,9 +57,11 @@ class GameService {
   }
 
   /**
-   *
-   * @param id
-   * @param updateData
+   * Updates an existing game with new data
+   * @param {string} id - The ID of the game to update
+   * @param {Object} updateData - The data to update the game with
+   * @returns {Promise<Object>} The updated game object formatted as response DTO
+   * @throws {Error} When game is not found or validation fails
    */
   async updateGame(id, updateData) {
     const validatedData = updateGameDtoSchema.parse(updateData);
@@ -74,8 +83,10 @@ class GameService {
   }
 
   /**
-   *
-   * @param id
+   * Deletes a game by its ID
+   * @param {string} id - The ID of the game to delete
+   * @returns {Promise<Object>} The deleted game object
+   * @throws {Error} When game is not found
    */
   async deleteGame(id) {
     const game = await this.gameRepository.findById(id);
