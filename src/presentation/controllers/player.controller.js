@@ -1,7 +1,8 @@
 import PlayerService from '../../core/services/player.service.js';
 
 /**
- *
+ * Controller class for handling player-related HTTP requests.
+ * Manages player CRUD operations including creation, retrieval, updating, and deletion.
  */
 class PlayerController {
   /**
@@ -12,9 +13,10 @@ class PlayerController {
   }
 
   /**
-   *
-   * @param req
-   * @param res
+   * Retrieves all players from the database
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @returns {Promise<void>} JSON response with success status and players data or error message
    */
   async getAllPlayers(req, res) {
     try {
@@ -32,9 +34,10 @@ class PlayerController {
   }
 
   /**
-   *
-   * @param req
-   * @param res
+   * Creates a new player with the provided player data
+   * @param {Object} req - Express request object containing player creation data in body
+   * @param {Object} res - Express response object
+   * @returns {Promise<void>} JSON response with success status and created player data or error message
    */
   async createPlayer(req, res) {
     try {
@@ -59,9 +62,10 @@ class PlayerController {
   }
 
   /**
-   *
-   * @param req
-   * @param res
+   * Retrieves a player by their ID
+   * @param {Object} req - Express request object containing player ID in params
+   * @param {Object} res - Express response object
+   * @returns {Promise<void>} JSON response with success status and player data or error message
    */
   async getPlayerById(req, res) {
     try {
@@ -79,9 +83,10 @@ class PlayerController {
   }
 
   /**
-   *
-   * @param req
-   * @param res
+   * Updates an existing player with new data
+   * @param {Object} req - Express request object containing player ID in params and update data in body
+   * @param {Object} res - Express response object
+   * @returns {Promise<void>} JSON response with success status and updated player data or error message
    */
   async updatePlayer(req, res) {
     try {
@@ -102,9 +107,10 @@ class PlayerController {
   }
 
   /**
-   *
-   * @param req
-   * @param res
+   * Deletes a player by their ID
+   * @param {Object} req - Express request object containing player ID in params
+   * @param {Object} res - Express response object
+   * @returns {Promise<void>} JSON response with success status and deletion message or error message
    */
   async deletePlayer(req, res) {
     try {
