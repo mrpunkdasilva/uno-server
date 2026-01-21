@@ -1,11 +1,12 @@
+import 'dotenv/config'
 import express from 'express';
-import dotenv from 'dotenv';
+import redisClient from './config/redis.js';
 import connectDB from './config/database.js';
 
 import Router from './presentation/routes/index.js';
 
-dotenv.config();
 connectDB();
+redisClient.connect();
 
 const app = express();
 
