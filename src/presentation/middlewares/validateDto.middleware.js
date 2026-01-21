@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const validateDto = (schema) => (req, res, next) => {
+const validateDto = (schema) => (req, res, next) => {
   const result = schema.safeParse(req.body);
 
   if (!result.success) {
@@ -14,3 +14,4 @@ export const validateDto = (schema) => (req, res, next) => {
   next();
 };
 
+export default validateDto;

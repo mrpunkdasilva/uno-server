@@ -4,7 +4,7 @@ import PlayerController from '../controllers/player.controller.js';
 import createPlayerDto from '../dtos/createPlayer.dto.js'
 import updatePlayerDto from '../dtos/updatePlayer.dto.js'
 
-import { validateDto } from '../middlewares/validateDto.middleware.js';
+import validateDto from '../middlewares/validateDto.middleware.js';
 
 const router = express.Router();
 const playerController = new PlayerController();

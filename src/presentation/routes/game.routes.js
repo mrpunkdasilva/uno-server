@@ -1,6 +1,6 @@
 import { Router } from "express";
 import GameController from "../controllers/game.controller.js";
-import { validateDto } from "../middlewares/validateDto.middleware.js";
+import validateDto from "../middlewares/validateDto.middleware.js";
 
 import createGameDtoSchema from "../dtos/createGame.dto.js";
 import updateGameDtoSchema from "../dtos/updateGame.dto.js";
