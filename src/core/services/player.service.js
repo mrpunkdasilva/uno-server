@@ -1,4 +1,4 @@
-import crypto from 'node:crypto'
+import bcrypt from 'bcrypt'
 import PlayerRepository from '../../infra/repositories/player.repository.js';
 import playerResponseDtoSchema from '../../presentation/dtos/playerResponse.dto.js';
 
@@ -9,7 +9,12 @@ class PlayerService {
 
     async getAllPlayers() {
         try {
-            return await this.playerRepository.findAll();
+            const players = await this.playerRepository.findAll();
+            return players.map(player => {
+                const playerObject = player.toObject();
+                const dataToReturn = { ...playerObject, id: playerObject._id.toString() };
+                return playerResponseDtoSchema.parse(dataToReturn);
+            });
         } catch (error) {
             throw error;
         }
@@ -27,8 +32,7 @@ class PlayerService {
                 throw new Error('Player with this Username already exists');
             }
 
-            playerData.password = crypto.hash('sha256', playerData.password);
-            // ALGORITMO PARA TESTES - TROCAR DEPOIS
+            playerData.password = await bcrypt.hash(playerData.password, 10);
 
             const newUser = await this.playerRepository.create(playerData);
             const userObject = newUser.toObject();
@@ -48,19 +52,8 @@ class PlayerService {
                 throw new Error('Player not found');
             }
 
-            return await this.playerRepository.create(playerData);
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async getPlayerById(id) {
-        try {
-            const player = await this.playerRepository.findById(id);
-            if (!player) {
-                throw new Error('Player not found');
-            }
-            return player;
+            const responseDto = playerResponseDtoSchema.parse(player);
+            return responseDto;
         } catch (error) {
             throw error;
         }
@@ -68,7 +61,13 @@ class PlayerService {
 
     async getPlayerByEmail(email) {
         try {
-            return await this.playerRepository.findByEmail(email);
+            const player = await this.playerRepository.findByEmail(email);
+            if (!player) {
+                throw new Error('Player not found');
+            }
+
+            const responseDto = playerResponseDtoSchema.parse(player);
+            return responseDto;
         } catch (error) {
             throw error;
         }
@@ -76,7 +75,13 @@ class PlayerService {
 
     async getPlayerByUsername(username) {
         try {
-            return await this.playerRepository.findByUsername(username);
+            const player = await this.playerRepository.findByUsername(username);
+            if (!player) {
+                throw new Error('Player not found');
+            }
+
+            const responseDto = playerResponseDtoSchema.parse(player);
+            return responseDto;
         } catch (error) {
             throw error;
         }
@@ -103,8 +108,9 @@ class PlayerService {
                 }
             }
 
-            if (updateData.password) updateData.password = crypto.hash('sha256', updateData.password);
-            // ALGORITMO DE CRIPTOGRAFIA PARA TESTES
+            if (updateData.password) {
+                updateData.password = await bcrypt.hash(updateData.password, 10);
+            }
 
             const updatedPlayer = await this.playerRepository.update(id, updateData);
             const userObject = updatedPlayer.toObject();
