@@ -22,6 +22,13 @@ class PlayerController {
 
     async createPlayer(req, res) {
         try {
+            const { email, password, username } = req.body;
+            if (!email || !password || !username) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Email, password and username are required'
+                });
+            }
             const player = await this.playerService.createPlayer(req.body);
             res.status(201).json({
                 success: true,
