@@ -1,10 +1,24 @@
 import GameService from '../../core/services/game.service.js';
 
+/**
+ * Controller class for handling game-related HTTP requests.
+ * Manages game CRUD operations including creation, retrieval, updating, and deletion.
+ * Provides RESTful API endpoints with proper error handling and response formatting.
+ */
 class GameController {
+  /**
+   *
+   */
   constructor() {
     this.gameService = new GameService();
   }
 
+  /**
+   * Retrieves all games from the database
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @returns {Promise<void>} JSON response with success status and games data or error message
+   */
   async getAllGames(req, res) {
     try {
       const games = await this.gameService.getAllGames();
@@ -20,6 +34,12 @@ class GameController {
     }
   }
 
+  /**
+   * Creates a new game with the provided game data
+   * @param {Object} req - Express request object containing game creation data
+   * @param {Object} res - Express response object
+   * @returns {Promise<void>} JSON response with success status and created game data or error message
+   */
   async createGame(req, res) {
     try {
       const game = await this.gameService.createGame(req.body);
@@ -35,6 +55,12 @@ class GameController {
     }
   }
 
+  /**
+   * Retrieves a game by its ID
+   * @param {Object} req - Express request object containing game ID in params
+   * @param {Object} res - Express response object
+   * @returns {Promise<void>} JSON response with success status and game data or error message
+   */
   async getGameById(req, res) {
     try {
       const game = await this.gameService.getGameById(req.params.id);
@@ -50,6 +76,12 @@ class GameController {
     }
   }
 
+  /**
+   * Updates an existing game with new data
+   * @param {Object} req - Express request object containing game ID in params and update data in body
+   * @param {Object} res - Express response object
+   * @returns {Promise<void>} JSON response with success status and updated game data or error message
+   */
   async updateGame(req, res) {
     try {
       const updatedGame = await this.gameService.updateGame(
@@ -69,6 +101,12 @@ class GameController {
     }
   }
 
+  /**
+   * Deletes a game by its ID
+   * @param {Object} req - Express request object containing game ID in params
+   * @param {Object} res - Express response object
+   * @returns {Promise<void>} JSON response with success status and deletion message or error message
+   */
   async deleteGame(req, res) {
     try {
       await this.gameService.deleteGame(req.params.id);

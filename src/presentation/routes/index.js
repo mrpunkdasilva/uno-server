@@ -1,12 +1,17 @@
 import { Router } from 'express';
+
 import playerRoutes from './player.routes.js';
-import gameRoutes from '../routes/game.routes.js';
+import gameRoutes from './game.routes.js';
 import scoreRoutes from './score.routes.js';
+import authRoutes from './auth.routes.js';
+
+import authentication from '../middlewares/authentication.middleware.js';
 
 const router = Router();
 
-router.use('/api/players', playerRoutes);
-router.use('/api/games', gameRoutes);
-router.use('/api/scores', scoreRoutes);
+router.use('/api/auth', authRoutes);
+router.use('/api/players', authentication, playerRoutes);
+router.use('/api/games', authentication, gameRoutes);
+router.use('/api/scores', authentication, scoreRoutes);
 
 export default router;
