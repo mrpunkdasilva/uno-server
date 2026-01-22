@@ -52,6 +52,54 @@ class ScoreController {
       });
     }
   }
+
+  /**
+   * Handles the request to update a score.
+   * @param req
+   * @param res
+   */
+  async updateScore(req, res) {
+    try {
+      // req.params.id vem da URL (/scores/:id)
+      // req.body vem dos dados enviados (o novo valor)
+      const updatedScore = await this.scoreService.updateScore(
+        req.params.id,
+        req.body,
+      );
+      res.status(200).json({
+        success: true,
+        data: updatedScore,
+      });
+    } catch (error) {
+      // Se o erro for "não encontrado", status 404, senão 400
+      const status = error.message === 'Score not found' ? 404 : 400;
+      res.status(status).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Handles the request to delete a score.
+   * @param req
+   * @param res
+   */
+  async deleteScore(req, res) {
+    try {
+      await this.scoreService.deleteScore(req.params.id);
+      res.status(200).json({
+        success: true,
+        message: 'Score deleted successfully',
+      });
+    } catch (error) {
+      const status = error.message === 'Score not found' ? 404 : 500;
+      res.status(status).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
 }
 
 export default ScoreController;
