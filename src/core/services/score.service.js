@@ -25,6 +25,38 @@ class ScoreService {
 
     return scores;
   }
+
+  /**
+   *
+   * @param id
+   * @param scoreData
+   */
+  async updateScore(id, scoreData) {
+    // new: true retorna o objeto já atualizado
+    const updatedScore = await ScoreModel.findByIdAndUpdate(id, scoreData, {
+      new: true,
+    });
+
+    if (!updatedScore) {
+      throw new Error('Score not found');
+    }
+
+    return updatedScore;
+  }
+
+  /**
+   *
+   * @param id
+   */
+  async deleteScore(id) {
+    const deletedScore = await ScoreModel.findByIdAndDelete(id);
+
+    if (!deletedScore) {
+      throw new Error('Score not found');
+    }
+
+    return deletedScore;
+  }
 }
 
 export default ScoreService;
