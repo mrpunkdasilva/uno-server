@@ -36,6 +36,10 @@ router.put(
   controller.updateGame.bind(controller),
 );
 
+router.post(
+  '/join',
+  controller.startGame.bind(controller),
+);
 router.delete('/:id', controller.deleteGame.bind(controller));
 
 export default router;

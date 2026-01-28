@@ -142,5 +142,60 @@ class GameService {
       currentPlayerCount: game.players.length,
     };
   }
+  async startGame(userId, gameId) {
+    // Find the game in database
+        const game = await this.gameRepository.findById(gameId);
+
+        if (!game) {
+            throw new Error( 
+                'Game not found' 
+            );
+        }
+        
+        // Check if user is the game creator
+        if (game.creatorId !== userId) {
+           throw new Error( 
+              'Only the game creator can start the game' 
+            );
+        }
+        
+        // Check if game is already started
+        if (game.status === 'in_progress') {
+            throw new Error( 
+                'Game has already started' 
+            );
+        }
+        
+        // Check minimum number of players
+        if (game.players.length < game.minPlayers) {
+            throw new Error( 
+                'Minimum ' + game.minPlayers + ' players required to start'
+            );
+        }
+        
+        // Check if all players are ready
+        const notReadyPlayers = game.players.filter(player => !player.ready);
+        if (notReadyPlayers.length > 0) {
+           throw new Error(
+                'Not all players are ready'
+            );
+        }
+        
+        // Update game status to in_progress
+        game.status = 'in_progress';
+        game.startedAt = new Date();
+        
+        // Initialize game positions
+        game.players.forEach((player, index) => {
+            player.position = index + 1;
+        });
+        
+        // Save game changes
+       return await this.gameRepository.update(gameId,game);
+        
+        
+    
+  }
+  
 }
 export default GameService;

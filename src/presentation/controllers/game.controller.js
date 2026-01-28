@@ -151,6 +151,29 @@ class GameController {
         success: false,
         message: error.message,
       });
+    } 
+  }
+  // US 18: Start game when all players are ready
+async startGame(req, res) {
+    try {
+      const { gameId } = req.body;
+        const userId = req.userId; 
+
+        const game = await this.gameService.startGame(userId, gameId);
+
+        return res.status(200).json({
+            message: 'Game started successfully',
+            gameId: game.gameId,
+            startedAt: game.startedAt,
+            totalPlayers: game.players.length,
+            gameStatus: game.status
+        });
+
+        } catch (error) {
+        console.error('Start game error:', error.message);
+        return res.status(500).json({ 
+            error: 'Internal server error' 
+        });
     }
   }
 }
