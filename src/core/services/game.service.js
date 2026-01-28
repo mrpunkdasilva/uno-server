@@ -3,11 +3,11 @@ import updateGameDtoSchema from '../../presentation/dtos/updateGame.dto.js';
 import GameRepository from '../../infra/repositories/game.repository.js';
 
 /**
- *
+ * Service class for handling game-related business logic.
  */
 class GameService {
   /**
-   *
+   * Initializes the GameService with a GameRepository instance.
    */
   constructor() {
     this.gameRepository = new GameRepository();
@@ -94,6 +94,53 @@ class GameService {
       throw new Error('Game not found');
     }
     return await this.gameRepository.delete(id);
+  }
+
+  /**
+   * Allows a user to join an existing game if valid conditions are met.
+   *
+   * @param {string} userId - The ID of the user attempting to join.
+   * @param {string} gameId - The ID of the game to join.
+   * @returns {Promise<Object>} An object containing a success message and current game details.
+   * @throws {Error} If the game is not found (404).
+   * @throws {Error} If the game is not in 'Waiting' status (400).
+   * @throws {Error} If the game has reached its maximum player capacity (400).
+   * @throws {Error} If the user is already a participant in the game (409).
+   */
+  async joinGame(userId, gameId) {
+    const game = await this.gameRepository.findById(gameId);
+
+    if (!game) {
+      throw new Error('Game not found');
+    }
+
+    if (game.status !== 'Waiting') {
+      throw new Error(
+        'Game is not accepting new players (Already Active or Ended)',
+      );
+    }
+
+    if (game.players.length >= game.maxPlayers) {
+      throw new Error('Game is full');
+    }
+
+    // Check if user is already in the game (comparing string IDs)
+    const isAlreadyInGame = game.players.some(
+      (p) => p._id.toString() === userId || p.toString() === userId,
+    );
+
+    if (isAlreadyInGame) {
+      throw new Error('User is already in this game');
+    }
+
+    game.players.push(userId);
+    await game.save();
+
+    return {
+      message: 'User joined the game successfully',
+      gameId: game._id,
+      currentPlayerCount: game.players.length,
+    };
   }
 }
 export default GameService;

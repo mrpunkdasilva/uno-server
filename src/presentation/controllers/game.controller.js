@@ -7,7 +7,7 @@ import GameService from '../../core/services/game.service.js';
  */
 class GameController {
   /**
-   *
+   * Initializes the GameController with a GameService instance.
    */
   constructor() {
     this.gameService = new GameService();
@@ -116,6 +116,38 @@ class GameController {
       });
     } catch (error) {
       res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Handles the request for a user to join a game.
+   * Extracts the user ID from the authenticated token and the game ID from the request body.
+   *
+   * @param {Object} req - The express request object containing user info and body.
+   * @param {Object} res - The express response object.
+   * @returns {Promise<void>} JSON response with success status or error message.
+   */
+  async joinGame(req, res) {
+    try {
+      // req.user comes from the authMiddleware
+      const userId = req.user.id;
+      const { gameId } = req.body;
+
+      const result = await this.gameService.joinGame(userId, gameId);
+
+      res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      let status = 400;
+      if (error.message === 'Game not found') status = 404;
+      if (error.message === 'User is already in this game') status = 409;
+
+      res.status(status).json({
         success: false,
         message: error.message,
       });

@@ -4,6 +4,7 @@ import validateDto from '../middlewares/validateDto.middleware.js';
 
 import createGameDtoSchema from '../dtos/createGame.dto.js';
 import updateGameDtoSchema from '../dtos/updateGame.dto.js';
+import joinGameDtoSchema from '../dtos/joinGame.dto.js';
 
 const router = Router();
 const controller = new GameController();
@@ -15,6 +16,18 @@ router.post(
   '/',
   validateDto(createGameDtoSchema),
   controller.createGame.bind(controller),
+);
+
+router.put(
+  '/:id',
+  validateDto(updateGameDtoSchema),
+  controller.updateGame.bind(controller),
+);
+
+router.post(
+  '/join',
+  validateDto(joinGameDtoSchema),
+  controller.joinGame.bind(controller),
 );
 
 router.put(
