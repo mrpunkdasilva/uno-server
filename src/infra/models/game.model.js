@@ -8,7 +8,9 @@ const gameSchema = mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['Active', 'Pause', 'Ended'],
+      // Added 'Waiting' to allow new players to join
+      enum: ['Waiting', 'Active', 'Pause', 'Ended'],
+      default: 'Waiting',
       required: true,
     },
     maxPlayers: {

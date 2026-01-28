@@ -5,7 +5,7 @@ const updateGameDtoSchema = z.object({
     .string()
     .min(3, 'Game must have at least 3 letters as name (ex: UNO)')
     .optional(),
-  status: z.enum(['Active', 'Pause', 'Ended']).optional(),
+  status: z.enum(['Waiting', 'Active', 'Pause', 'Ended']).optional(),
   maxPlayers: z.number().optional(),
 });
 
