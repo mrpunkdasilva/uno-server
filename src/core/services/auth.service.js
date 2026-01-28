@@ -9,7 +9,7 @@ import PlayerRepository from '../../infra/repositories/player.repository.js';
  */
 class AuthService {
   /**
-   *
+   * fix documentation
    */
   constructor() {
     this.playerRepository = new PlayerRepository();
@@ -179,11 +179,6 @@ class AuthService {
    * @param {string} password - Plain text password to hash
    * @returns {Promise<string>} Hashed password
    * @throws {Error} When password hashing fails
-   */
-
-  /**
-   *
-   * @param password
    */
   async hashPassword(password) {
     const saltRounds = 10;

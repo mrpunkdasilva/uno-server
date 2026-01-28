@@ -151,29 +151,72 @@ class GameController {
         success: false,
         message: error.message,
       });
-    } 
+    }
   }
   // US 18: Start game when all players are ready
-async startGame(req, res) {
+  /**
+   *
+   * @param req
+   * @param res
+   */
+  async startGame(req, res) {
     try {
       const { gameId } = req.body;
-        const userId = req.userId; 
+      const userId = req.userId;
 
-        const game = await this.gameService.startGame(userId, gameId);
+      const game = await this.gameService.startGame(userId, gameId);
 
-        return res.status(200).json({
-            message: 'Game started successfully',
-            gameId: game.gameId,
-            startedAt: game.startedAt,
-            totalPlayers: game.players.length,
-            gameStatus: game.status
-        });
+      return res.status(200).json({
+        message: 'Game started successfully',
+        gameId: game.gameId,
+        startedAt: game.startedAt,
+        totalPlayers: game.players.length,
+        gameStatus: game.status,
+      });
+    } catch (error) {
+      console.error('Start game error:', error.message);
+      return res.status(500).json({
+        error: 'Internal server error',
+      });
+    }
+  }
+  // US19 - Allow player to abandon an ongoing game
+  /**
+   *
+   * @param req
+   * @param res
+   */
+  async abandonGame(req, res) {
+    try {
+      const { gameId } = req.body;
+      //const userId = req.userId;
 
-        } catch (error) {
-        console.error('Start game error:', error.message);
-        return res.status(500).json({ 
-            error: 'Internal server error' 
-        });
+      //const result = await this.gameService.abandonGame(userId, gameId);
+
+      return res.status(200).json({
+        success: true,
+        message: 'You left the game',
+        gameId: gameId,
+      });
+    } catch (error) {
+      console.error('Abandon game error:', error.message);
+
+      // Simple error handling for common cases
+      if (
+        error.message.includes('not found') ||
+        error.message.includes('not in this game')
+      ) {
+        return res.status(404).json({ error: error.message });
+      }
+
+      if (error.message.includes('Cannot abandon')) {
+        return res.status(400).json({ error: error.message });
+      }
+
+      // Default error
+      return res.status(500).json({
+        error: 'Internal server error',
+      });
     }
   }
 }
