@@ -1,6 +1,12 @@
 import CardService from '../../core/services/card.service.js';
 
+/**
+ *
+ */
 class CardController {
+  /**
+   *
+   */
   constructor() {
     this.cardService = new CardService();
   }
@@ -15,7 +21,7 @@ class CardController {
     } catch (error) {
       return res.status(500).json({
         error: 'Internal server error',
-        message: error.message
+        message: error.message,
       });
     }
   };
@@ -27,7 +33,7 @@ class CardController {
 
       if (!card) {
         return res.status(404).json({
-          error: 'Card not found'
+          error: 'Card not found',
         });
       }
 
@@ -35,7 +41,7 @@ class CardController {
     } catch (error) {
       return res.status(500).json({
         error: 'Internal server error',
-        message: error.message
+        message: error.message,
       });
     }
   };
@@ -49,7 +55,7 @@ class CardController {
 
       if (!updatedCard) {
         return res.status(404).json({
-          error: 'Card not found'
+          error: 'Card not found',
         });
       }
 
@@ -57,7 +63,7 @@ class CardController {
     } catch (error) {
       return res.status(500).json({
         error: 'Internal server error',
-        message: error.message
+        message: error.message,
       });
     }
   };
@@ -69,7 +75,7 @@ class CardController {
 
       if (!deleted) {
         return res.status(404).json({
-          error: 'Card not found'
+          error: 'Card not found',
         });
       }
 
@@ -77,7 +83,7 @@ class CardController {
     } catch (error) {
       return res.status(500).json({
         error: 'Internal server error',
-        message: error.message
+        message: error.message,
       });
     }
   };
@@ -86,18 +92,18 @@ class CardController {
     try {
       const { color, gameId, value, limit } = req.query;
       const filters = {};
-      
+
       if (color) filters.color = color;
       if (gameId) filters.gameId = gameId;
       if (value) filters.value = value;
       if (limit) filters.limit = limit;
-      
+
       const cards = await this.cardService.findAll(filters);
       return res.status(200).json(cards);
     } catch (error) {
       return res.status(500).json({
         error: 'Internal server error',
-        message: error.message
+        message: error.message,
       });
     }
   };

@@ -7,30 +7,19 @@ const cardController = new CardController();
 
 router.use(cardMiddleware.logRequest);
 
-router.post('/', 
-  cardMiddleware.validateCard,
-  cardController.create
-);
+router.post('/', cardMiddleware.validateCard, cardController.create);
 
-router.get('/',
-  cardMiddleware.validateQueryParams,
-  cardController.findAll
-);
+router.get('/', cardMiddleware.validateQueryParams, cardController.findAll);
 
-router.get('/:id',
-  cardMiddleware.validateCardId,
-  cardController.findById
-);
+router.get('/:id', cardMiddleware.validateCardId, cardController.findById);
 
-router.put('/:id',
+router.put(
+  '/:id',
   cardMiddleware.validateCardId,
   cardMiddleware.validateCard,
-  cardController.update
+  cardController.update,
 );
 
-router.delete('/:id',
-  cardMiddleware.validateCardId,
-  cardController.delete
-);
+router.delete('/:id', cardMiddleware.validateCardId, cardController.delete);
 
 export default router;

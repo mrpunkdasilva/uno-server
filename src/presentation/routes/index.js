@@ -14,6 +14,6 @@ router.use('/api/auth', authRoutes);
 router.use('/api/players', authentication, playerRoutes);
 router.use('/api/games', authentication, gameRoutes);
 router.use('/api/scores', authentication, scoreRoutes);
-router.use ('/api/cards', authentication, cardroutes);
+router.use('/api/cards', authentication, cardroutes);
 
 export default router;
