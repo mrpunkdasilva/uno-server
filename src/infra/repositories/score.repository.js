@@ -72,6 +72,16 @@ class ScoreRepository {
   async delete(id) {
     return await ScoreModel.findByIdAndDelete(id);
   }
+
+  /**
+   * Saves a score document
+   * @param {Object} score - The score object to save
+   * @returns {Promise<Object>} The saved score object
+   */
+  async save(data) {
+    const score = new ScoreModel(data);
+    return await score.save();
+  }
 }
 
 export default ScoreRepository;

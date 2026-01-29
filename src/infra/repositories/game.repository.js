@@ -63,8 +63,9 @@ class GameRepository {
    * @returns {Promise<Object>} The saved game object
    * @throws {Error} When game saving fails
    */
-  async save(game) {
-    return await Game.save(game);
+  async save(data) {
+    const game = new Game(data);
+    return await game.save();
   }
 }
 

@@ -142,7 +142,7 @@ class GameService {
     }
 
     game.players.push({ _id: userId, ready: false, position: 0 });
-    await game.save();
+    await this.gameRepository.save(game);
 
     return {
       message: 'User joined the game successfully',
