@@ -19,7 +19,8 @@ class GameService {
    * @throws {Error} When database operation fails
    */
   async getAllGames() {
-    return await this.gameRepository.findAll();
+    const games = await this.gameRepository.findAll();
+    return games.map((game) => gameResponseDtoSchema.parse(game));
   }
 
   /**
@@ -33,7 +34,7 @@ class GameService {
     if (!game) {
       throw new Error('Game not found');
     }
-    return game;
+    return gameResponseDtoSchema.parse(game);
   }
 
   /**
@@ -233,7 +234,7 @@ class GameService {
       player.position = index + 1;
     });
 
-    await game.save();
+    await this.gameRepository.save(game);
 
     return gameResponseDtoSchema.parse({
       id: game._id.toString(),
@@ -285,7 +286,7 @@ class GameService {
     }
 
     // Save changes
-    await game.save();
+    await this.gameRepository.save(game);
 
     // Return success
     return {

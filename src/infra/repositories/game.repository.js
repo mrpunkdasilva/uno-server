@@ -56,6 +56,16 @@ class GameRepository {
   async delete(id) {
     return await Game.findByIdAndDelete(id);
   }
+
+  /**
+   * Saves a game to the database
+   * @param {Object} game - The game object to save
+   * @returns {Promise<Object>} The saved game object
+   * @throws {Error} When game saving fails
+   */
+  async save(game) {
+    return await Game.save(game);
+  }
 }
 
 export default GameRepository;
