@@ -69,7 +69,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5NmU4MTMxMzY3OTVkOTA0ZjFiMGUxYiIsImlhdCI6MTc2OTY0MTgwOCwiZXhwIjoxNzY5NjQyNzA4fQ.MFeShEHCuVFKGaC0tDgP51iy05YTM13srj-tZ4iTHow",
+                  "value": "",
                   "type": "string"
                 }
               ]
@@ -120,11 +120,11 @@
               }
             },
             "url": {
-              "raw": "http://localhost:3000/api/games/696d51695d0fe5cf676ce903",
+              "raw": "http://localhost:3000/api/games/<id>",
               "protocol": "http",
               "host": ["localhost"],
               "port": "3000",
-              "path": ["api", "games", "696d51695d0fe5cf676ce903"]
+              "path": ["api", "games", "<id>"]
             }
           },
           "response": []
@@ -167,7 +167,7 @@
                 }
               ]
             },
-            "method": "POST",
+            "method": "GET",
             "header": [],
             "url": {
               "raw": "http://localhost:3000/api/games/<id>/start",
@@ -181,6 +181,9 @@
         },
         {
           "name": "joinGame",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
             "auth": {
               "type": "bearer",
@@ -192,7 +195,7 @@
                 }
               ]
             },
-            "method": "POST",
+            "method": "GET",
             "header": [],
             "body": {
               "mode": "raw",
@@ -226,7 +229,7 @@
                 }
               ]
             },
-            "method": "POST",
+            "method": "GET",
             "header": [],
             "url": {
               "raw": "http://localhost:3000/api/games/<id>/abandon",
@@ -251,7 +254,7 @@
                 }
               ]
             },
-            "method": "POST",
+            "method": "GET",
             "header": [],
             "url": {
               "raw": "http://localhost:3000/api/games/<id>/ready",
@@ -330,7 +333,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"email\": \"kadymo@email.com\",\r\n    \"password\": \"123456\"\r\n}",
+              "raw": "{\r\n    \"email\": \"santana@email.com\",\r\n    \"password\": \"123456\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
