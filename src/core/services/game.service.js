@@ -184,7 +184,7 @@ class GameService {
     }
 
     playerEntry.ready = true;
-    await game.save();
+    await this.gameRepository.save(game);
 
     return {
       success: true,
