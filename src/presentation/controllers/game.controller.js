@@ -42,7 +42,8 @@ class GameController {
    */
   async createGame(req, res) {
     try {
-      const game = await this.gameService.createGame(req.body);
+      const userId = req.user.id;
+      const game = await this.gameService.createGame(req.body, userId);
       res.status(201).json({
         success: true,
         data: game,
@@ -134,7 +135,7 @@ class GameController {
     try {
       // req.user comes from the authMiddleware
       const userId = req.user.id;
-      const { gameId } = req.body;
+      const gameId = req.params.id;
 
       const result = await this.gameService.joinGame(userId, gameId);
 
@@ -153,69 +154,112 @@ class GameController {
       });
     }
   }
-  // US 18: Start game when all players are ready
+
   /**
-   *
+   * Start game when all players are ready
    * @param req
    * @param res
+   * @returns {Promise<void>} JSON response with success status or error message.
    */
   async startGame(req, res) {
     try {
-      const { gameId } = req.body;
-      const userId = req.userId;
+      const gameId = req.params.id;
+      const userId = req.user.id;
 
-      const game = await this.gameService.startGame(userId, gameId);
+      const result = await this.gameService.startGame(userId, gameId);
 
       return res.status(200).json({
+        success: true,
         message: 'Game started successfully',
-        gameId: game.gameId,
-        startedAt: game.startedAt,
-        totalPlayers: game.players.length,
-        gameStatus: game.status,
+        data: result,
       });
     } catch (error) {
       console.error('Start game error:', error.message);
-      return res.status(500).json({
-        error: 'Internal server error',
+      let status = 500; // Default to internal server error
+
+      if (error.message === 'Game not found') {
+        status = 404;
+      } else if (error.message === 'Only the game creator can start the game') {
+        status = 403;
+      } else if (error.message === 'Game has already started') {
+        status = 409;
+      } else if (
+        error.message.includes('players required to start') ||
+        error.message === 'Not all players are ready'
+      ) {
+        status = 400;
+      }
+
+      return res.status(status).json({
+        success: false,
+        message: error.message,
       });
     }
   }
-  // US19 - Allow player to abandon an ongoing game
+
   /**
-   *
+   * Allow player to abandon an ongoing game
    * @param req
    * @param res
+   * @returns Object
    */
   async abandonGame(req, res) {
     try {
-      const { gameId } = req.body;
-      //const userId = req.userId;
+      const gameId = req.params.id;
+      const userId = req.user.id;
 
-      //const result = await this.gameService.abandonGame(userId, gameId);
+      await this.gameService.abandonGame(userId, gameId);
 
       return res.status(200).json({
         success: true,
         message: 'You left the game',
-        gameId: gameId,
       });
     } catch (error) {
       console.error('Abandon game error:', error.message);
 
-      // Simple error handling for common cases
-      if (
-        error.message.includes('not found') ||
-        error.message.includes('not in this game')
-      ) {
-        return res.status(404).json({ error: error.message });
+      let status = 500;
+      if (error.message === 'Game not found') {
+        status = 404;
+      } else if (error.message === 'You are not in this game') {
+        status = 404;
+      } else if (error.message === 'Cannot abandon now') {
+        status = 400;
       }
+      return res.status(status).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
 
-      if (error.message.includes('Cannot abandon')) {
-        return res.status(400).json({ error: error.message });
-      }
+  /**
+   * Set current player as ready for the game
+   * @param req
+   * @param res
+   * @returns Object
+   */
+  async setReady(req, res) {
+    try {
+      const gameId = req.params.id;
+      const userId = req.user.id;
 
-      // Default error
-      return res.status(500).json({
-        error: 'Internal server error',
+      const result = await this.gameService.setPlayerReady(userId, gameId);
+
+      return res.status(200).json({
+        success: true,
+        message: 'You are ready',
+        data: result,
+      });
+    } catch (error) {
+      console.error('Set ready error:', error.message);
+      let status = 500;
+      if (error.message === 'Game not found') status = 404;
+      if (error.message === 'You are not in this game') status = 404;
+      if (error.message === 'Cannot ready now') status = 400;
+
+      return res.status(status).json({
+        success: false,
+        message: error.message,
       });
     }
   }
