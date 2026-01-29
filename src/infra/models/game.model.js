@@ -6,6 +6,11 @@ const gameSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    creatorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Player',
+      required: true,
+    },
     status: {
       type: String,
       // Added 'Waiting' to allow new players to join
@@ -19,10 +24,26 @@ const gameSchema = mongoose.Schema(
     },
     players: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Player',
+        _id: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Player',
+          required: true,
+        },
+        ready: {
+          type: Boolean,
+          default: false,
+        },
+        position: {
+          type: Number,
+          default: 0,
+        },
       },
     ],
+    winnerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Player',
+      default: null,
+    },
   },
   {
     timestamps: true,

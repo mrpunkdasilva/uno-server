@@ -9,7 +9,7 @@
   },
   "item": [
     {
-      "name": "GAMES",
+      "name": "Games",
       "item": [
         {
           "name": "getGames",
@@ -29,14 +29,9 @@
             "url": {
               "raw": "http://localhost:3000/api/games",
               "protocol": "http",
-              "host": [
-                "localhost"
-              ],
+              "host": ["localhost"],
               "port": "3000",
-              "path": [
-                "api",
-                "games"
-              ]
+              "path": ["api", "games"]
             }
           },
           "response": []
@@ -59,15 +54,9 @@
             "url": {
               "raw": "http://localhost:3000/api/games/id",
               "protocol": "http",
-              "host": [
-                "localhost"
-              ],
+              "host": ["localhost"],
               "port": "3000",
-              "path": [
-                "api",
-                "games",
-                "id"
-              ]
+              "path": ["api", "games", "id"]
             }
           },
           "response": []
@@ -89,7 +78,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Uno Game 2\",\n  \"status\": \"Active\",\n  \"maxPlayers\": 4\n}\n",
+              "raw": "{\n  \"title\": \"Uno Game 5\",\n  \"status\": \"Waiting\",\n  \"maxPlayers\": 4\n}\n",
               "options": {
                 "raw": {
                   "language": "json"
@@ -99,15 +88,9 @@
             "url": {
               "raw": "http://localhost:3000/api/games/",
               "protocol": "http",
-              "host": [
-                "localhost"
-              ],
+              "host": ["localhost"],
               "port": "3000",
-              "path": [
-                "api",
-                "games",
-                ""
-              ]
+              "path": ["api", "games", ""]
             }
           },
           "response": []
@@ -137,17 +120,11 @@
               }
             },
             "url": {
-              "raw": "http://localhost:3000/api/games/696d51695d0fe5cf676ce903",
+              "raw": "http://localhost:3000/api/games/<id>",
               "protocol": "http",
-              "host": [
-                "localhost"
-              ],
+              "host": ["localhost"],
               "port": "3000",
-              "path": [
-                "api",
-                "games",
-                "696d51695d0fe5cf676ce903"
-              ]
+              "path": ["api", "games", "<id>"]
             }
           },
           "response": []
@@ -170,15 +147,121 @@
             "url": {
               "raw": "http://localhost:3000/api/games/id",
               "protocol": "http",
-              "host": [
-                "localhost"
-              ],
+              "host": ["localhost"],
               "port": "3000",
-              "path": [
-                "api",
-                "games",
-                "id"
+              "path": ["api", "games", "id"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "startGame",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "",
+                  "type": "string"
+                }
               ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/games/<id>/start",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "games", "<id>", "start"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "joinGame",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"gameId\": \"697ac57bf3e42caefe81d9a0\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/games/<id>/join",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "games", "<id>", "join"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "abandonGame",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/games/<id>/abandon",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "games", "<id>", "abandon"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "setReady",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/games/<id>/ready",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "games", "<id>", "ready"]
             }
           },
           "response": []
@@ -186,7 +269,7 @@
       ]
     },
     {
-      "name": "AUTHENTICATION",
+      "name": "Authentication",
       "item": [
         {
           "name": "getAuthenticatedPlayerProfile",
@@ -206,15 +289,9 @@
             "url": {
               "raw": "http://localhost:3000/api/auth/profile",
               "protocol": "http",
-              "host": [
-                "localhost"
-              ],
+              "host": ["localhost"],
               "port": "3000",
-              "path": [
-                "api",
-                "auth",
-                "profile"
-              ]
+              "path": ["api", "auth", "profile"]
             }
           },
           "response": []
@@ -223,14 +300,7 @@
           "name": "register",
           "request": {
             "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "",
-                  "type": "string"
-                }
-              ]
+              "type": "noauth"
             },
             "method": "POST",
             "header": [],
@@ -246,15 +316,9 @@
             "url": {
               "raw": "http://localhost:3000/api/auth/register",
               "protocol": "http",
-              "host": [
-                "localhost"
-              ],
+              "host": ["localhost"],
               "port": "3000",
-              "path": [
-                "api",
-                "auth",
-                "register"
-              ]
+              "path": ["api", "auth", "register"]
             }
           },
           "response": []
@@ -263,20 +327,13 @@
           "name": "login",
           "request": {
             "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "",
-                  "type": "string"
-                }
-              ]
+              "type": "noauth"
             },
             "method": "POST",
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"email\": \"kadymo@email.com\",\r\n    \"password\": \"123456\"\r\n}",
+              "raw": "{\r\n    \"email\": \"santana@email.com\",\r\n    \"password\": \"123456\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -286,15 +343,9 @@
             "url": {
               "raw": "http://localhost:3000/api/auth/login",
               "protocol": "http",
-              "host": [
-                "localhost"
-              ],
+              "host": ["localhost"],
               "port": "3000",
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ]
+              "path": ["api", "auth", "login"]
             }
           },
           "response": []
@@ -326,15 +377,9 @@
             "url": {
               "raw": "http://localhost:3000/api/auth/refresh-token",
               "protocol": "http",
-              "host": [
-                "localhost"
-              ],
+              "host": ["localhost"],
               "port": "3000",
-              "path": [
-                "api",
-                "auth",
-                "refresh-token"
-              ]
+              "path": ["api", "auth", "refresh-token"]
             }
           },
           "response": []
@@ -357,16 +402,9 @@
             "url": {
               "raw": "http://localhost:3000/api/auth/logout/",
               "protocol": "http",
-              "host": [
-                "localhost"
-              ],
+              "host": ["localhost"],
               "port": "3000",
-              "path": [
-                "api",
-                "auth",
-                "logout",
-                ""
-              ]
+              "path": ["api", "auth", "logout", ""]
             }
           },
           "response": []
@@ -374,7 +412,7 @@
       ]
     },
     {
-      "name": "PLAYERS",
+      "name": "Players",
       "item": [
         {
           "name": "getPlayers",
@@ -394,14 +432,9 @@
             "url": {
               "raw": "http://localhost:3000/api/players",
               "protocol": "http",
-              "host": [
-                "localhost"
-              ],
+              "host": ["localhost"],
               "port": "3000",
-              "path": [
-                "api",
-                "players"
-              ]
+              "path": ["api", "players"]
             }
           },
           "response": []
@@ -424,15 +457,9 @@
             "url": {
               "raw": "http://localhost:3000/api/players/id",
               "protocol": "http",
-              "host": [
-                "localhost"
-              ],
+              "host": ["localhost"],
               "port": "3000",
-              "path": [
-                "api",
-                "players",
-                "id"
-              ]
+              "path": ["api", "players", "id"]
             }
           },
           "response": []
@@ -464,15 +491,9 @@
             "url": {
               "raw": "http://localhost:3000/api/players/",
               "protocol": "http",
-              "host": [
-                "localhost"
-              ],
+              "host": ["localhost"],
               "port": "3000",
-              "path": [
-                "api",
-                "players",
-                ""
-              ]
+              "path": ["api", "players", ""]
             }
           },
           "response": []
@@ -504,15 +525,9 @@
             "url": {
               "raw": "http://localhost:3000/api/players/id",
               "protocol": "http",
-              "host": [
-                "localhost"
-              ],
+              "host": ["localhost"],
               "port": "3000",
-              "path": [
-                "api",
-                "players",
-                "id"
-              ]
+              "path": ["api", "players", "id"]
             }
           },
           "response": []
@@ -535,15 +550,9 @@
             "url": {
               "raw": "http://localhost:3000/api/players/id",
               "protocol": "http",
-              "host": [
-                "localhost"
-              ],
+              "host": ["localhost"],
               "port": "3000",
-              "path": [
-                "api",
-                "players",
-                "id"
-              ]
+              "path": ["api", "players", "id"]
             }
           },
           "response": []
@@ -551,7 +560,7 @@
       ]
     },
     {
-      "name": "SCORES",
+      "name": "Scores",
       "item": [
         {
           "name": "getScores",
@@ -571,14 +580,9 @@
             "url": {
               "raw": "http://localhost:3000/api/scores",
               "protocol": "http",
-              "host": [
-                "localhost"
-              ],
+              "host": ["localhost"],
               "port": "3000",
-              "path": [
-                "api",
-                "scores"
-              ]
+              "path": ["api", "scores"]
             }
           },
           "response": []
@@ -598,39 +602,9 @@
             },
             "method": "POST",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/scores",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "3000",
-              "path": [
-                "api",
-                "scores"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "updateScore",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PUT",
-            "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"score\": 9999\r\n}",
+              "raw": "{\r\n    \"playerId\": \"\",\r\n    \"matchId\": \"\",\r\n    \"score\": 5\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -638,48 +612,11 @@
               }
             },
             "url": {
-              "raw": "http://localhost:3000/api/scores/id",
+              "raw": "http://localhost:3000/api/scores",
               "protocol": "http",
-              "host": [
-                "localhost"
-              ],
+              "host": ["localhost"],
               "port": "3000",
-              "path": [
-                "api",
-                "scores",
-                "id"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "deleteScore",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/scores/id",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "3000",
-              "path": [
-                "api",
-                "scores",
-                "id"
-              ]
+              "path": ["api", "scores"]
             }
           },
           "response": []
