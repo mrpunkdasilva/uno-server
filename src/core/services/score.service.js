@@ -1,4 +1,4 @@
-import { ScoreRepository } from '../../infra/repositories/score.repository.js';
+import ScoreRepository from '../../infra/repositories/score.repository.js';
 
 /**
  * Service to handle score business logic.
