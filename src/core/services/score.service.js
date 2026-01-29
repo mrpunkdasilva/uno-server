@@ -4,6 +4,9 @@ import ScoreRepository from '../../infra/repositories/score.repository.js';
  * Service to handle score business logic.
  */
 class ScoreService {
+  /**
+   * Initializes the ScoreService with a ScoreRepository instance.
+   */
   constructor() {
     this.scoreRepository = new ScoreRepository();
   }
@@ -23,14 +26,15 @@ class ScoreService {
    * @returns {Promise<Array>} A list of scores sorted by date.
    */
   async getAllScores() {
-    const scores = await this.scoreRepository.getAll();
+    const scores = await this.scoreRepository.findAll();
     return scores;
   }
 
   /**
-   *
-   * @param id
-   * @param scoreData
+   * Updates a score entry in the database.
+   * @param {string} id - The ID of the score to update.
+   * @param {Object} scoreData - The data to update the score.
+   * @returns {Promise<Object>} The updated score document.
    */
   async updateScore(id, scoreData) {
     // new: true retorna o objeto já atualizado
@@ -44,8 +48,9 @@ class ScoreService {
   }
 
   /**
-   *
-   * @param id
+   * Deletes a score entry from the database.
+   * @param {string} id - The ID of the score to delete.
+   * @returns {Promise<Object>} The deleted score document.
    */
   async deleteScore(id) {
     const deletedScore = await this.scoreRepository.delete(id);

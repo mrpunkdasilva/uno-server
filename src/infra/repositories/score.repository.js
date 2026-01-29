@@ -78,8 +78,7 @@ class ScoreRepository {
    * @param {Object} score - The score object to save
    * @returns {Promise<Object>} The saved score object
    */
-  async save(data) {
-    const score = new ScoreModel(data);
+  async save(score) {
     return await score.save();
   }
 }

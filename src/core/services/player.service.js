@@ -9,7 +9,7 @@ import playerResponseDtoSchema from '../../presentation/dtos/playerResponse.dto.
  */
 class PlayerService {
   /**
-   *
+   * Initializes the PlayerService with a PlayerRepository instance.
    * @param playerRepository
    */
   constructor(playerRepository) {

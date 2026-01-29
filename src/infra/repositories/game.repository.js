@@ -59,12 +59,11 @@ class GameRepository {
 
   /**
    * Saves a game to the database
-   * @param {Object} game - The game object to save
-   * @returns {Promise<Object>} The saved game object
-   * @throws {Error} When game saving fails
+   * @param {Object} game - The data for creating a new game
+   * @returns {Promise<Object>} The created game object
+   * @throws {Error} When game creation fails
    */
-  async save(data) {
-    const game = new Game(data);
+  async save(game) {
     return await game.save();
   }
 }

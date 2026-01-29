@@ -9,7 +9,7 @@
   },
   "item": [
     {
-      "name": "GAMES",
+      "name": "Games",
       "item": [
         {
           "name": "getGames",
@@ -269,7 +269,7 @@
       ]
     },
     {
-      "name": "AUTHENTICATION",
+      "name": "Authentication",
       "item": [
         {
           "name": "getAuthenticatedPlayerProfile",
@@ -412,7 +412,7 @@
       ]
     },
     {
-      "name": "PLAYERS",
+      "name": "Players",
       "item": [
         {
           "name": "getPlayers",
@@ -560,7 +560,7 @@
       ]
     },
     {
-      "name": "SCORES",
+      "name": "Scores",
       "item": [
         {
           "name": "getScores",
@@ -602,6 +602,15 @@
             },
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"playerId\": \"\",\r\n    \"matchId\": \"\",\r\n    \"score\": 5\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "http://localhost:3000/api/scores",
               "protocol": "http",
