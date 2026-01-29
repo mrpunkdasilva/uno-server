@@ -23,10 +23,10 @@ router.put(
   controller.updateGame.bind(controller),
 );
 
-router.post('/:id/join', controller.joinGame.bind(controller));
-router.post('/:id/ready', controller.setReady.bind(controller));
-router.post('/:id/start', controller.startGame.bind(controller));
-router.post('/:id/abandon', controller.abandonGame.bind(controller));
+router.get('/:id/join', controller.joinGame.bind(controller));
+router.get('/:id/ready', controller.setReady.bind(controller));
+router.get('/:id/start', controller.startGame.bind(controller));
+router.get('/:id/abandon', controller.abandonGame.bind(controller));
 
 router.delete('/:id', controller.deleteGame.bind(controller));
 

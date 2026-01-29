@@ -1,16 +1,20 @@
-import { ScoreModel } from '../../infra/models/score.model.js';
+import { ScoreRepository } from '../../infra/repositories/score.repository.js';
 
 /**
  * Service to handle score business logic.
  */
 class ScoreService {
+  constructor() {
+    this.scoreRepository = new ScoreRepository();
+  }
+
   /**
    * Creates a new score entry in the database.
    * @param {Object} scoreData - The data to create the score.
    * @returns {Promise<Object>} The created score document.
    */
   async createScore(scoreData) {
-    const score = await ScoreModel.create(scoreData);
+    const score = await this.scoreRepository.create(scoreData);
     return score;
   }
 
@@ -19,10 +23,7 @@ class ScoreService {
    * @returns {Promise<Array>} A list of scores sorted by date.
    */
   async getAllScores() {
-    const scores = await ScoreModel.find()
-      .populate('playerId', 'username email')
-      .sort({ createdAt: -1 });
-
+    const scores = await this.scoreRepository.getAll();
     return scores;
   }
 
@@ -33,9 +34,7 @@ class ScoreService {
    */
   async updateScore(id, scoreData) {
     // new: true retorna o objeto já atualizado
-    const updatedScore = await ScoreModel.findByIdAndUpdate(id, scoreData, {
-      new: true,
-    });
+    const updatedScore = await this.scoreRepository.update(id, scoreData);
 
     if (!updatedScore) {
       throw new Error('Score not found');
@@ -49,7 +48,7 @@ class ScoreService {
    * @param id
    */
   async deleteScore(id) {
-    const deletedScore = await ScoreModel.findByIdAndDelete(id);
+    const deletedScore = await this.scoreRepository.delete(id);
 
     if (!deletedScore) {
       throw new Error('Score not found');
