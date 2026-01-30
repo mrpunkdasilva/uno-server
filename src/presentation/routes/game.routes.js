@@ -27,6 +27,7 @@ router.get('/:id/join', controller.joinGame.bind(controller));
 router.get('/:id/ready', controller.setReady.bind(controller));
 router.get('/:id/start', controller.startGame.bind(controller));
 router.get('/:id/abandon', controller.abandonGame.bind(controller));
+router.get('/:id/status', controller.getGameStatus.bind(controller));
 
 router.delete('/:id', controller.deleteGame.bind(controller));
 

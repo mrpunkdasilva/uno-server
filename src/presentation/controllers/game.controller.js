@@ -263,6 +263,38 @@ class GameController {
       });
     }
   }
+
+  async getGameStatus(req, res) {
+    try {
+      const { id } = req.params;
+
+      // Service returns just status string
+      const status = await this.gameService.getGameStatus(id);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          status: status, // "Waiting", "Active", "Pause", "Ended"
+        },
+      });
+    } catch (error) {
+      let statusCode = 500;
+      let message = error.message;
+
+      if (error.message === 'Invalid game ID') {
+        statusCode = 400;
+        message = 'Invalid game ID';
+      } else if (error.message === 'Game not found') {
+        statusCode = 404;
+        message = 'Game not found';
+      }
+
+      res.status(statusCode).json({
+        success: false,
+        message: message,
+      });
+    }
+  }
 }
 
 export default GameController;
