@@ -66,6 +66,11 @@ class GameRepository {
   async save(game) {
     return await game.save();
   }
+
+  async findGameStatus(id) {
+    const game = await Game.findById(id).select('status');
+    return game;
+  }
 }
 
 export default GameRepository;

@@ -294,5 +294,21 @@ class GameService {
       message: 'You left the game',
     };
   }
+
+  async getGameStatus(id) {
+    // ID basic validation
+    if (!id || typeof id !== 'string' || id.trim() === '') {
+      throw new Error('Invalid game ID');
+    }
+
+    const trimmedId = id.trim();
+    const game = await this.gameRepository.findGameStatus(trimmedId);
+    if (!game) {
+      throw new Error('Game not found');
+    }
+
+    // Returns a sting with game status
+    return game.status; // "Waiting", "Active", "Pause", "Ended"
+  }
 }
 export default GameService;
