@@ -310,5 +310,153 @@ class GameService {
     // Returns a sting with game status
     return game.status; // "Waiting", "Active", "Pause", "Ended"
   }
+
+  /**
+   * Get the top card from the discard pile
+   * @param {string} gameId - The game ID
+   * @returns {Promise<Object>} Top card information
+   * @throws {Error} When game is not found or ID is invalid
+   */
+  async getDiscardTop(gameId) {
+    // Validate game ID
+    if (!gameId || typeof gameId !== 'string' || gameId.trim() === '') {
+      throw new Error('Invalid game ID');
+    }
+
+    const trimmedId = gameId.trim();
+
+    // Find game with discard pile
+    const game = await this.gameRepository.findDiscardTop(trimmedId);
+
+    if (!game) {
+      throw new Error('Game not found');
+    }
+
+    // If game hasn't started, return appropriate response
+    if (game.status === 'Waiting') {
+      return {
+        game_id: trimmedId,
+        error: 'Game has not started yet',
+        game_state: 'waiting',
+        initial_card: game.initialCard || {
+          color: 'blue',
+          value: '0',
+          type: 'number',
+        },
+      };
+    }
+
+    // Check if discard pile is empty
+    if (!game.discardPile || game.discardPile.length === 0) {
+      return {
+        game_id: trimmedId,
+        top_card: null,
+        message: 'Discard pile is empty - no cards have been played yet',
+        discard_pile_size: 0,
+        initial_card: game.initialCard || {
+          color: 'blue',
+          value: '0',
+          type: 'number',
+        },
+      };
+    }
+
+    // Get the top card (last card in the array)
+    const topCard = game.discardPile[game.discardPile.length - 1];
+
+    // Get recent cards (last 5 cards)
+    const recentCards = game.discardPile.slice(-5).reverse(); // Most recent first
+
+    return {
+      game_id: trimmedId,
+      current_top_card: {
+        card_id: topCard.cardId,
+        color: topCard.color,
+        value: topCard.value,
+        type: topCard.type,
+        played_by: topCard.playedBy?.toString() || 'system',
+        played_at: topCard.playedAt,
+        order: topCard.order,
+      },
+      recent_cards: recentCards.map((card) => ({
+        color: card.color,
+        value: card.value,
+        type: card.type,
+        played_by: card.playedBy?.toString() || 'system',
+        order: card.order,
+      })),
+      discard_pile_size: game.discardPile.length,
+    };
+  }
+
+  /**
+   * Get discard top with simple response (legacy support)
+   * @param {string} gameId - The game ID
+   * @returns {Promise<Object>} Simple top card response
+   */
+  async getDiscardTopSimple(gameId) {
+    const result = await this.getDiscardTop(gameId);
+
+    // If there's an error, return it
+    if (result.error) {
+      return result;
+    }
+
+    // If pile is empty, return empty response
+    if (result.top_card === null) {
+      return {
+        game_ids: [result.game_id],
+        top_cards: [],
+      };
+    }
+
+    // Format card for simple response
+    const card = result.current_top_card;
+    const cardName = this._formatCardName(card);
+
+    return {
+      game_ids: [result.game_id],
+      top_cards: [cardName],
+    };
+  }
+
+  /**
+   * Format card object to human-readable string
+   * @private
+   */
+  _formatCardName(card) {
+    if (!card) return 'No card';
+
+    const colorMap = {
+      red: 'Red',
+      blue: 'Blue',
+      green: 'Green',
+      yellow: 'Yellow',
+      wild: 'Wild',
+    };
+
+    const valueMap = {
+      0: 'Zero',
+      1: 'One',
+      2: 'Two',
+      3: 'Three',
+      4: 'Four',
+      5: 'Five',
+      6: 'Six',
+      7: 'Seven',
+      8: 'Eight',
+      9: 'Nine',
+      skip: 'Skip',
+      reverse: 'Reverse',
+      draw2: 'Draw Two',
+      wild: 'Wild',
+      wild_draw4: 'Wild Draw Four',
+    };
+
+    const color = colorMap[card.color] || card.color;
+    const value = valueMap[card.value] || card.value;
+
+    return `${color} ${value}`;
+  }
 }
 export default GameService;

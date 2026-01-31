@@ -71,6 +71,75 @@ class GameRepository {
     const game = await Game.findById(id).select('status');
     return game;
   }
+
+  /**
+   * Retrieves the top card from the discard pile for a specific game
+   * @param {string} id - The game ID
+   * @returns {Promise<Object|null>} The top card object if found, null otherwise
+   */
+  async findDiscardTop(id) {
+    return await Game.findById(id)
+      .select('discardPile initialCard status')
+      .lean();
+  }
+
+  /**
+   * Retrieves recent cards from discard pile (last N cards)
+   * @param {string} id - The game ID
+   * @param {number} limit - Maximum number of recent cards to return
+   * @returns {Promise<Object|null>} Game object with discard pile information
+   */
+  async findRecentDiscards(id, limit = 5) {
+    return await Game.findById(id)
+      .select('discardPile initialCard status')
+      .slice('discardPile', -limit) // Get last N cards
+      .lean();
+  }
+
+  /**
+   * Adds a card to the discard pile
+   * @param {string} gameId - The game ID
+   * @param {Object} cardData - The card data to add
+   * @returns {Promise<Object|null>} Updated game object
+   */
+  async addToDiscardPile(gameId, cardData) {
+    return await Game.findByIdAndUpdate(
+      gameId,
+      {
+        $push: {
+          discardPile: {
+            ...cardData,
+            order: { $inc: { discardOrder: 1 } }, // Auto-increment order
+          },
+        },
+      },
+      { new: true },
+    );
+  }
+
+  /**
+   * Clears the discard pile (for game reset or end)
+   * @param {string} gameId - The game ID
+   * @returns {Promise<Object|null>} Updated game object
+   */
+  async clearDiscardPile(gameId) {
+    return await Game.findByIdAndUpdate(
+      gameId,
+      { $set: { discardPile: [] } },
+      { new: true },
+    );
+  }
+
+  /**
+   * Gets discard pile size
+   * @param {string} gameId - The game ID
+   * @returns {Promise<number>} Size of discard pile
+   */
+  async getDiscardPileSize(gameId) {
+    const game = await Game.findById(gameId).select('discardPile').lean();
+
+    return game?.discardPile?.length || 0;
+  }
 }
 
 export default GameRepository;
