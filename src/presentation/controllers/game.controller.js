@@ -1,5 +1,5 @@
 import GameService from '../../core/services/game.service.js';
-
+import getDiscardTopCardDtoSchema from '../dtos/getDiscartTopCard.dto.js';
 /**
  * Controller class for handling game-related HTTP requests.
  * Manages game CRUD operations including creation, retrieval, updating, and deletion.
@@ -293,6 +293,239 @@ class GameController {
         success: false,
         message: message,
       });
+    }
+  }
+
+  /**
+   * Get the top card from the discard pile
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  async getDiscardTop(req, res, next) {
+    try {
+      // Validate input
+      const validatedData = getDiscardTopCardDtoSchema.parse({
+        game_id: req.params.id || req.body.game_id,
+      });
+
+      const gameId = validatedData.game_id;
+
+      // Get discard top with detailed response
+      const result = await this.gameService.getDiscardTop(gameId);
+
+      // Handle different response types based on result
+      if (result.error) {
+        if (result.error === 'Game not found') {
+          return res.status(404).json({
+            error: 'Game not found',
+          });
+        }
+
+        if (result.error === 'Game has not started yet') {
+          return res.status(412).json({
+            error: 'Game has not started yet',
+            game_state: result.game_state || 'waiting',
+            initial_card: result.initial_card,
+          });
+        }
+
+        return res.status(400).json({
+          error: result.error,
+        });
+      }
+
+      // Success response
+      return res.status(200).json(result);
+    } catch (error) {
+      // Handle validation errors
+      if (error.name === 'ZodError') {
+        return res.status(400).json({
+          error: 'Invalid game ID',
+          details: error.errors,
+        });
+      }
+
+      // Handle service errors
+      if (error.message === 'Invalid game ID') {
+        return res.status(400).json({
+          error: 'Invalid game ID',
+        });
+      }
+
+      if (error.message === 'Game not found') {
+        return res.status(404).json({
+          error: 'Game not found',
+        });
+      }
+
+      // Pass other errors to error handler
+      return next(error);
+    }
+  }
+
+  /**
+   * Get the top card from the discard pile (simple response)
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  async getDiscardTopSimple(req, res, next) {
+    try {
+      // Validate input
+      const validatedData = getDiscardTopCardDtoSchema.parse({
+        game_id: req.params.id || req.body.game_id,
+      });
+
+      const gameId = validatedData.game_id;
+
+      // Get discard top with simple response
+      const result = await this.gameService.getDiscardTopSimple(gameId);
+
+      // Handle different response types
+      if (result.error) {
+        if (result.error === 'Game not found') {
+          return res.status(404).json({
+            error: 'Game not found',
+          });
+        }
+
+        if (result.error === 'Game has not started yet') {
+          return res.status(412).json({
+            error: 'Game has not started yet',
+            game_state: result.game_state || 'waiting',
+            initial_card: result.initial_card,
+          });
+        }
+
+        return res.status(400).json({
+          error: result.error,
+        });
+      }
+
+      // Success response
+      return res.status(200).json(result);
+    } catch (error) {
+      // Handle validation errors
+      if (error.name === 'ZodError') {
+        return res.status(400).json({
+          error: 'Invalid game ID',
+          details: error.errors,
+        });
+      }
+
+      // Handle service errors
+      if (error.message === 'Invalid game ID') {
+        return res.status(400).json({
+          error: 'Invalid game ID',
+        });
+      }
+
+      if (error.message === 'Game not found') {
+        return res.status(404).json({
+          error: 'Game not found',
+        });
+      }
+
+      // Pass other errors to error handler
+      return next(error);
+    }
+  }
+
+  /**
+   * Get recent cards from discard pile (with history)
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  async getRecentDiscards(req, res, next) {
+    try {
+      // Validate input
+      const validatedData = getDiscardTopCardDtoSchema.parse({
+        game_id: req.params.id || req.body.game_id,
+      });
+
+      const gameId = validatedData.game_id;
+      const limit = parseInt(req.query.limit) || 10;
+
+      // Get game with discard pile
+      const game = await this.gameService.gameRepository.findRecentDiscards(
+        gameId,
+        limit,
+      );
+
+      if (!game) {
+        return res.status(404).json({
+          error: 'Game not found',
+        });
+      }
+
+      // If game hasn't started
+      if (game.status === 'Waiting') {
+        return res.status(412).json({
+          error: 'Game has not started yet',
+          game_state: 'waiting',
+          initial_card: game.initialCard || {
+            color: 'blue',
+            value: '0',
+            type: 'number',
+          },
+        });
+      }
+
+      // Prepare response
+      const response = {
+        game_id: gameId,
+        discard_pile_size: game.discardPile?.length || 0,
+      };
+
+      // Add top card if available
+      if (game.discardPile && game.discardPile.length > 0) {
+        const topCard = game.discardPile[game.discardPile.length - 1];
+        response.current_top_card = {
+          color: topCard.color,
+          value: topCard.value,
+          type: topCard.type,
+          played_by: topCard.playedBy?.toString() || 'system',
+        };
+      }
+
+      // Add recent cards
+      if (game.discardPile && game.discardPile.length > 0) {
+        const recentCards = game.discardPile.slice(-limit).reverse();
+        response.recent_cards = recentCards.map((card) => ({
+          color: card.color,
+          value: card.value,
+          type: card.type,
+          played_by: card.playedBy?.toString() || 'system',
+        }));
+      }
+
+      return res.status(200).json(response);
+    } catch (error) {
+      // Handle validation errors
+      if (error.name === 'ZodError') {
+        return res.status(400).json({
+          error: 'Invalid game ID',
+          details: error.errors,
+        });
+      }
+
+      // Handle service errors
+      if (error.message === 'Invalid game ID') {
+        return res.status(400).json({
+          error: 'Invalid game ID',
+        });
+      }
+
+      if (error.message === 'Game not found') {
+        return res.status(404).json({
+          error: 'Game not found',
+        });
+      }
+
+      // Pass other errors to error handler
+      return next(error);
     }
   }
 }
