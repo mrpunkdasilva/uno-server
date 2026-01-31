@@ -36,22 +36,22 @@ class GameController {
 
   /**
    * Creates a new game with the provided game data
-   * @param {Object} req - Express request object containing game creation data
+   * @param {Object} req - Express request object containing game creation data in req.body and user ID in req.user.id
    * @param {Object} res - Express response object
-   * @returns {Promise<void>} JSON response with success status and created game data or error message
+   * @returns {Promise<void>} JSON response with success status, message, and game_id or error message
    */
   async createGame(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id; // Assuming userId is available from authentication middleware
       const game = await this.gameService.createGame(req.body, userId);
       res.status(201).json({
-        success: true,
-        data: game,
+        message: 'Game created successfully',
+        game_id: game.id, // game.id is the string representation of _id from the service
       });
     } catch (error) {
+      // Zod validation errors from service will be caught here
       res.status(400).json({
-        success: false,
-        message: error.message,
+        error: error.message,
       });
     }
   }
@@ -264,6 +264,11 @@ class GameController {
     }
   }
 
+  /**
+   *
+   * @param req
+   * @param res
+   */
   async getGameStatus(req, res) {
     try {
       const { id } = req.params;
