@@ -1,0 +1,29 @@
+### Create a new score
+POST {{baseUrl}}/api/scores
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "playerId": "{{playerId}}",
+  "gameId": "{{gameId}}",
+  "score": 100
+}
+
+### Get all scores
+GET {{baseUrl}}/api/scores
+Authorization: Bearer {{accessToken}}
+
+### Update score by ID
+PUT {{baseUrl}}/api/scores/{{scoreId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "score": 150
+}
+
+### Delete score by ID
+DELETE {{baseUrl}}/api/scores/{{scoreId}}
+Authorization: Bearer {{accessToken}}
+
+###

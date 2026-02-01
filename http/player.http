@@ -1,0 +1,33 @@
+### Get all players
+GET {{baseUrl}}/api/players
+Authorization: Bearer {{accessToken}}
+
+### Get player by ID
+GET {{baseUrl}}/api/players/{{playerId}}
+Authorization: Bearer {{accessToken}}
+
+### Create a new player
+POST {{baseUrl}}/api/players
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "username": "new_player_via_api",
+  "email": "new_player_api@example.com",
+  "password": "api_password"
+}
+
+### Update player by ID
+PUT {{baseUrl}}/api/players/{{playerId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "username": "updated_player_name"
+}
+
+### Delete player by ID
+DELETE {{baseUrl}}/api/players/{{playerId}}
+Authorization: Bearer {{accessToken}}
+
+###

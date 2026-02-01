@@ -1,0 +1,37 @@
+### Register a new user
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "register_user@example.com",
+  "password": "register_password",
+  "username": "register_user"
+}
+
+### Authenticate a user and get JWT tokens
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "new_user@example.com",
+  "password": "new_user_password"
+}
+
+### Get authenticated player profile
+GET {{baseUrl}}/api/auth/profile
+Authorization: Bearer {{accessToken}}
+
+### Refresh access token
+POST {{baseUrl}}/api/auth/refresh-token
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Logout user
+POST {{baseUrl}}/api/auth/logout
+Authorization: Bearer {{accessToken}}
+
+###
