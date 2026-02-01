@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import PlayerRepository from '../../infra/repositories/player.repository.js';
-import playerResponseDtoSchema from '../../presentation/dtos/playerResponse.dto.js';
+import playerResponseDtoSchema from '../../presentation/dtos/player/player-response.dto.js';
 
 /**
  * Service class for managing player operations including CRUD operations,

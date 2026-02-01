@@ -2,9 +2,9 @@ import { Router } from 'express';
 
 import AuthController from '../controllers/auth.controller.js';
 
-import createPLayerDto from '../dtos/createPlayer.dto.js';
-import loginDto from '../dtos/login.dto.js';
-import refreshTokenDto from '../dtos/refreshToken.dto.js';
+import createPLayerDto from '../dtos/player/create-player.dto.js';
+import loginDto from '../dtos/auth/login.dto.js';
+import refreshTokenDto from '../dtos/auth/refresh-token.dto.js';
 
 import validateDto from '../middlewares/validateDto.middleware.js';
 import { authenticateToken } from '../middlewares/authentication.middleware.js';

@@ -1,5 +1,5 @@
 import GameService from '../../core/services/game.service.js';
-import getDiscardTopCardDtoSchema from '../dtos/getDiscartTopCard.dto.js';
+import getDiscardTopCardDtoSchema from '../dtos/card/get-discard-top-card.dto.js';
 
 /**
  * Controller class for handling game-related HTTP requests.

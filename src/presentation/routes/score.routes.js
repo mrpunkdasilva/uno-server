@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import ScoreController from '../controllers/score.controller.js';
 import validateDto from '../middlewares/validateDto.middleware.js';
-import createScoreDtoSchema from '../dtos/createScore.dto.js';
-import updateScoreDtoSchema from '../dtos/updateScore.dto.js';
+import createScoreDtoSchema from '../dtos/score/create-score.dto.js';
+import updateScoreDtoSchema from '../dtos/score/update-score.dto.js';
 
 const router = Router();
 const scoreController = new ScoreController();
