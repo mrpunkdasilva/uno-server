@@ -1,12 +1,13 @@
-import GameService from '../game.service.js';
-import GameRepository from '../../../infra/repositories/game.repository.js';
-import gameResponseDtoSchema from '../../../presentation/dtos/gameResponse.dto.js';
-import updateGameDtoSchema from '../../../presentation/dtos/updateGame.dto.js';
+import GameService           from '../../../../src/core/services/game.service.js';
+import GameRepository        from '../../../../src/infra/repositories/game.repository.js';
+import gameResponseDtoSchema from '../../../../src/presentation/dtos/gameResponse.dto.js';
+import updateGameDtoSchema   from '../../../../src/presentation/dtos/updateGame.dto.js';
+import { ZodError }          from 'zod'; // Adicionado import do ZodError
 
 // Mock das dependências
-jest.mock('../../../infra/repositories/game.repository.js');
-jest.mock('../../../presentation/dtos/gameResponse.dto.js');
-jest.mock('../../../presentation/dtos/updateGame.dto.js');
+jest.mock( '../../../../src/infra/repositories/game.repository.js');
+jest.mock( '../../../../src/presentation/dtos/gameResponse.dto.js');
+jest.mock( '../../../../src/presentation/dtos/updateGame.dto.js');
 
 describe('GameService', () => {
   let gameService;
@@ -14,8 +15,9 @@ describe('GameService', () => {
 
   // Dados mockados para reutilização
   const mockGame = {
-    _id: '507f1f77bcf86cd799439011',
+    _id: { toString: () => '507f1f77bcf86cd799439011' }, // Simulate ObjectId
     title: 'Test Game',
+    rules: 'These are the test game rules.', // Added rules
     status: 'Waiting',
     maxPlayers: 4,
     minPlayers: 2,
@@ -31,6 +33,7 @@ describe('GameService', () => {
   const mockParsedGame = {
     id: '507f1f77bcf86cd799439011',
     title: 'Test Game',
+    rules: 'These are the test game rules.', // Added rules
     status: 'Waiting',
     maxPlayers: 4,
     createdAt: '2024-01-01T00:00:00.000Z',
@@ -59,7 +62,7 @@ describe('GameService', () => {
     gameService = new GameService();
 
     // Configurar mocks padrão dos DTOs
-    gameResponseDtoSchema.parse.mockReturnValue(mockParsedGame);
+    gameResponseDtoSchema.parse.mockReturnValue(mockParsedGame); // Reset to original mock behavior
     updateGameDtoSchema.parse.mockImplementation((data) => data);
   });
 
@@ -124,9 +127,10 @@ describe('GameService', () => {
 
   describe('createGame', () => {
     const mockGameData = {
-      title: 'New Game',
+      name: 'New Game', // Changed from title to name
+      rules: 'Some default rules for the test game.', // Added rules
       maxPlayers: 4,
-      minPlayers: 2,
+      // minPlayers is not part of createGameDtoSchema input, removed for clarity.
     };
 
     const mockUserId = 'user123';
@@ -134,9 +138,13 @@ describe('GameService', () => {
     it('deve criar jogo com dados válidos', async () => {
       // Arrange
       const createdGame = {
-        ...mockGame,
-        _id: 'new-game-id',
-        title: mockGameData.title,
+        _id: { toString: () => 'new-game-id' }, // Simulate ObjectId
+        title: mockGameData.name,
+        rules: mockGameData.rules,
+        status: 'Waiting', // Default status for a new game
+        maxPlayers: mockGameData.maxPlayers,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
       mockGameRepository.createGame.mockResolvedValue(createdGame);
@@ -146,7 +154,9 @@ describe('GameService', () => {
 
       // Assert
       expect(mockGameRepository.createGame).toHaveBeenCalledWith({
-        ...mockGameData,
+        title: mockGameData.name, // Map name to title for repository
+        rules: mockGameData.rules, // Pass rules
+        maxPlayers: mockGameData.maxPlayers, // Pass maxPlayers
         creatorId: mockUserId,
         players: [{ _id: mockUserId, ready: true, position: 1 }],
       });
@@ -154,6 +164,7 @@ describe('GameService', () => {
       expect(gameResponseDtoSchema.parse).toHaveBeenCalledWith({
         id: createdGame._id.toString(),
         title: createdGame.title,
+        rules: createdGame.rules, // Ensure rules is included
         status: createdGame.status,
         maxPlayers: createdGame.maxPlayers,
         createdAt: createdGame.createdAt,
@@ -166,12 +177,56 @@ describe('GameService', () => {
     it('deve propagar erro quando criação falhar', async () => {
       // Arrange
       const mockError = new Error('Validation failed');
+      // Mock createGameDtoSchema.parse to throw ZodError, as service will now try to parse data first
+      // Or simply mock the repository to reject, if the validation is assumed to pass
+      // For this test, we'll mock the repository for direct failure after parsing
       mockGameRepository.createGame.mockRejectedValue(mockError);
 
       // Act & Assert
       await expect(
         gameService.createGame(mockGameData, mockUserId),
       ).rejects.toThrow('Validation failed');
+    });
+
+    it('deve lançar ZodError quando "name" está ausente', async () => {
+      await expect(gameService.createGame({ ...mockGameData, name: undefined }, mockUserId))
+        .rejects.toThrow(ZodError);
+      await expect(gameService.createGame({ ...mockGameData, name: undefined }, mockUserId))
+        .rejects.toHaveProperty('issues.0.path.0', 'name');
+    });
+
+    it('deve lançar ZodError quando "name" é muito curto', async () => {
+      await expect(gameService.createGame({ ...mockGameData, name: 'ab' }, mockUserId))
+        .rejects.toThrow(ZodError);
+      await expect(gameService.createGame({ ...mockGameData, name: 'ab' }, mockUserId))
+        .rejects.toHaveProperty('issues.0.path.0', 'name');
+      await expect(gameService.createGame({ ...mockGameData, name: 'ab' }, mockUserId))
+        .rejects.toHaveProperty('issues.0.message', 'Game must have at least 3 letters as name (ex: UNO)');
+    });
+
+    it('deve lançar ZodError quando "rules" está ausente', async () => {
+      await expect(gameService.createGame({ ...mockGameData, rules: undefined }, mockUserId))
+        .rejects.toThrow(ZodError);
+      await expect(gameService.createGame({ ...mockGameData, rules: undefined }, mockUserId))
+        .rejects.toHaveProperty('issues.0.path.0', 'rules');
+    });
+
+    it('deve lançar ZodError quando "rules" é muito curto', async () => {
+      await expect(gameService.createGame({ ...mockGameData, rules: 'short' }, mockUserId))
+        .rejects.toThrow(ZodError);
+      await expect(gameService.createGame({ ...mockGameData, rules: 'short' }, mockUserId))
+        .rejects.toHaveProperty('issues.0.path.0', 'rules');
+      await expect(gameService.createGame({ ...mockGameData, rules: 'short' }, mockUserId))
+        .rejects.toHaveProperty('issues.0.message', 'Rules must have at least 10 characters');
+    });
+
+    it('deve lançar ZodError quando "maxPlayers" é muito baixo', async () => {
+      await expect(gameService.createGame({ ...mockGameData, maxPlayers: 1 }, mockUserId))
+        .rejects.toThrow(ZodError);
+      await expect(gameService.createGame({ ...mockGameData, maxPlayers: 1 }, mockUserId))
+        .rejects.toHaveProperty('issues.0.path.0', 'maxPlayers');
+      await expect(gameService.createGame({ ...mockGameData, maxPlayers: 1 }, mockUserId))
+        .rejects.toHaveProperty('issues.0.message', 'The game must have at least 2 players');
     });
   });
 
@@ -660,10 +715,22 @@ describe('GameService', () => {
 
     it('deve manter imutabilidade dos objetos de entrada', async () => {
       // Arrange
-      const originalGameData = { title: 'Original', maxPlayers: 4 };
+      const originalGameData = {
+        name: 'Original',
+        rules: 'Original rules',
+        maxPlayers: 4,
+      }; // Updated
       const gameDataCopy = { ...originalGameData };
 
-      mockGameRepository.createGame.mockResolvedValue(mockGame);
+      // Mock createdGame to match new structure
+      const createdGameMock = {
+        ...mockGame,
+        _id: 'immutable-game-id',
+        title: originalGameData.name,
+        rules: originalGameData.rules,
+      };
+
+      mockGameRepository.createGame.mockResolvedValue(createdGameMock);
 
       // Act
       await gameService.createGame(originalGameData, 'user123');
