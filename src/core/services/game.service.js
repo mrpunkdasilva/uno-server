@@ -1,6 +1,6 @@
-import gameResponseDtoSchema from '../../presentation/dtos/gameResponse.dto.js';
-import updateGameDtoSchema from '../../presentation/dtos/updateGame.dto.js';
-import createGameDtoSchema from '../../presentation/dtos/createGame.dto.js';
+import gameResponseDtoSchema from '../../presentation/dtos/game/game-response.dto.js';
+import updateGameDtoSchema from '../../presentation/dtos/game/update-game.dto.js';
+import createGameDtoSchema from '../../presentation/dtos/game/create-game.dto.js';
 import GameRepository from '../../infra/repositories/game.repository.js';
 import { colorMap, valueMap } from '../enums/card.enum.js';
 

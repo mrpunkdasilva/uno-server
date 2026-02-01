@@ -1,8 +1,8 @@
 import express from 'express';
 import PlayerController from '../controllers/player.controller.js';
 
-import createPlayerDto from '../dtos/createPlayer.dto.js';
-import updatePlayerDto from '../dtos/updatePlayer.dto.js';
+import createPlayerDto from '../dtos/player/create-player.dto.js';
+import updatePlayerDto from '../dtos/player/update-player.dto.js';
 
 import validateDto from '../middlewares/validateDto.middleware.js';
 

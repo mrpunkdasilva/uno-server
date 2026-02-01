@@ -1,11 +1,11 @@
 jest.mock('../../../../src/infra/repositories/game.repository.js');
-jest.mock('../../../../src/presentation/dtos/gameResponse.dto.js');
-jest.mock('../../../../src/presentation/dtos/updateGame.dto.js');
+jest.mock('../../../../src/presentation/dtos/game/game-response.dto.js');
+jest.mock('../../../../src/presentation/dtos/game/update-game.dto.js');
 
 import GameService from '../../../../src/core/services/game.service.js';
 import GameRepository from '../../../../src/infra/repositories/game.repository.js';
-import gameResponseDtoSchema from '../../../../src/presentation/dtos/gameResponse.dto.js';
-import updateGameDtoSchema from '../../../../src/presentation/dtos/updateGame.dto.js';
+import gameResponseDtoSchema from '../../../../src/presentation/dtos/game/game-response.dto.js';
+import updateGameDtoSchema from '../../../../src/presentation/dtos/game/update-game.dto.js';
 import { ZodError } from 'zod';
 import { mockGame, mockParsedGame } from '../../../../src/mocks/game.mocks.js';
 
