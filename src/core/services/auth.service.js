@@ -9,7 +9,7 @@ import PlayerRepository from '../../infra/repositories/player.repository.js';
  */
 class AuthService {
   /**
-   * fix documentation
+   * Constructor
    */
   constructor() {
     this.playerRepository = new PlayerRepository();
@@ -47,7 +47,7 @@ class AuthService {
       );
 
       await redisClient.set(`session:${user._id}`, refreshToken, {
-        EX: 7 * 24 * 60 * 60, // 7 dias
+        EX: 7 * 24 * 60 * 60,
       });
 
       return {
@@ -68,10 +68,8 @@ class AuthService {
    * @throws {Error} When logout operation fails
    */
   async logout(userId, accessToken) {
-    // Removendo a sessão (Refresh Token)
     await redisClient.del(`session:${userId}`);
 
-    // Colocando o Access Token atual na Blacklist se ele ainda não expirou
     if (accessToken) {
       try {
         const decoded = jwt.decode(accessToken);
@@ -135,7 +133,6 @@ class AuthService {
     }
   }
 
-  // Add JSDoc
   /**
    * Generates a JWT token for a user
    * @param {Object} user - User object containing user information
@@ -148,9 +145,7 @@ class AuthService {
       id: user._id,
     };
 
-    const token = jwt.sign(payload, secret, { expiresIn: expiresIn });
-
-    return token;
+    return jwt.sign(payload, secret, { expiresIn: expiresIn });
   }
 
   /**
@@ -191,8 +186,7 @@ class AuthService {
    * @returns {Promise<boolean>} True if token is blacklisted, false otherwise
    */
   async verifyTokenIsBlacklisted(token) {
-    const isBlacklisted = await redisClient.get(`blacklist:${token}`);
-    return isBlacklisted;
+    return await redisClient.get(`blacklist:${token}`);
   }
 }
 
