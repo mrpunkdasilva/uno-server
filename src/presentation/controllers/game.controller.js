@@ -264,6 +264,11 @@ class GameController {
     }
   }
 
+  /**
+   *
+   * @param req
+   * @param res
+   */
   async getGameStatus(req, res) {
     try {
       const { id } = req.params;
@@ -526,6 +531,41 @@ class GameController {
 
       // Pass other errors to error handler
       return next(error);
+    }
+  }
+  /**
+   * Handles the request to end a game early.
+   *
+   * @param {Object} req - The express request object.
+   * @param {Object} res - The express response object.
+   * @returns {Promise<void>} JSON response with success status or error message.
+   */
+  async endGame(req, res) {
+    try {
+      const userId = req.user.id;
+      const gameId = req.params.id;
+
+      const result = await this.gameService.endGame(gameId, userId);
+
+      res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      let status = 500; // Erro padrão
+
+      // Mapeamento conforme US 20
+      if (error.message === 'Game not found') status = 404;
+      if (error.message === 'Only the game creator can end the game')
+        status = 403;
+      if (error.message === 'Game has already ended') status = 409;
+      if (error.message === 'Game must be in progress to be ended')
+        status = 412;
+
+      res.status(status).json({
+        success: false,
+        message: error.message,
+      });
     }
   }
 }

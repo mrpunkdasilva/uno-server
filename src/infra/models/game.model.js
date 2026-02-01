@@ -43,6 +43,10 @@ const gameSchema = mongoose.Schema(
       ref: 'Player',
       default: null,
     },
+    endedAt: {
+      type: Date,
+      default: null,
+    },
     // NOVO: Pilha de descarte
     discardPile: [
       {
