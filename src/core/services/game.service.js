@@ -2,6 +2,7 @@ import gameResponseDtoSchema from '../../presentation/dtos/game/game-response.dt
 import updateGameDtoSchema from '../../presentation/dtos/game/update-game.dto.js';
 import createGameDtoSchema from '../../presentation/dtos/game/create-game.dto.js';
 import GameRepository from '../../infra/repositories/game.repository.js';
+import logger from '../../config/logger.js';
 import { colorMap, valueMap } from '../enums/card.enum.js';
 
 /**
@@ -21,8 +22,15 @@ class GameService {
    * @throws {Error} When database operation fails
    */
   async getAllGames() {
-    const games = await this.gameRepository.findAll();
-    return games.map((game) => gameResponseDtoSchema.parse(game));
+    logger.info('Attempting to retrieve all games.');
+    try {
+      const games = await this.gameRepository.findAll();
+      logger.info(`Successfully retrieved ${games.length} games.`);
+      return games.map((game) => gameResponseDtoSchema.parse(game));
+    } catch (error) {
+      logger.error(`Failed to retrieve all games: ${error.message}`);
+      throw error;
+    }
   }
 
   /**
@@ -32,11 +40,19 @@ class GameService {
    * @throws {Error} When game is not found
    */
   async getGameById(id) {
-    const game = await this.gameRepository.findById(id);
-    if (!game) {
-      throw new Error('Game not found');
+    logger.info(`Attempting to retrieve game by ID: ${id}`);
+    try {
+      const game = await this.gameRepository.findById(id);
+      if (!game) {
+        logger.warn(`Game with ID ${id} not found.`);
+        throw new Error('Game not found');
+      }
+      logger.info(`Game with ID ${id} retrieved successfully.`);
+      return gameResponseDtoSchema.parse(game);
+    } catch (error) {
+      logger.error(`Failed to retrieve game by ID ${id}: ${error.message}`);
+      throw error;
     }
-    return gameResponseDtoSchema.parse(game);
   }
 
   /**
@@ -54,27 +70,34 @@ class GameService {
    * @throws {Error} When game creation fails or validation errors occur (e.g., ZodError).
    */
   async createGame(gameData, userId) {
-    const { name, rules, maxPlayers } = createGameDtoSchema.parse(gameData);
+    logger.info(`Attempting to create a new game by user ID: ${userId}`);
+    try {
+      const { name, rules, maxPlayers } = createGameDtoSchema.parse(gameData);
 
-    const data = {
-      title: name,
-      rules: rules,
-      maxPlayers: maxPlayers,
-      creatorId: userId,
-      players: [{ _id: userId, ready: true, position: 1 }],
-    };
+      const data = {
+        title: name,
+        rules: rules,
+        maxPlayers: maxPlayers,
+        creatorId: userId,
+        players: [{ _id: userId, ready: true, position: 1 }],
+      };
 
-    const game = await this.gameRepository.createGame(data);
+      const game = await this.gameRepository.createGame(data);
+      logger.info(`Game ${game._id} created successfully by user ${userId}.`);
 
-    return gameResponseDtoSchema.parse({
-      id: game._id.toString(),
-      title: game.title,
-      rules: game.rules,
-      status: game.status,
-      maxPlayers: game.maxPlayers,
-      createdAt: game.createdAt,
-      updatedAt: game.updatedAt,
-    });
+      return gameResponseDtoSchema.parse({
+        id: game._id.toString(),
+        title: game.title,
+        rules: game.rules,
+        status: game.status,
+        maxPlayers: game.maxPlayers,
+        createdAt: game.createdAt,
+        updatedAt: game.updatedAt,
+      });
+    } catch (error) {
+      logger.error(`Failed to create game by user ${userId}: ${error.message}`);
+      throw error;
+    }
   }
 
   /**
@@ -85,22 +108,30 @@ class GameService {
    * @throws {Error} When game is not found or validation fails
    */
   async updateGame(id, updateData) {
-    const validatedData = updateGameDtoSchema.parse(updateData);
+    logger.info(`Attempting to update game with ID: ${id}`);
+    try {
+      const validatedData = updateGameDtoSchema.parse(updateData);
 
-    const updatedGame = await this.gameRepository.update(id, validatedData);
+      const updatedGame = await this.gameRepository.update(id, validatedData);
 
-    if (!updatedGame) {
-      throw new Error('Game not found');
+      if (!updatedGame) {
+        logger.warn(`Game with ID ${id} not found for update.`);
+        throw new Error('Game not found');
+      }
+
+      logger.info(`Game with ID ${id} updated successfully.`);
+      return gameResponseDtoSchema.parse({
+        id: updatedGame._id.toString(),
+        title: updatedGame.title,
+        status: updatedGame.status,
+        maxPlayers: updatedGame.maxPlayers,
+        createdAt: updatedGame.createdAt,
+        updatedAt: updatedGame.updatedAt,
+      });
+    } catch (error) {
+      logger.error(`Failed to update game with ID ${id}: ${error.message}`);
+      throw error;
     }
-
-    return gameResponseDtoSchema.parse({
-      id: updatedGame._id.toString(),
-      title: updatedGame.title,
-      status: updatedGame.status,
-      maxPlayers: updatedGame.maxPlayers,
-      createdAt: updatedGame.createdAt,
-      updatedAt: updatedGame.updatedAt,
-    });
   }
 
   /**
@@ -110,11 +141,20 @@ class GameService {
    * @throws {Error} When game is not found
    */
   async deleteGame(id) {
-    const game = await this.gameRepository.findById(id);
-    if (!game) {
-      throw new Error('Game not found');
+    logger.info(`Attempting to delete game with ID: ${id}`);
+    try {
+      const game = await this.gameRepository.findById(id);
+      if (!game) {
+        logger.warn(`Game with ID ${id} not found for deletion.`);
+        throw new Error('Game not found');
+      }
+      await this.gameRepository.delete(id);
+      logger.info(`Game with ID ${id} deleted successfully.`);
+      return game;
+    } catch (error) {
+      logger.error(`Failed to delete game with ID ${id}: ${error.message}`);
+      throw error;
     }
-    return await this.gameRepository.delete(id);
   }
 
   /**
@@ -129,38 +169,59 @@ class GameService {
    * @throws {Error} If the user is already a participant in the game (409).
    */
   async joinGame(userId, gameId) {
-    const game = await this.gameRepository.findById(gameId);
+    logger.info(`User ${userId} attempting to join game ${gameId}.`);
+    try {
+      const game = await this.gameRepository.findById(gameId);
 
-    if (!game) {
-      throw new Error('Game not found');
-    }
+      if (!game) {
+        logger.warn(
+          `Join game failed for user ${userId}: Game ${gameId} not found.`,
+        );
+        throw new Error('Game not found');
+      }
 
-    if (game.status !== 'Waiting') {
-      throw new Error(
-        'Game is not accepting new players (Already Active or Ended)',
+      if (game.status !== 'Waiting') {
+        logger.warn(
+          `Join game failed for user ${userId} in game ${gameId}: Game not in 'Waiting' status.`,
+        );
+        throw new Error(
+          'Game is not accepting new players (Already Active or Ended)',
+        );
+      }
+
+      if (game.players.length >= game.maxPlayers) {
+        logger.warn(
+          `Join game failed for user ${userId} in game ${gameId}: Game is full.`,
+        );
+        throw new Error('Game is full');
+      }
+
+      const isAlreadyInGame = game.players.some(
+        (p) => p._id.toString() === userId,
       );
+
+      if (isAlreadyInGame) {
+        logger.warn(
+          `Join game failed for user ${userId} in game ${gameId}: User already in this game.`,
+        );
+        throw new Error('User is already in this game');
+      }
+
+      game.players.push({ _id: userId, ready: false, position: 0 });
+      await this.gameRepository.save(game);
+      logger.info(`User ${userId} successfully joined game ${gameId}.`);
+
+      return {
+        message: 'User joined the game successfully',
+        gameId: game._id,
+        currentPlayerCount: game.players.length,
+      };
+    } catch (error) {
+      logger.error(
+        `Failed for user ${userId} to join game ${gameId}: ${error.message}`,
+      );
+      throw error;
     }
-
-    if (game.players.length >= game.maxPlayers) {
-      throw new Error('Game is full');
-    }
-
-    const isAlreadyInGame = game.players.some(
-      (p) => p._id.toString() === userId,
-    );
-
-    if (isAlreadyInGame) {
-      throw new Error('User is already in this game');
-    }
-
-    game.players.push({ _id: userId, ready: false, position: 0 });
-    await this.gameRepository.save(game);
-
-    return {
-      message: 'User joined the game successfully',
-      gameId: game._id,
-      currentPlayerCount: game.players.length,
-    };
   }
 
   /**
@@ -171,39 +232,58 @@ class GameService {
    * @returns {Promise<Object>} Object with success message and counts.
    */
   async setPlayerReady(userId, gameId) {
-    const game = await this.gameRepository.findById(gameId);
+    logger.info(`User ${userId} attempting to set ready in game ${gameId}.`);
+    try {
+      const game = await this.gameRepository.findById(gameId);
 
-    if (!game) {
-      throw new Error('Game not found');
-    }
+      if (!game) {
+        logger.warn(
+          `Set player ready failed for user ${userId}: Game ${gameId} not found.`,
+        );
+        throw new Error('Game not found');
+      }
 
-    if (game.status !== 'Waiting') {
-      throw new Error('Cannot ready now');
-    }
+      if (game.status !== 'Waiting') {
+        logger.warn(
+          `Set player ready failed for user ${userId} in game ${gameId}: Game not in 'Waiting' status.`,
+        );
+        throw new Error('Cannot ready now');
+      }
 
-    const playerEntry = game.players.find((p) => p._id.toString() === userId);
-    if (!playerEntry) {
-      throw new Error('You are not in this game');
-    }
+      const playerEntry = game.players.find((p) => p._id.toString() === userId);
+      if (!playerEntry) {
+        logger.warn(
+          `Set player ready failed for user ${userId} in game ${gameId}: User not in this game.`,
+        );
+        throw new Error('You are not in this game');
+      }
 
-    if (playerEntry.ready) {
+      if (playerEntry.ready) {
+        logger.info(`User ${userId} in game ${gameId} is already ready.`);
+        return {
+          success: true,
+          message: 'Already ready',
+          playersReadyCount: game.players.filter((p) => p.ready).length,
+          totalPlayers: game.players.length,
+        };
+      }
+
+      playerEntry.ready = true;
+      await this.gameRepository.save(game);
+      logger.info(`User ${userId} successfully set ready in game ${gameId}.`);
+
       return {
         success: true,
-        message: 'Already ready',
+        message: 'Player set to ready',
         playersReadyCount: game.players.filter((p) => p.ready).length,
         totalPlayers: game.players.length,
       };
+    } catch (error) {
+      logger.error(
+        `Failed for user ${userId} to set ready in game ${gameId}: ${error.message}`,
+      );
+      throw error;
     }
-
-    playerEntry.ready = true;
-    await this.gameRepository.save(game);
-
-    return {
-      success: true,
-      message: 'Player set to ready',
-      playersReadyCount: game.players.filter((p) => p.ready).length,
-      totalPlayers: game.players.length,
-    };
   }
 
   /**
@@ -213,44 +293,68 @@ class GameService {
    * @returns {Promise<Object>} The started game object.
    */
   async startGame(userId, gameId) {
-    const game = await this.gameRepository.findById(gameId);
+    logger.info(`User ${userId} attempting to start game ${gameId}.`);
+    try {
+      const game = await this.gameRepository.findById(gameId);
 
-    if (!game) {
-      throw new Error('Game not found');
+      if (!game) {
+        logger.warn(
+          `Game start failed for user ${userId}: Game ${gameId} not found.`,
+        );
+        throw new Error('Game not found');
+      }
+
+      if (game.creatorId.toString() !== userId) {
+        logger.warn(
+          `Game start failed for user ${userId} in game ${gameId}: Not the game creator.`,
+        );
+        throw new Error('Only the game creator can start the game');
+      }
+
+      if (game.status === 'Active') {
+        logger.warn(
+          `Game start failed for user ${userId} in game ${gameId}: Game already started.`,
+        );
+        throw new Error('Game has already started');
+      }
+
+      if (game.players.length < game.minPlayers) {
+        logger.warn(
+          `Game start failed for user ${userId} in game ${gameId}: Not enough players (${game.players.length}/${game.minPlayers}).`,
+        );
+        throw new Error(`Minimum ${game.minPlayers} players required to start`);
+      }
+
+      const notReadyPlayers = game.players.filter((player) => !player.ready);
+      if (notReadyPlayers.length > 0) {
+        logger.warn(
+          `Game start failed for user ${userId} in game ${gameId}: Not all players are ready.`,
+        );
+        throw new Error('Not all players are ready');
+      }
+
+      game.status = 'Active';
+      game.players.forEach((player, index) => {
+        player.position = index + 1;
+      });
+
+      await this.gameRepository.save(game);
+      logger.info(`Game ${gameId} successfully started by user ${userId}.`);
+
+      return gameResponseDtoSchema.parse({
+        id: game._id.toString(),
+        title: game.title,
+        status: game.status,
+        maxPlayers: game.maxPlayers,
+        createdAt: game.createdAt,
+        updatedAt: game.updatedAt,
+      });
+    } catch (error) {
+      logger.error(
+        `Failed for user ${userId} to start game ${gameId}: ${error.message}`,
+      );
+      throw error;
     }
-
-    if (game.creatorId.toString() !== userId) {
-      throw new Error('Only the game creator can start the game');
-    }
-
-    if (game.status === 'Active') {
-      throw new Error('Game has already started');
-    }
-
-    if (game.players.length < game.minPlayers) {
-      throw new Error(`Minimum ${game.minPlayers} players required to start`);
-    }
-
-    const notReadyPlayers = game.players.filter((player) => !player.ready);
-    if (notReadyPlayers.length > 0) {
-      throw new Error('Not all players are ready');
-    }
-
-    game.status = 'Active';
-    game.players.forEach((player, index) => {
-      player.position = index + 1;
-    });
-
-    await this.gameRepository.save(game);
-
-    return gameResponseDtoSchema.parse({
-      id: game._id.toString(),
-      title: game.title,
-      status: game.status,
-      maxPlayers: game.maxPlayers,
-      createdAt: game.createdAt,
-      updatedAt: game.updatedAt,
-    });
   }
 
   /**
@@ -262,38 +366,62 @@ class GameService {
    * @throws {Error} If the game is not found, user is not in the game, or game cannot be abandoned.
    */
   async abandonGame(userId, gameId) {
-    const game = await this.gameRepository.findById(gameId);
+    logger.info(`User ${userId} attempting to abandon game ${gameId}.`);
+    try {
+      const game = await this.gameRepository.findById(gameId);
 
-    if (!game) {
-      throw new Error('Game not found');
+      if (!game) {
+        logger.warn(
+          `Abandon game failed for user ${userId}: Game ${gameId} not found.`,
+        );
+        throw new Error('Game not found');
+      }
+
+      const player = game.players.find((p) => p._id.toString() === userId);
+      if (!player) {
+        logger.warn(
+          `Abandon game failed for user ${userId} in game ${gameId}: User not in this game.`,
+        );
+        throw new Error('You are not in this game');
+      }
+
+      if (game.status !== 'Active') {
+        logger.warn(
+          `Abandon game failed for user ${userId} in game ${gameId}: Game not in 'Active' status.`,
+        );
+        throw new Error('Cannot abandon now');
+      }
+
+      game.players = game.players.filter((p) => p._id.toString() !== userId);
+
+      game.players.forEach((p, index) => {
+        p.position = index + 1;
+      });
+
+      if (game.players.length === 1) {
+        game.status = 'Ended';
+        game.winnerId = game.players[0]._id;
+        logger.info(
+          `Game ${gameId} ended due to last player (${game.players[0]._id}) remaining after abandonment.`,
+        );
+      } else if (game.players.length === 0) {
+        game.status = 'Ended';
+        logger.info(`Game ${gameId} ended as all players abandoned.`);
+      }
+
+      await this.gameRepository.save(game);
+      logger.info(`User ${userId} successfully abandoned game ${gameId}.`);
+
+      return {
+        success: true,
+        message: 'You left the game',
+      };
+    } catch (error) {
+      logger.error(
+        `Failed for user ${userId} to abandon game ${gameId}: ${error.message}`,
+      );
+      throw error;
     }
-
-    const player = game.players.find((p) => p._id.toString() === userId);
-    if (!player) {
-      throw new Error('You are not in this game');
-    }
-
-    if (game.status !== 'Active') {
-      throw new Error('Cannot abandon now');
-    }
-
-    game.players = game.players.filter((p) => p._id.toString() !== userId);
-
-    game.players.forEach((p, index) => {
-      p.position = index + 1;
-    });
-
-    if (game.players.length === 1) {
-      game.status = 'Ended';
-      game.winnerId = game.players[0]._id;
-    }
-
-    await this.gameRepository.save(game);
-
-    return {
-      success: true,
-      message: 'You left the game',
-    };
   }
 
   /**
@@ -304,17 +432,34 @@ class GameService {
    * @throws {Error} If the game ID is invalid or the game is not found.
    */
   async getGameStatus(id) {
-    if (!id || typeof id !== 'string' || id.trim() === '') {
-      throw new Error('Invalid game ID');
-    }
+    logger.info(`Attempting to retrieve status for game ID: ${id}`);
+    try {
+      if (!id || typeof id !== 'string' || id.trim() === '') {
+        logger.warn(
+          `Get game status failed: Invalid game ID provided - "${id}".`,
+        );
+        throw new Error('Invalid game ID');
+      }
 
-    const trimmedId = id.trim();
-    const game = await this.gameRepository.findGameStatus(trimmedId);
-    if (!game) {
-      throw new Error('Game not found');
-    }
+      const trimmedId = id.trim();
+      const game = await this.gameRepository.findGameStatus(trimmedId);
+      if (!game) {
+        logger.warn(
+          `Get game status failed: Game with ID ${trimmedId} not found.`,
+        );
+        throw new Error('Game not found');
+      }
 
-    return game.status;
+      logger.info(
+        `Successfully retrieved status for game ID ${trimmedId}: ${game.status}`,
+      );
+      return game.status;
+    } catch (error) {
+      logger.error(
+        `Failed to retrieve game status for ID ${id}: ${error.message}`,
+      );
+      throw error;
+    }
   }
 
   /**
@@ -324,69 +469,92 @@ class GameService {
    * @throws {Error} When game is not found or ID is invalid
    */
   async getDiscardTop(gameId) {
-    if (!gameId || typeof gameId !== 'string' || gameId.trim() === '') {
-      throw new Error('Invalid game ID');
-    }
+    logger.info(`Attempting to get top discard card for game ID: ${gameId}`);
+    try {
+      if (!gameId || typeof gameId !== 'string' || gameId.trim() === '') {
+        logger.warn(
+          `Get discard top failed: Invalid game ID provided - "${gameId}".`,
+        );
+        throw new Error('Invalid game ID');
+      }
 
-    const trimmedId = gameId.trim();
+      const trimmedId = gameId.trim();
 
-    const game = await this.gameRepository.findDiscardTop(trimmedId);
+      const game = await this.gameRepository.findDiscardTop(trimmedId);
 
-    if (!game) {
-      throw new Error('Game not found');
-    }
+      if (!game) {
+        logger.warn(
+          `Get discard top failed: Game with ID ${trimmedId} not found.`,
+        );
+        throw new Error('Game not found');
+      }
 
-    if (game.status === 'Waiting') {
+      if (game.status === 'Waiting') {
+        logger.warn(
+          `Get discard top for game ${trimmedId}: Game has not started yet.`,
+        );
+        return {
+          game_id: trimmedId,
+          error: 'Game has not started yet',
+          game_state: 'waiting',
+          initial_card: game.initialCard || {
+            color: 'blue',
+            value: '0',
+            type: 'number',
+          },
+        };
+      }
+
+      if (!game.discardPile || game.discardPile.length === 0) {
+        logger.info(
+          `Get discard top for game ${trimmedId}: Discard pile is empty.`,
+        );
+        return {
+          game_id: trimmedId,
+          top_card: null,
+          message: 'Discard pile is empty - no cards have been played yet',
+          discard_pile_size: 0,
+          initial_card: game.initialCard || {
+            color: 'blue',
+            value: '0',
+            type: 'number',
+          },
+        };
+      }
+
+      const topCard = game.discardPile[game.discardPile.length - 1];
+      logger.info(
+        `Successfully retrieved top discard card for game ID ${trimmedId}.`,
+      );
+
+      const recentCards = game.discardPile.slice(-5).reverse();
+
       return {
         game_id: trimmedId,
-        error: 'Game has not started yet',
-        game_state: 'waiting',
-        initial_card: game.initialCard || {
-          color: 'blue',
-          value: '0',
-          type: 'number',
+        current_top_card: {
+          card_id: topCard.cardId,
+          color: topCard.color,
+          value: topCard.value,
+          type: topCard.type,
+          played_by: topCard.playedBy?.toString() || 'system',
+          played_at: topCard.playedAt,
+          order: topCard.order,
         },
+        recent_cards: recentCards.map((card) => ({
+          color: card.color,
+          value: card.value,
+          type: card.type,
+          played_by: card.playedBy?.toString() || 'system',
+          order: card.order,
+        })),
+        discard_pile_size: game.discardPile.length,
       };
+    } catch (error) {
+      logger.error(
+        `Failed to get discard top for game ID ${gameId}: ${error.message}`,
+      );
+      throw error;
     }
-
-    if (!game.discardPile || game.discardPile.length === 0) {
-      return {
-        game_id: trimmedId,
-        top_card: null,
-        message: 'Discard pile is empty - no cards have been played yet',
-        discard_pile_size: 0,
-        initial_card: game.initialCard || {
-          color: 'blue',
-          value: '0',
-          type: 'number',
-        },
-      };
-    }
-
-    const topCard = game.discardPile[game.discardPile.length - 1];
-
-    const recentCards = game.discardPile.slice(-5).reverse();
-
-    return {
-      game_id: trimmedId,
-      current_top_card: {
-        card_id: topCard.cardId,
-        color: topCard.color,
-        value: topCard.value,
-        type: topCard.type,
-        played_by: topCard.playedBy?.toString() || 'system',
-        played_at: topCard.playedAt,
-        order: topCard.order,
-      },
-      recent_cards: recentCards.map((card) => ({
-        color: card.color,
-        value: card.value,
-        type: card.type,
-        played_by: card.playedBy?.toString() || 'system',
-        order: card.order,
-      })),
-      discard_pile_size: game.discardPile.length,
-    };
   }
 
   /**
@@ -395,28 +563,47 @@ class GameService {
    * @returns {Promise<Object>} Simple top card response
    */
   async getDiscardTopSimple(gameId) {
-    const result = await this.getDiscardTop(gameId);
+    logger.info(
+      `Attempting to get simple top discard card for game ID: ${gameId}`,
+    );
+    try {
+      const result = await this.getDiscardTop(gameId);
 
-    if (result.error) {
-      return result;
-    }
+      if (result.error) {
+        logger.warn(
+          `Simple discard top retrieval failed for game ${gameId}: ${result.error}`,
+        );
+        return result;
+      }
 
-    if (result.top_card === null) {
+      if (result.top_card === null) {
+        logger.info(
+          `Simple discard top for game ${gameId}: Discard pile is empty.`,
+        );
+        return {
+          game_ids: [result.game_id],
+          top_cards: [],
+        };
+      }
+
+      const card = result.current_top_card;
+      const color = colorMap[card.color] || card.color;
+      const value = valueMap[card.value] || card.value;
+      const cardName = `${color} ${value}`;
+
+      logger.info(
+        `Successfully retrieved simple top discard card for game ID ${gameId}.`,
+      );
       return {
         game_ids: [result.game_id],
-        top_cards: [],
+        top_cards: [cardName],
       };
+    } catch (error) {
+      logger.error(
+        `Failed to get simple discard top for game ID ${gameId}: ${error.message}`,
+      );
+      throw error;
     }
-
-    const card = result.current_top_card;
-    const color = colorMap[card.color] || card.color;
-    const value = valueMap[card.value] || card.value;
-    const cardName = `${color} ${value}`;
-
-    return {
-      game_ids: [result.game_id],
-      top_cards: [cardName],
-    };
   }
 }
 

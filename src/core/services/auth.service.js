@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import redisClient from '../../config/redis.js';
+import logger from '../../config/logger.js';
 import PlayerRepository from '../../infra/repositories/player.repository.js';
 
 /**
@@ -27,14 +28,21 @@ class AuthService {
       const user = await this.playerRepository.findByEmail(email);
 
       if (!user) {
+        logger.warn(
+          `Authentication failed for email: ${email}. User not found.`,
+        );
         throw new Error('Invalid credentials');
       }
 
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid) {
+        logger.warn(
+          `Authentication failed for email: ${email}. Invalid password.`,
+        );
         throw new Error('Invalid credentials');
       }
 
+      logger.info(`User ${user._id} logged in successfully.`);
       const accessToken = this.generateToken(
         user,
         process.env.JWT_SECRET,
@@ -56,6 +64,9 @@ class AuthService {
         refreshToken,
       };
     } catch (error) {
+      logger.error(
+        `Login failed for email: ${email} with error: ${error.message}`,
+      );
       throw new Error('Authentication failed: ' + error.message);
     }
   }
@@ -68,6 +79,7 @@ class AuthService {
    * @throws {Error} When logout operation fails
    */
   async logout(userId, accessToken) {
+    logger.info(`Attempting to log out user: ${userId}`);
     await redisClient.del(`session:${userId}`);
 
     if (accessToken) {
@@ -80,13 +92,20 @@ class AuthService {
             await redisClient.set(`blacklist:${accessToken}`, 'blacklisted', {
               EX: timeToLive,
             });
+            logger.info(
+              `Access token for user ${userId} blacklisted successfully.`,
+            );
           }
         }
       } catch (error) {
+        logger.error(
+          `Error blacklisting access token for user ${userId}: ${error.message}`,
+        );
         console.error('Error adding token in blacklist');
       }
     }
 
+    logger.info(`User ${userId} logged out successfully.`);
     return {
       success: true,
       message: 'Logged out successfully',
@@ -102,13 +121,18 @@ class AuthService {
   async refreshToken(refreshToken) {
     try {
       if (!refreshToken) {
+        logger.warn('Refresh token request missing refresh token.');
         throw new Error('Refresh token is required');
       }
 
       const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+      logger.info(`Refresh token received for user ID: ${decoded.id}`);
 
       const storedToken = await redisClient.get(`session:${decoded.id}`);
       if (!storedToken || storedToken !== refreshToken) {
+        logger.warn(
+          `Refresh token invalid or revoked for user ID: ${decoded.id}`,
+        );
         throw new Error('Refresh token invalid or revoked');
       }
 
@@ -118,17 +142,21 @@ class AuthService {
         '15m',
       );
 
+      logger.info(`New access token generated for user ID: ${decoded.id}`);
       return {
         success: true,
         token: newToken,
       };
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
+        logger.warn(`Expired refresh token detected: ${error.message}`);
         throw new Error('Refresh token has expired');
       }
       if (error.name === 'JsonWebTokenError') {
+        logger.warn(`Invalid refresh token detected: ${error.message}`);
         throw new Error('Invalid refresh token');
       }
+      logger.error(`Token refresh failed with error: ${error.message}`);
       throw new Error('Token refresh failed: ' + error.message);
     }
   }
@@ -160,11 +188,14 @@ class AuthService {
       return jwt.verify(token, secret);
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
+        logger.warn('Token verification failed: Token has expired');
         throw new Error('Token has expired');
       }
       if (error.name === 'JsonWebTokenError') {
+        logger.warn('Token verification failed: Invalid token');
         throw new Error('Invalid token');
       }
+      logger.error(`Token verification failed with error: ${error.message}`);
       throw new Error('Token verification failed: ' + error.message);
     }
   }
@@ -176,6 +207,7 @@ class AuthService {
    * @throws {Error} When password hashing fails
    */
   async hashPassword(password) {
+    logger.info('Hashing password...');
     const saltRounds = 10;
     return await bcrypt.hash(password, saltRounds);
   }
@@ -186,6 +218,7 @@ class AuthService {
    * @returns {Promise<boolean>} True if token is blacklisted, false otherwise
    */
   async verifyTokenIsBlacklisted(token) {
+    logger.info('Checking if token is blacklisted...');
     return await redisClient.get(`blacklist:${token}`);
   }
 }
