@@ -6,7 +6,7 @@ import scoreRoutes from './score.routes.js';
 import authRoutes from './auth.routes.js';
 import cardroutes from './card.routes.js';
 
-import { authenticateToken } from '../middlewares/authentication.middleware.js'; // Import authenticateToken directly
+import { authenticateToken } from '../middlewares/authentication.middleware.js';
 
 const router = Router();
 
