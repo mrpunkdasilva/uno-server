@@ -1,7 +1,4 @@
-import gameResponseDtoSchema from '../../presentation/dtos/gameResponse.dto.js';
-import updateGameDtoSchema from '../../presentation/dtos/updateGame.dto.js';
-import createGameDtoSchema from '../../presentation/dtos/createGame.dto.js';
-import GameRepository from '../../infra/repositories/game.repository.js';
+import { colorMap, valueMap } from '../enums/card.enum.js';
 
 /**
  * Service class for handling game-related business logic.
@@ -433,7 +430,9 @@ class GameService {
 
     // Format card for simple response
     const card = result.current_top_card;
-    const cardName = this._formatCardName(card);
+    const color = colorMap[card.color] || card.color;
+    const value = valueMap[card.value] || card.value;
+    const cardName = `${color} ${value}`;
 
     return {
       game_ids: [result.game_id],
@@ -441,44 +440,6 @@ class GameService {
     };
   }
 
-  /**
-   * Format card object to human-readable string
-   * @param {Object} card - The card object to format.
-   * @returns {string} The human-readable name of the card.
-   */
-  _formatCardName(card) {
-    if (!card) return 'No card';
-
-    const colorMap = {
-      red: 'Red',
-      blue: 'Blue',
-      green: 'Green',
-      yellow: 'Yellow',
-      wild: 'Wild',
-    };
-
-    const valueMap = {
-      0: 'Zero',
-      1: 'One',
-      2: 'Two',
-      3: 'Three',
-      4: 'Four',
-      5: 'Five',
-      6: 'Six',
-      7: 'Seven',
-      8: 'Eight',
-      9: 'Nine',
-      skip: 'Skip',
-      reverse: 'Reverse',
-      draw2: 'Draw Two',
-      wild: 'Wild',
-      wild_draw4: 'Wild Draw Four',
-    };
-
-    const color = colorMap[card.color] || card.color;
-    const value = valueMap[card.value] || card.value;
-
-    return `${color} ${value}`;
-  }
 }
 export default GameService;
+
