@@ -4,6 +4,8 @@ import redisClient from './config/redis.js';
 import connectDB from './config/database.js';
 
 import Router from './presentation/routes/index.js';
+import logger from './config/logger.js';
+import pinoHttp from 'pino-http';
 
 if (process.env.NODE_ENV !== 'test') {
   connectDB();
@@ -12,6 +14,7 @@ if (process.env.NODE_ENV !== 'test') {
 
 const app = express();
 
+app.use(pinoHttp({ logger }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(Router);
@@ -20,7 +23,7 @@ const PORT = process.env.PORT || 3000;
 
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    logger.info(`Server running on port ${PORT}`);
   });
 }
 
