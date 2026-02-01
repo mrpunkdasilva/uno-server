@@ -62,8 +62,7 @@ class PlayerService {
     const userObject = newUser.toObject();
     const dataToReturn = { ...userObject, id: userObject._id.toString() };
 
-    const responseDto = playerResponseDtoSchema.parse(dataToReturn);
-    return responseDto;
+    return playerResponseDtoSchema.parse(dataToReturn);
   }
 
   /**
@@ -78,8 +77,7 @@ class PlayerService {
       throw new Error('Player not found');
     }
 
-    const responseDto = playerResponseDtoSchema.parse(player);
-    return responseDto;
+    return playerResponseDtoSchema.parse(player);
   }
 
   /**
@@ -94,8 +92,7 @@ class PlayerService {
       throw new Error('Player not found');
     }
 
-    const responseDto = playerResponseDtoSchema.parse(player);
-    return responseDto;
+    return playerResponseDtoSchema.parse(player);
   }
 
   /**
@@ -110,8 +107,7 @@ class PlayerService {
       throw new Error('Player not found');
     }
 
-    const responseDto = playerResponseDtoSchema.parse(player);
-    return responseDto;
+    return playerResponseDtoSchema.parse(player);
   }
 
   /**
@@ -153,8 +149,7 @@ class PlayerService {
     const userObject = updatedPlayer.toObject();
     const dataToReturn = { ...userObject, id: userObject._id.toString() };
 
-    const responseDto = playerResponseDtoSchema.parse(dataToReturn);
-    return responseDto;
+    return playerResponseDtoSchema.parse(dataToReturn);
   }
 
   /**

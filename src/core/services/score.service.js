@@ -17,8 +17,7 @@ class ScoreService {
    * @returns {Promise<Object>} The created score document.
    */
   async createScore(scoreData) {
-    const score = await this.scoreRepository.create(scoreData);
-    return score;
+    return await this.scoreRepository.create(scoreData);
   }
 
   /**
@@ -26,8 +25,7 @@ class ScoreService {
    * @returns {Promise<Array>} A list of scores sorted by date.
    */
   async getAllScores() {
-    const scores = await this.scoreRepository.findAll();
-    return scores;
+    return await this.scoreRepository.findAll();
   }
 
   /**
@@ -37,7 +35,6 @@ class ScoreService {
    * @returns {Promise<Object>} The updated score document.
    */
   async updateScore(id, scoreData) {
-    // new: true retorna o objeto já atualizado
     const updatedScore = await this.scoreRepository.update(id, scoreData);
 
     if (!updatedScore) {

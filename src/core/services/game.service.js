@@ -1,3 +1,7 @@
+import gameResponseDtoSchema from '../../presentation/dtos/gameResponse.dto.js';
+import updateGameDtoSchema from '../../presentation/dtos/updateGame.dto.js';
+import createGameDtoSchema from '../../presentation/dtos/createGame.dto.js';
+import GameRepository from '../../infra/repositories/game.repository.js';
 import { colorMap, valueMap } from '../enums/card.enum.js';
 
 /**
@@ -50,11 +54,11 @@ class GameService {
    * @throws {Error} When game creation fails or validation errors occur (e.g., ZodError).
    */
   async createGame(gameData, userId) {
-    const { name, rules, maxPlayers } = createGameDtoSchema.parse(gameData); // Validate incoming game data
+    const { name, rules, maxPlayers } = createGameDtoSchema.parse(gameData);
 
     const data = {
-      title: name, // Map 'name' from DTO to 'title' for the model
-      rules: rules, // 'rules' maps directly
+      title: name,
+      rules: rules,
       maxPlayers: maxPlayers,
       creatorId: userId,
       players: [{ _id: userId, ready: true, position: 1 }],
@@ -62,11 +66,10 @@ class GameService {
 
     const game = await this.gameRepository.createGame(data);
 
-    // transforms into a response DTO
     return gameResponseDtoSchema.parse({
       id: game._id.toString(),
       title: game.title,
-      rules: game.rules, // Include rules in the response DTO
+      rules: game.rules,
       status: game.status,
       maxPlayers: game.maxPlayers,
       createdAt: game.createdAt,
@@ -142,7 +145,6 @@ class GameService {
       throw new Error('Game is full');
     }
 
-    // Check if user is already in the game (comparing string IDs)
     const isAlreadyInGame = game.players.some(
       (p) => p._id.toString() === userId,
     );
@@ -211,29 +213,24 @@ class GameService {
    * @returns {Promise<Object>} The started game object.
    */
   async startGame(userId, gameId) {
-    // Find the game in database
     const game = await this.gameRepository.findById(gameId);
 
     if (!game) {
       throw new Error('Game not found');
     }
 
-    // Check if user is the game creator
     if (game.creatorId.toString() !== userId) {
       throw new Error('Only the game creator can start the game');
     }
 
-    // Check if game is already started
     if (game.status === 'Active') {
       throw new Error('Game has already started');
     }
 
-    // Check minimum number of players
     if (game.players.length < game.minPlayers) {
       throw new Error(`Minimum ${game.minPlayers} players required to start`);
     }
 
-    // Check if all players are ready
     const notReadyPlayers = game.players.filter((player) => !player.ready);
     if (notReadyPlayers.length > 0) {
       throw new Error('Not all players are ready');
@@ -265,28 +262,23 @@ class GameService {
    * @throws {Error} If the game is not found, user is not in the game, or game cannot be abandoned.
    */
   async abandonGame(userId, gameId) {
-    // Find the game
     const game = await this.gameRepository.findById(gameId);
 
     if (!game) {
       throw new Error('Game not found');
     }
 
-    // Check if user is in the game
     const player = game.players.find((p) => p._id.toString() === userId);
     if (!player) {
       throw new Error('You are not in this game');
     }
 
-    // Only allow abandon if game is in progress
     if (game.status !== 'Active') {
       throw new Error('Cannot abandon now');
     }
 
-    // Remove the player
     game.players = game.players.filter((p) => p._id.toString() !== userId);
 
-    // Reassign positions for remaining players
     game.players.forEach((p, index) => {
       p.position = index + 1;
     });
@@ -296,10 +288,8 @@ class GameService {
       game.winnerId = game.players[0]._id;
     }
 
-    // Save changes
     await this.gameRepository.save(game);
 
-    // Return success
     return {
       success: true,
       message: 'You left the game',
@@ -314,7 +304,6 @@ class GameService {
    * @throws {Error} If the game ID is invalid or the game is not found.
    */
   async getGameStatus(id) {
-    // ID basic validation
     if (!id || typeof id !== 'string' || id.trim() === '') {
       throw new Error('Invalid game ID');
     }
@@ -325,8 +314,7 @@ class GameService {
       throw new Error('Game not found');
     }
 
-    // Returns a sting with game status
-    return game.status; // "Waiting", "Active", "Pause", "Ended"
+    return game.status;
   }
 
   /**
@@ -336,21 +324,18 @@ class GameService {
    * @throws {Error} When game is not found or ID is invalid
    */
   async getDiscardTop(gameId) {
-    // Validate game ID
     if (!gameId || typeof gameId !== 'string' || gameId.trim() === '') {
       throw new Error('Invalid game ID');
     }
 
     const trimmedId = gameId.trim();
 
-    // Find game with discard pile
     const game = await this.gameRepository.findDiscardTop(trimmedId);
 
     if (!game) {
       throw new Error('Game not found');
     }
 
-    // If game hasn't started, return appropriate response
     if (game.status === 'Waiting') {
       return {
         game_id: trimmedId,
@@ -364,7 +349,6 @@ class GameService {
       };
     }
 
-    // Check if discard pile is empty
     if (!game.discardPile || game.discardPile.length === 0) {
       return {
         game_id: trimmedId,
@@ -379,11 +363,9 @@ class GameService {
       };
     }
 
-    // Get the top card (last card in the array)
     const topCard = game.discardPile[game.discardPile.length - 1];
 
-    // Get recent cards (last 5 cards)
-    const recentCards = game.discardPile.slice(-5).reverse(); // Most recent first
+    const recentCards = game.discardPile.slice(-5).reverse();
 
     return {
       game_id: trimmedId,
@@ -415,12 +397,10 @@ class GameService {
   async getDiscardTopSimple(gameId) {
     const result = await this.getDiscardTop(gameId);
 
-    // If there's an error, return it
     if (result.error) {
       return result;
     }
 
-    // If pile is empty, return empty response
     if (result.top_card === null) {
       return {
         game_ids: [result.game_id],
@@ -428,7 +408,6 @@ class GameService {
       };
     }
 
-    // Format card for simple response
     const card = result.current_top_card;
     const color = colorMap[card.color] || card.color;
     const value = valueMap[card.value] || card.value;
@@ -439,7 +418,6 @@ class GameService {
       top_cards: [cardName],
     };
   }
-
 }
-export default GameService;
 
+export default GameService;
