@@ -1,5 +1,6 @@
 import gameResponseDtoSchema from '../../presentation/dtos/gameResponse.dto.js';
 import updateGameDtoSchema from '../../presentation/dtos/updateGame.dto.js';
+import createGameDtoSchema from '../../presentation/dtos/createGame.dto.js';
 import GameRepository from '../../infra/repositories/game.repository.js';
 
 /**
@@ -44,19 +45,31 @@ class GameService {
    * @returns {Promise<Object>} The created game object formatted as response DTO
    * @throws {Error} When game creation fails or validation errors occur
    */
+  /**
+   * Creates a new game with the provided game data, validating it against createGameDtoSchema.
+   * @param {Object} gameData - The data for creating a new game, validated by createGameDtoSchema.
+   * @param {string} userId - The ID of the user creating the game.
+   * @returns {Promise<Object>} The created game object formatted as response DTO.
+   * @throws {Error} When game creation fails or validation errors occur (e.g., ZodError).
+   */
   async createGame(gameData, userId) {
+    const { name, rules, maxPlayers } = createGameDtoSchema.parse(gameData); // Validate incoming game data
+
     const data = {
-      ...gameData,
+      title: name, // Map 'name' from DTO to 'title' for the model
+      rules: rules, // 'rules' maps directly
+      maxPlayers: maxPlayers,
       creatorId: userId,
       players: [{ _id: userId, ready: true, position: 1 }],
     };
 
     const game = await this.gameRepository.createGame(data);
 
-    // transforma em DTO de resposta
+    // transforms into a response DTO
     return gameResponseDtoSchema.parse({
       id: game._id.toString(),
       title: game.title,
+      rules: game.rules, // Include rules in the response DTO
       status: game.status,
       maxPlayers: game.maxPlayers,
       createdAt: game.createdAt,
@@ -247,11 +260,12 @@ class GameService {
   }
 
   /**
-   * Allow player to abandon an ongoing game
+   * Allows a player to abandon an ongoing game.
    *
-   * @param userId
-   * @param gameId
-   * @returns Object
+   * @param {string} userId - The ID of the user abandoning the game.
+   * @param {string} gameId - The ID of the game to abandon.
+   * @returns {Promise<Object>} An object indicating success and a message.
+   * @throws {Error} If the game is not found, user is not in the game, or game cannot be abandoned.
    */
   async abandonGame(userId, gameId) {
     // Find the game
@@ -293,6 +307,178 @@ class GameService {
       success: true,
       message: 'You left the game',
     };
+  }
+
+  /**
+   * Retrieves the current status of a game.
+   *
+   * @param {string} id - The ID of the game to retrieve the status for.
+   * @returns {Promise<string>} The status of the game ("Waiting", "Active", "Pause", "Ended").
+   * @throws {Error} If the game ID is invalid or the game is not found.
+   */
+  async getGameStatus(id) {
+    // ID basic validation
+    if (!id || typeof id !== 'string' || id.trim() === '') {
+      throw new Error('Invalid game ID');
+    }
+
+    const trimmedId = id.trim();
+    const game = await this.gameRepository.findGameStatus(trimmedId);
+    if (!game) {
+      throw new Error('Game not found');
+    }
+
+    // Returns a sting with game status
+    return game.status; // "Waiting", "Active", "Pause", "Ended"
+  }
+
+  /**
+   * Get the top card from the discard pile
+   * @param {string} gameId - The game ID
+   * @returns {Promise<Object>} Top card information
+   * @throws {Error} When game is not found or ID is invalid
+   */
+  async getDiscardTop(gameId) {
+    // Validate game ID
+    if (!gameId || typeof gameId !== 'string' || gameId.trim() === '') {
+      throw new Error('Invalid game ID');
+    }
+
+    const trimmedId = gameId.trim();
+
+    // Find game with discard pile
+    const game = await this.gameRepository.findDiscardTop(trimmedId);
+
+    if (!game) {
+      throw new Error('Game not found');
+    }
+
+    // If game hasn't started, return appropriate response
+    if (game.status === 'Waiting') {
+      return {
+        game_id: trimmedId,
+        error: 'Game has not started yet',
+        game_state: 'waiting',
+        initial_card: game.initialCard || {
+          color: 'blue',
+          value: '0',
+          type: 'number',
+        },
+      };
+    }
+
+    // Check if discard pile is empty
+    if (!game.discardPile || game.discardPile.length === 0) {
+      return {
+        game_id: trimmedId,
+        top_card: null,
+        message: 'Discard pile is empty - no cards have been played yet',
+        discard_pile_size: 0,
+        initial_card: game.initialCard || {
+          color: 'blue',
+          value: '0',
+          type: 'number',
+        },
+      };
+    }
+
+    // Get the top card (last card in the array)
+    const topCard = game.discardPile[game.discardPile.length - 1];
+
+    // Get recent cards (last 5 cards)
+    const recentCards = game.discardPile.slice(-5).reverse(); // Most recent first
+
+    return {
+      game_id: trimmedId,
+      current_top_card: {
+        card_id: topCard.cardId,
+        color: topCard.color,
+        value: topCard.value,
+        type: topCard.type,
+        played_by: topCard.playedBy?.toString() || 'system',
+        played_at: topCard.playedAt,
+        order: topCard.order,
+      },
+      recent_cards: recentCards.map((card) => ({
+        color: card.color,
+        value: card.value,
+        type: card.type,
+        played_by: card.playedBy?.toString() || 'system',
+        order: card.order,
+      })),
+      discard_pile_size: game.discardPile.length,
+    };
+  }
+
+  /**
+   * Get discard top with simple response (legacy support)
+   * @param {string} gameId - The game ID
+   * @returns {Promise<Object>} Simple top card response
+   */
+  async getDiscardTopSimple(gameId) {
+    const result = await this.getDiscardTop(gameId);
+
+    // If there's an error, return it
+    if (result.error) {
+      return result;
+    }
+
+    // If pile is empty, return empty response
+    if (result.top_card === null) {
+      return {
+        game_ids: [result.game_id],
+        top_cards: [],
+      };
+    }
+
+    // Format card for simple response
+    const card = result.current_top_card;
+    const cardName = this._formatCardName(card);
+
+    return {
+      game_ids: [result.game_id],
+      top_cards: [cardName],
+    };
+  }
+
+  /**
+   * Format card object to human-readable string
+   * @param {Object} card - The card object to format.
+   * @returns {string} The human-readable name of the card.
+   */
+  _formatCardName(card) {
+    if (!card) return 'No card';
+
+    const colorMap = {
+      red: 'Red',
+      blue: 'Blue',
+      green: 'Green',
+      yellow: 'Yellow',
+      wild: 'Wild',
+    };
+
+    const valueMap = {
+      0: 'Zero',
+      1: 'One',
+      2: 'Two',
+      3: 'Three',
+      4: 'Four',
+      5: 'Five',
+      6: 'Six',
+      7: 'Seven',
+      8: 'Eight',
+      9: 'Nine',
+      skip: 'Skip',
+      reverse: 'Reverse',
+      draw2: 'Draw Two',
+      wild: 'Wild',
+      wild_draw4: 'Wild Draw Four',
+    };
+
+    const color = colorMap[card.color] || card.color;
+    const value = valueMap[card.value] || card.value;
+
+    return `${color} ${value}`;
   }
 }
 export default GameService;

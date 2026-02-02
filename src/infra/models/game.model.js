@@ -6,6 +6,10 @@ const gameSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    rules: {
+      type: String,
+      required: true,
+    },
     creatorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Player',
@@ -13,7 +17,6 @@ const gameSchema = mongoose.Schema(
     },
     status: {
       type: String,
-      // Added 'Waiting' to allow new players to join
       enum: ['Waiting', 'Active', 'Pause', 'Ended'],
       default: 'Waiting',
       required: true,
@@ -44,6 +47,65 @@ const gameSchema = mongoose.Schema(
       ref: 'Player',
       default: null,
     },
+    // NOVO: Pilha de descarte
+    discardPile: [
+      {
+        cardId: {
+          type: String,
+          required: true,
+        },
+        color: {
+          type: String,
+          enum: ['red', 'blue', 'green', 'yellow', 'wild'],
+          required: true,
+        },
+        value: {
+          type: String,
+          required: true,
+        },
+        type: {
+          type: String,
+          enum: ['number', 'action', 'wild'],
+          required: true,
+        },
+        playedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Player',
+        },
+        playedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        order: {
+          type: Number,
+          default: 0,
+        },
+      },
+    ],
+    initialCard: {
+      color: {
+        type: String,
+        enum: ['red', 'blue', 'green', 'yellow'],
+        default: 'blue',
+      },
+      value: {
+        type: String,
+        default: '0',
+      },
+      type: {
+        type: String,
+        enum: ['number'],
+        default: 'number',
+      },
+    },
+    deck: [
+      {
+        cardId: String,
+        color: String,
+        value: String,
+        type: String,
+      },
+    ],
   },
   {
     timestamps: true,
