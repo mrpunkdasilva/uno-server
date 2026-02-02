@@ -480,5 +480,51 @@ class GameService {
 
     return `${color} ${value}`;
   }
+  /**
+   * Ends an active game early.
+   * Only the creator of the game can perform this action.
+   *
+   * @param {string} gameId - The ID of the game to end.
+   * @param {string} userId - The ID of the user requesting to end the game.
+   * @returns {Promise<Object>} The updated game object with status 'Ended'.
+   * @throws {Error} If game is not found (404).
+   * @throws {Error} If user is not the creator (403).
+   * @throws {Error} If game is already ended (409).
+   * @throws {Error} If game is not in progress (412).
+   */
+  async endGame(gameId, userId) {
+    const game = await this.gameRepository.findById(gameId);
+
+    if (!game) {
+      throw new Error('Game not found');
+    }
+
+    // Authorization Validation (Only the creator can finalize this)
+    if (game.creatorId.toString() !== userId) {
+      throw new Error('Only the game creator can end the game');
+    }
+
+    // Conflict Validation (ended)
+    if (game.status === 'Ended') {
+      throw new Error('Game has already ended');
+    }
+
+    // Precondition Validation (Must be in progress)
+    if (game.status !== 'Active') {
+      throw new Error('Game must be in progress to be ended');
+    }
+
+    game.status = 'Ended';
+    game.endedAt = new Date();
+    // Save updates
+    await this.gameRepository.save(game);
+
+    return {
+      message: 'Game ended successfully',
+      gameId: game._id,
+      finalStatus: game.status,
+      endedAt: game.endedAt,
+    };
+  }
 }
 export default GameService;
