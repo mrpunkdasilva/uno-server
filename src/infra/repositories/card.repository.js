@@ -1,271 +1,261 @@
 import Card from '../models/card.model.js';
 
 /**
- *
+ * Repository class for managing card data operations in the database.
+ * Follows Option B: return Mongoose documents and allow higher layers to handle errors.
  */
 class CardRepository {
   /**
-   *
-   * @param cardData
+   * Creates a new card document.
+   * @param {Object} cardData
+   * @returns {Promise<Document>} Mongoose Document for the created card
    */
   async create(cardData) {
-    try {
-      const card = new Card(cardData);
-      const savedCard = await card.save();
-      return savedCard.toObject();
-    } catch (error) {
-      console.error('Error creating card:', error.message);
-      throw new Error(`Failed to create card: ${error.message}`);
-    }
+    const card = new Card(cardData);
+    return await card.save();
   }
 
   /**
-   *
-   * @param id
+   * Finds a card by its ID.
+   * @param {string} id
+   * @returns {Promise<Document|null>}
    */
   async findById(id) {
-    try {
-      const card = await Card.findById(id);
-      return card ? card.toObject() : null;
-    } catch (error) {
-      console.error('Error finding card by ID:', error.message);
-      throw new Error(`Failed to find card: ${error.message}`);
-    }
+    return await Card.findById(id);
   }
 
   /**
-   *
-   * @param id
-   * @param cardData
+   * Updates a card by its ID.
+   * @param {string} id
+   * @param {Object} cardData
+   * @returns {Promise<Document|null>}
    */
   async update(id, cardData) {
-    try {
-      const updatedCard = await Card.findByIdAndUpdate(
-        id,
-        {
-          ...cardData,
-          updatedAt: Date.now(),
-        },
-        {
-          new: true,
-          runValidators: true,
-        },
-      );
-      return updatedCard ? updatedCard.toObject() : null;
-    } catch (error) {
-      console.error('Error updating card:', error.message);
-      throw new Error(`Failed to update card: ${error.message}`);
-    }
+    return await Card.findByIdAndUpdate(
+      id,
+      {
+        ...cardData,
+        updatedAt: Date.now(),
+      },
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
   }
 
   /**
-   *
-   * @param id
+   * Deletes a card by its ID.
+   * @param {string} id
+   * @returns {Promise<Document|null>}
    */
   async delete(id) {
-    try {
-      const result = await Card.findByIdAndDelete(id);
-      return !!result;
-    } catch (error) {
-      console.error('Error deleting card:', error.message);
-      throw new Error(`Failed to delete card: ${error.message}`);
-    }
+    return await Card.findByIdAndDelete(id);
   }
 
   /**
-   *
+   * Returns all cards.
+   * @returns {Promise<Array<Document>>}
    */
   async findAll() {
-    try {
-      const cards = await Card.find({});
-      return cards.map((card) => card.toObject());
-    } catch (error) {
-      console.error('Error finding all cards:', error.message);
-      throw new Error(`Failed to find cards: ${error.message}`);
-    }
+    return await Card.find({});
   }
 
   /**
-   *
-   * @param filters
+   * Finds cards matching provided filters.
+   * Supported filters: color, gameId, value, playerId, isInDeck, isDiscarded, sortBy, sortOrder, limit, skip
+   * Note: this method returns Mongoose documents.
+   * @param {Object} filters
+   * @returns {Promise<Array<Document>>}
    */
   async findByFilters(filters = {}) {
-    try {
-      const query = {};
+    const query = {};
 
-      if (filters.color) query.color = filters.color;
-      if (filters.gameId) query.gameId = filters.gameId;
-      if (filters.value) query.value = filters.value;
-      if (filters.playerId) query.playerId = filters.playerId;
-      if (filters.isInDeck !== undefined) query.isInDeck = filters.isInDeck;
-      if (filters.isDiscarded !== undefined)
-        query.isDiscarded = filters.isDiscarded;
+    if (filters.color) query.color = filters.color;
+    if (filters.gameId) query.gameId = filters.gameId;
+    if (filters.type) query.type = filters.type;
+    if (filters.number !== undefined) query.number = filters.number;
+    if (filters.value) query.value = filters.value;
+    if (filters.playerId) query.playerId = filters.playerId;
+    if (filters.isInDeck !== undefined) query.isInDeck = filters.isInDeck;
+    if (filters.isDiscarded !== undefined)
+      query.isDiscarded = filters.isDiscarded;
 
-      let queryBuilder = Card.find(query);
+    let queryBuilder = Card.find(query);
 
-      if (filters.sortBy) {
-        const sortOrder = filters.sortOrder === 'desc' ? -1 : 1;
-        queryBuilder = queryBuilder.sort({ [filters.sortBy]: sortOrder });
-      }
-
-      if (filters.limit && !isNaN(filters.limit)) {
-        queryBuilder = queryBuilder.limit(parseInt(filters.limit));
-      }
-
-      if (filters.skip && !isNaN(filters.skip)) {
-        queryBuilder = queryBuilder.skip(parseInt(filters.skip));
-      }
-
-      const cards = await queryBuilder.exec();
-      return cards.map((card) => card.toObject());
-    } catch (error) {
-      console.error('Error filtering cards:', error.message);
-      throw new Error(`Failed to filter cards: ${error.message}`);
+    if (filters.sortBy) {
+      const sortOrder = filters.sortOrder === 'desc' ? -1 : 1;
+      queryBuilder = queryBuilder.sort({ [filters.sortBy]: sortOrder });
     }
+
+    if (filters.limit && !isNaN(filters.limit)) {
+      queryBuilder = queryBuilder.limit(parseInt(filters.limit, 10));
+    }
+
+    if (filters.skip && !isNaN(filters.skip)) {
+      queryBuilder = queryBuilder.skip(parseInt(filters.skip, 10));
+    }
+
+    return await queryBuilder.exec();
   }
 
   /**
-   *
-   * @param filters
+   * Counts documents matching provided filters.
+   * Supported filters: color, gameId, value
+   * @param {Object} filters
+   * @returns {Promise<number>}
    */
   async countByFilters(filters = {}) {
-    try {
-      const query = {};
+    const query = {};
 
-      if (filters.color) query.color = filters.color;
-      if (filters.gameId) query.gameId = filters.gameId;
-      if (filters.value) query.value = filters.value;
+    if (filters.color) query.color = filters.color;
+    if (filters.gameId) query.gameId = filters.gameId;
+    if (filters.type) query.type = filters.type;
+    if (filters.number !== undefined) query.number = filters.number;
+    if (filters.value) query.value = filters.value;
 
-      return await Card.countDocuments(query);
-    } catch (error) {
-      console.error('Error counting cards:', error.message);
-      throw new Error(`Failed to count cards: ${error.message}`);
-    }
+    return await Card.countDocuments(query);
   }
 
   /**
-   *
-   * @param gameId
+   * Initializes a standard UNO deck for a given game.
+   * Note: This implementation mirrors existing logic in the codebase and returns
+   * Mongoose documents for the inserted cards.
+   * @param {string} gameId
+   * @returns {Promise<Array<Document>>}
    */
   async initializeGameDeck(gameId) {
-    try {
-      console.log(`Initializing deck for game: ${gameId}`);
+    console.log(`Initializing deck for game: ${gameId}`);
 
-      const colors = ['red', 'blue', 'green', 'yellow'];
-      const numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-      const specials = ['skip', 'reverse', 'draw2'];
+    const colors = ['red', 'blue', 'green', 'yellow'];
+    const numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    const specials = ['skip', 'reverse', 'draw2'];
 
-      const cardsToCreate = [];
+    const cardsToCreate = [];
 
-      // Números (0-9) - 1 carta do 0, 2 cartas dos outros números
-      colors.forEach((color) => {
-        numbers.forEach((number) => {
-          const count = number === '0' ? 1 : 2;
-          for (let i = 0; i < count; i++) {
-            cardsToCreate.push({
-              color,
-              value: number,
-              gameId,
-              isInDeck: true,
-              isDiscarded: false,
-            });
-          }
-        });
-      });
-
-      // Cartas especiais (skip, reverse, draw2) - 2 de cada
-      colors.forEach((color) => {
-        specials.forEach((special) => {
-          for (let i = 0; i < 2; i++) {
-            cardsToCreate.push({
-              color,
-              value: special,
-              gameId,
-              isInDeck: true,
-              isDiscarded: false,
-            });
-          }
-        });
-      });
-
-      // Cartas pretas (wild cards) - 4 de cada
-      const wildCards = ['wild', 'wild_draw4'];
-      wildCards.forEach((wild) => {
-        for (let i = 0; i < 4; i++) {
+    // Números (0-9) - 1 carta do 0, 2 cartas dos outros números
+    colors.forEach((color) => {
+      numbers.forEach((number) => {
+        const count = number === '0' ? 1 : 2;
+        for (let i = 0; i < count; i++) {
           cardsToCreate.push({
-            color: 'black',
-            value: wild,
+            color,
+            type: 'number',
+            number: parseInt(number, 10),
+            playerId: null,
             gameId,
             isInDeck: true,
             isDiscarded: false,
+            orderIndex: 0,
           });
         }
       });
+    });
 
-      // Inserir todas as cartas de uma vez
-      if (cardsToCreate.length > 0) {
-        const result = await Card.insertMany(cardsToCreate);
-        console.log(`Created ${result.length} cards for game ${gameId}`);
-        return result.map((card) => card.toObject());
+    // Cartas especiais (skip, reverse, draw_two) - 2 de cada
+    const specialMap = {
+      skip: 'skip',
+      reverse: 'reverse',
+      draw2: 'draw_two',
+    };
+
+    colors.forEach((color) => {
+      specials.forEach((special) => {
+        const mapped = specialMap[special] || special;
+        for (let i = 0; i < 2; i++) {
+          cardsToCreate.push({
+            color,
+            type: mapped,
+            number: null,
+            playerId: null,
+            gameId,
+            isInDeck: true,
+            isDiscarded: false,
+            orderIndex: 0,
+          });
+        }
+      });
+    });
+
+    // Cartas pretas (wild cards) - 4 de cada
+    const wildCards = [
+      { raw: 'wild', type: 'wild' },
+      { raw: 'wild_draw4', type: 'wild_draw_four' },
+    ];
+    wildCards.forEach((w) => {
+      for (let i = 0; i < 4; i++) {
+        cardsToCreate.push({
+          color: 'black',
+          type: w.type,
+          number: null,
+          playerId: null,
+          gameId,
+          isInDeck: true,
+          isDiscarded: false,
+          orderIndex: 0,
+        });
       }
+    });
 
-      return [];
-    } catch (error) {
-      console.error('Error initializing game deck:', error.message);
-      throw new Error(`Failed to initialize deck: ${error.message}`);
+    // Embaralhar o array e atribuir orderIndex sequencial (Fisher–Yates)
+    for (let i = cardsToCreate.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = cardsToCreate[i];
+      cardsToCreate[i] = cardsToCreate[j];
+      cardsToCreate[j] = tmp;
     }
+
+    // Atribui orderIndex conforme a ordem embaralhada (0..N-1)
+    for (let idx = 0; idx < cardsToCreate.length; idx++) {
+      cardsToCreate[idx].orderIndex = idx;
+    }
+
+    if (cardsToCreate.length > 0) {
+      return await Card.insertMany(cardsToCreate);
+    }
+
+    return [];
   }
 
   /**
-   *
-   * @param gameId
-   * @param filters
+   * Gets cards for a given game. Returns Mongoose documents.
+   * @param {string} gameId
+   * @param {Object} filters
+   * @returns {Promise<Array<Document>>}
    */
   async getCardsByGame(gameId, filters = {}) {
-    try {
-      const query = { gameId, ...filters };
-      const cards = await Card.find(query);
-      return cards.map((card) => card.toObject());
-    } catch (error) {
-      console.error('Error getting cards by game:', error.message);
-      throw new Error(`Failed to get game cards: ${error.message}`);
-    }
+    const query = { gameId, ...filters };
+    return await Card.find(query);
   }
 
   /**
-   *
-   * @param gameId
+   * Draws a single card from the deck for a game.
+   * Current behavior: finds any card with isInDeck=true and sets isInDeck=false.
+   * Higher layers should handle ordering/shuffle behavior.
+   * @param {string} gameId
+   * @returns {Promise<Document|null>}
    */
   async drawCardFromDeck(gameId) {
-    try {
-      const card = await Card.findOneAndUpdate(
-        { gameId, isInDeck: true },
-        { isInDeck: false, updatedAt: Date.now() },
-        { new: true },
-      );
-      return card ? card.toObject() : null;
-    } catch (error) {
-      console.error('Error drawing card:', error.message);
-      throw new Error(`Failed to draw card: ${error.message}`);
-    }
+    const card = await Card.findOneAndUpdate(
+      { gameId, isInDeck: true },
+      { isInDeck: false, updatedAt: Date.now() },
+      { new: true },
+    );
+    return card;
   }
 
   /**
-   *
-   * @param cardId
+   * Marks a card as discarded.
+   * @param {string} cardId
+   * @returns {Promise<Document|null>}
    */
   async discardCard(cardId) {
-    try {
-      const card = await Card.findByIdAndUpdate(
-        cardId,
-        { isDiscarded: true, updatedAt: Date.now() },
-        { new: true },
-      );
-      return card ? card.toObject() : null;
-    } catch (error) {
-      console.error('Error discarding card:', error.message);
-      throw new Error(`Failed to discard card: ${error.message}`);
-    }
+    const card = await Card.findByIdAndUpdate(
+      cardId,
+      { isDiscarded: true, updatedAt: Date.now() },
+      { new: true },
+    );
+    return card;
   }
 }
 
