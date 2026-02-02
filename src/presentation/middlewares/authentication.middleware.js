@@ -3,7 +3,7 @@ import AuthService from '../../core/services/auth.service.js';
 
 const authService = new AuthService();
 
-const authMiddleware = async (req, res, next) => {
+export const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
@@ -55,5 +55,3 @@ const authMiddleware = async (req, res, next) => {
     });
   }
 };
-
-export default authMiddleware;

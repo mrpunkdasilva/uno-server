@@ -5,8 +5,10 @@ import connectDB from './config/database.js';
 
 import Router from './presentation/routes/index.js';
 
-connectDB();
-redisClient.connect();
+if (process.env.NODE_ENV !== 'test') {
+  connectDB();
+  redisClient.connect();
+}
 
 const app = express();
 
@@ -16,6 +18,10 @@ app.use(Router);
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+export default app;

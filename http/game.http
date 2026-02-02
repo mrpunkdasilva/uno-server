@@ -1,0 +1,69 @@
+### Create a new game
+# @name createGame
+POST {{baseUrl}}/api/games
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "Meu Jogo Padrão",
+  "rules": "Regras clássicas do UNO.",
+  "maxPlayers": 4
+}
+
+### Get all games
+# @name getAllGames
+GET {{baseUrl}}/api/games
+Authorization: Bearer {{accessToken}}
+
+### Get game by ID
+# @name getGameById
+GET {{baseUrl}}/api/games/{{gameId}}
+Authorization: Bearer {{accessToken}}
+
+### Update game by ID
+PUT {{baseUrl}}/api/games/{{gameId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "title": "Novo Título do Jogo",
+  "maxPlayers": 6
+}
+
+### Delete game by ID
+DELETE {{baseUrl}}/api/games/{{gameId}}
+Authorization: Bearer {{accessToken}}
+
+### Join game by ID
+GET {{baseUrl}}/api/games/{{gameId}}/join
+Authorization: Bearer {{accessToken}}
+
+### Set player ready for game
+GET {{baseUrl}}/api/games/{{gameId}}/ready
+Authorization: Bearer {{accessToken}}
+
+### Start game
+GET {{baseUrl}}/api/games/{{gameId}}/start
+Authorization: Bearer {{accessToken}}
+
+### Abandon game
+GET {{baseUrl}}/api/games/{{gameId}}/abandon
+Authorization: Bearer {{accessToken}}
+
+### Get game status
+GET {{baseUrl}}/api/games/{{gameId}}/status
+Authorization: Bearer {{accessToken}}
+
+### Get top card from discard pile
+GET {{baseUrl}}/api/games/{{gameId}}/discard/top
+Authorization: Bearer {{accessToken}}
+
+### Get top card from discard pile (simple response)
+GET {{baseUrl}}/api/games/{{gameId}}/discard/top/simple
+Authorization: Bearer {{accessToken}}
+
+### Post to discard top (as per Postman, even if route is GET)
+POST {{baseUrl}}/api/games/discard/top
+Authorization: Bearer {{accessToken}}
+
+###

@@ -67,6 +67,12 @@ class GameRepository {
     return await game.save();
   }
 
+  /**
+   * Finds a game by its ID and returns only its status.
+   *
+   * @param {string} id - The ID of the game to find.
+   * @returns {Promise<Object|null>} An object containing the game's status if found, null otherwise.
+   */
   async findGameStatus(id) {
     const game = await Game.findById(id).select('status');
     return game;
