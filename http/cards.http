@@ -1,0 +1,84 @@
+### Get all cards
+# @name getAllCards
+GET {{baseUrl}}/api/cards
+Authorization: Bearer {{accessToken}}
+
+### Get card by ID
+# @name getCardById
+GET {{baseUrl}}/api/cards/{{cardId}}
+Authorization: Bearer {{accessToken}}
+
+### Create a new card
+# @name createCard
+POST {{baseUrl}}/api/cards
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "color": "red",
+  "type": "number",
+  "number": 5,
+  "gameId": "{{gameId}}"
+}
+
+### Update card by ID
+# @name updateCard
+PUT {{baseUrl}}/api/cards/{{cardId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "color": "blue",
+  "type": "number",
+  "number": 7
+}
+
+### Delete card by ID
+# @name deleteCard
+DELETE {{baseUrl}}/api/cards/{{cardId}}
+Authorization: Bearer {{accessToken}}
+
+### Count cards
+# @name countCards
+GET {{baseUrl}}/api/cards/count
+Authorization: Bearer {{accessToken}}
+
+### Initialize game deck (create 108 cards)
+# @name initializeGameDeck
+POST {{baseUrl}}/api/cards/game/{{gameId}}/initialize
+Authorization: Bearer {{accessToken}}
+
+### Get cards by game ID
+# @name getCardsByGame
+GET {{baseUrl}}/api/cards/game/{{gameId}}
+Authorization: Bearer {{accessToken}}
+
+### Get cards by game with filters
+# @name getCardsByGameFiltered
+GET {{baseUrl}}/api/cards/game/{{gameId}}?color=red&isInDeck=true
+Authorization: Bearer {{accessToken}}
+
+### Draw card from deck
+# @name drawCardFromDeck
+POST {{baseUrl}}/api/cards/game/{{gameId}}/draw
+Authorization: Bearer {{accessToken}}
+
+### Discard card by ID
+# @name discardCard
+POST {{baseUrl}}/api/cards/{{cardId}}/discard
+Authorization: Bearer {{accessToken}}
+
+{
+  "gameId": "{{gameId}}",
+  "playerId": "{{playerId}}"
+}
+
+### Get discarded cards for a game
+# @name getDiscardedCards
+GET {{baseUrl}}/api/cards/game/{{gameId}}?isDiscarded=true
+Authorization: Bearer {{accessToken}}
+
+### Get cards in deck for a game
+# @name getCardsInDeck
+GET {{baseUrl}}/api/cards/game/{{gameId}}?isInDeck=true
+Authorization: Bearer {{accessToken}}
