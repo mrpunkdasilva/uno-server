@@ -1,47 +1,21 @@
-import GameService from '../game.service.js';
-import GameRepository from '../../../infra/repositories/game.repository.js';
-import gameResponseDtoSchema from '../../../presentation/dtos/gameResponse.dto.js';
-import updateGameDtoSchema from '../../../presentation/dtos/updateGame.dto.js';
+jest.mock('../../../../src/infra/repositories/game.repository.js');
+jest.mock('../../../../src/presentation/dtos/gameResponse.dto.js');
+jest.mock('../../../../src/presentation/dtos/updateGame.dto.js');
 
-// Mock das dependências
-jest.mock('../../../infra/repositories/game.repository.js');
-jest.mock('../../../presentation/dtos/gameResponse.dto.js');
-jest.mock('../../../presentation/dtos/updateGame.dto.js');
+import GameService from '../../../../src/core/services/game.service.js';
+import GameRepository from '../../../../src/infra/repositories/game.repository.js';
+import gameResponseDtoSchema from '../../../../src/presentation/dtos/gameResponse.dto.js';
+import updateGameDtoSchema from '../../../../src/presentation/dtos/updateGame.dto.js';
+import { ZodError } from 'zod';
+import { mockGame, mockParsedGame } from '../../../../src/mocks/game.mocks.js';
 
 describe('GameService', () => {
   let gameService;
   let mockGameRepository;
 
-  // Dados mockados para reutilização
-  const mockGame = {
-    _id: '507f1f77bcf86cd799439011',
-    title: 'Test Game',
-    status: 'Waiting',
-    maxPlayers: 4,
-    minPlayers: 2,
-    creatorId: 'creator123',
-    players: [
-      { _id: 'creator123', ready: true, position: 1 },
-      { _id: 'player456', ready: false, position: 2 },
-    ],
-    createdAt: '2024-01-01T00:00:00.000Z',
-    updatedAt: '2024-01-01T00:00:00.000Z',
-  };
-
-  const mockParsedGame = {
-    id: '507f1f77bcf86cd799439011',
-    title: 'Test Game',
-    status: 'Waiting',
-    maxPlayers: 4,
-    createdAt: '2024-01-01T00:00:00.000Z',
-    updatedAt: '2024-01-01T00:00:00.000Z',
-  };
-
   beforeEach(() => {
-    // Limpar todos os mocks antes de cada teste
     jest.clearAllMocks();
 
-    // Configurar mock do repository
     mockGameRepository = {
       findAll: jest.fn(),
       findById: jest.fn(),
@@ -52,70 +26,52 @@ describe('GameService', () => {
       findGameStatus: jest.fn(),
     };
 
-    // Configurar o mock da classe para retornar nossa instância mockada
     GameRepository.mockImplementation(() => mockGameRepository);
-
-    // Criar instância do service
     gameService = new GameService();
 
-    // Configurar mocks padrão dos DTOs
     gameResponseDtoSchema.parse.mockReturnValue(mockParsedGame);
     updateGameDtoSchema.parse.mockImplementation((data) => data);
   });
 
   describe('Constructor', () => {
-    it('deve inicializar com uma instância do GameRepository', () => {
+    it('should initialize with GameRepository instance', () => {
       expect(GameRepository).toHaveBeenCalledTimes(1);
       expect(gameService.gameRepository).toBe(mockGameRepository);
     });
   });
 
   describe('getAllGames', () => {
-    it('deve retornar todos os jogos formatados como DTO', async () => {
-      // Arrange
+    it('should return all games formatted as DTO', async () => {
       const mockGames = [mockGame, { ...mockGame, _id: '456' }];
       mockGameRepository.findAll.mockResolvedValue(mockGames);
-
-      // Act
       const result = await gameService.getAllGames();
 
-      // Assert
       expect(mockGameRepository.findAll).toHaveBeenCalledTimes(1);
       expect(gameResponseDtoSchema.parse).toHaveBeenCalledTimes(2);
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual(mockParsedGame);
     });
 
-    it('deve propagar erro quando repository falhar', async () => {
-      // Arrange
+    it('should propagate repository error', async () => {
       const mockError = new Error('Database error');
       mockGameRepository.findAll.mockRejectedValue(mockError);
-
-      // Act & Assert
       await expect(gameService.getAllGames()).rejects.toThrow('Database error');
     });
   });
 
   describe('getGameById', () => {
-    it('deve retornar jogo específico quando encontrado', async () => {
-      // Arrange
+    it('should return specific game when found', async () => {
       const gameId = '123';
       mockGameRepository.findById.mockResolvedValue(mockGame);
 
-      // Act
       const result = await gameService.getGameById(gameId);
-
-      // Assert
       expect(mockGameRepository.findById).toHaveBeenCalledWith(gameId);
       expect(gameResponseDtoSchema.parse).toHaveBeenCalledWith(mockGame);
       expect(result).toEqual(mockParsedGame);
     });
 
-    it('deve lançar erro "Game not found" quando jogo não existe', async () => {
-      // Arrange
+    it('should throw Game not found error', async () => {
       mockGameRepository.findById.mockResolvedValue(null);
-
-      // Act & Assert
       await expect(gameService.getGameById('invalid')).rejects.toThrow(
         'Game not found',
       );
@@ -124,36 +80,44 @@ describe('GameService', () => {
 
   describe('createGame', () => {
     const mockGameData = {
-      title: 'New Game',
+      name: 'New Game',
+      rules: 'Some default rules for the test game.',
       maxPlayers: 4,
-      minPlayers: 2,
     };
-
     const mockUserId = 'user123';
 
-    it('deve criar jogo com dados válidos', async () => {
-      // Arrange
+    it('should create game with valid data', async () => {
       const createdGame = {
-        ...mockGame,
-        _id: 'new-game-id',
-        title: mockGameData.title,
+        _id: { toString: () => 'new-game-id' },
+        title: mockGameData.name,
+        rules: mockGameData.rules,
+        status: 'Waiting',
+        maxPlayers: mockGameData.maxPlayers,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
       mockGameRepository.createGame.mockResolvedValue(createdGame);
-
-      // Act
       const result = await gameService.createGame(mockGameData, mockUserId);
 
-      // Assert
       expect(mockGameRepository.createGame).toHaveBeenCalledWith({
-        ...mockGameData,
+        title: mockGameData.name,
+        rules: mockGameData.rules,
+        maxPlayers: mockGameData.maxPlayers,
         creatorId: mockUserId,
-        players: [{ _id: mockUserId, ready: true, position: 1 }],
+        players: [
+          {
+            _id: mockUserId,
+            ready: true,
+            position: 1,
+          },
+        ],
       });
 
       expect(gameResponseDtoSchema.parse).toHaveBeenCalledWith({
         id: createdGame._id.toString(),
         title: createdGame.title,
+        rules: createdGame.rules,
         status: createdGame.status,
         maxPlayers: createdGame.maxPlayers,
         createdAt: createdGame.createdAt,
@@ -163,15 +127,153 @@ describe('GameService', () => {
       expect(result).toEqual(mockParsedGame);
     });
 
-    it('deve propagar erro quando criação falhar', async () => {
-      // Arrange
+    it('should propagate creation error', async () => {
       const mockError = new Error('Validation failed');
       mockGameRepository.createGame.mockRejectedValue(mockError);
-
-      // Act & Assert
       await expect(
         gameService.createGame(mockGameData, mockUserId),
       ).rejects.toThrow('Validation failed');
+    });
+
+    it('should throw ZodError when name is missing', async () => {
+      await expect(
+        gameService.createGame(
+          {
+            ...mockGameData,
+            name: undefined,
+          },
+          mockUserId,
+        ),
+      ).rejects.toThrow(ZodError);
+      await expect(
+        gameService.createGame(
+          {
+            ...mockGameData,
+            name: undefined,
+          },
+          mockUserId,
+        ),
+      ).rejects.toHaveProperty('issues.0.path.0', 'name');
+    });
+
+    it('should throw ZodError when name is too short', async () => {
+      await expect(
+        gameService.createGame(
+          {
+            ...mockGameData,
+            name: 'ab',
+          },
+          mockUserId,
+        ),
+      ).rejects.toThrow(ZodError);
+      await expect(
+        gameService.createGame(
+          {
+            ...mockGameData,
+            name: 'ab',
+          },
+          mockUserId,
+        ),
+      ).rejects.toHaveProperty('issues.0.path.0', 'name');
+      await expect(
+        gameService.createGame(
+          {
+            ...mockGameData,
+            name: 'ab',
+          },
+          mockUserId,
+        ),
+      ).rejects.toHaveProperty(
+        'issues.0.message',
+        'Game must have at least 3 letters as name (ex: UNO)',
+      );
+    });
+
+    it('should throw ZodError when rules is missing', async () => {
+      await expect(
+        gameService.createGame(
+          {
+            ...mockGameData,
+            rules: undefined,
+          },
+          mockUserId,
+        ),
+      ).rejects.toThrow(ZodError);
+      await expect(
+        gameService.createGame(
+          {
+            ...mockGameData,
+            rules: undefined,
+          },
+          mockUserId,
+        ),
+      ).rejects.toHaveProperty('issues.0.path.0', 'rules');
+    });
+
+    it('should throw ZodError when rules is too short', async () => {
+      await expect(
+        gameService.createGame(
+          {
+            ...mockGameData,
+            rules: 'short',
+          },
+          mockUserId,
+        ),
+      ).rejects.toThrow(ZodError);
+      await expect(
+        gameService.createGame(
+          {
+            ...mockGameData,
+            rules: 'short',
+          },
+          mockUserId,
+        ),
+      ).rejects.toHaveProperty('issues.0.path.0', 'rules');
+      await expect(
+        gameService.createGame(
+          {
+            ...mockGameData,
+            rules: 'short',
+          },
+          mockUserId,
+        ),
+      ).rejects.toHaveProperty(
+        'issues.0.message',
+        'Rules must have at least 10 characters',
+      );
+    });
+
+    it('should throw ZodError when maxPlayers is too low', async () => {
+      await expect(
+        gameService.createGame(
+          {
+            ...mockGameData,
+            maxPlayers: 1,
+          },
+          mockUserId,
+        ),
+      ).rejects.toThrow(ZodError);
+      await expect(
+        gameService.createGame(
+          {
+            ...mockGameData,
+            maxPlayers: 1,
+          },
+          mockUserId,
+        ),
+      ).rejects.toHaveProperty('issues.0.path.0', 'maxPlayers');
+      await expect(
+        gameService.createGame(
+          {
+            ...mockGameData,
+            maxPlayers: 1,
+          },
+          mockUserId,
+        ),
+      ).rejects.toHaveProperty(
+        'issues.0.message',
+        'The game must have at least 2 players',
+      );
     });
   });
 
@@ -179,21 +281,17 @@ describe('GameService', () => {
     const gameId = '123';
     const updateData = { title: 'Updated Title', status: 'Active' };
 
-    it('deve atualizar jogo existente', async () => {
-      // Arrange
+    it('should update existing game', async () => {
       const updatedGame = {
         ...mockGame,
         title: 'Updated Title',
         status: 'Active',
       };
-
       updateGameDtoSchema.parse.mockReturnValue(updateData);
       mockGameRepository.update.mockResolvedValue(updatedGame);
 
-      // Act
       const result = await gameService.updateGame(gameId, updateData);
 
-      // Assert
       expect(updateGameDtoSchema.parse).toHaveBeenCalledWith(updateData);
       expect(mockGameRepository.update).toHaveBeenCalledWith(
         gameId,
@@ -203,26 +301,20 @@ describe('GameService', () => {
       expect(result).toEqual(mockParsedGame);
     });
 
-    it('deve lançar erro "Game not found" quando jogo não existe', async () => {
-      // Arrange
+    it('should throw Game not found error', async () => {
       updateGameDtoSchema.parse.mockReturnValue(updateData);
       mockGameRepository.update.mockResolvedValue(null);
-
-      // Act & Assert
       await expect(gameService.updateGame(gameId, updateData)).rejects.toThrow(
         'Game not found',
       );
     });
 
-    it('deve validar dados de entrada com schema', async () => {
-      // Arrange
+    it('should validate input data with schema', async () => {
       const invalidData = { invalidField: 'value' };
       const validationError = new Error('Validation error');
       updateGameDtoSchema.parse.mockImplementation(() => {
         throw validationError;
       });
-
-      // Act & Assert
       await expect(gameService.updateGame(gameId, invalidData)).rejects.toThrow(
         'Validation error',
       );
@@ -232,25 +324,19 @@ describe('GameService', () => {
   describe('deleteGame', () => {
     const gameId = '123';
 
-    it('deve deletar jogo existente', async () => {
-      // Arrange
+    it('should delete existing game', async () => {
       mockGameRepository.findById.mockResolvedValue(mockGame);
       mockGameRepository.delete.mockResolvedValue(mockGame);
 
-      // Act
       const result = await gameService.deleteGame(gameId);
 
-      // Assert
       expect(mockGameRepository.findById).toHaveBeenCalledWith(gameId);
       expect(mockGameRepository.delete).toHaveBeenCalledWith(gameId);
       expect(result).toEqual(mockGame);
     });
 
-    it('deve lançar erro "Game not found" antes de tentar deletar', async () => {
-      // Arrange
+    it('should throw Game not found error before deletion', async () => {
       mockGameRepository.findById.mockResolvedValue(null);
-
-      // Act & Assert
       await expect(gameService.deleteGame(gameId)).rejects.toThrow(
         'Game not found',
       );
@@ -265,16 +351,20 @@ describe('GameService', () => {
     beforeEach(() => {
       mockGameRepository.findById.mockResolvedValue({
         ...mockGame,
-        players: [{ _id: 'creator123', ready: true, position: 1 }],
+        players: [
+          {
+            _id: 'creator123',
+            ready: true,
+            position: 1,
+          },
+        ],
       });
       mockGameRepository.save.mockResolvedValue({});
     });
 
-    it('deve permitir usuário entrar no jogo', async () => {
-      // Act
+    it('should allow user to join game', async () => {
       const result = await gameService.joinGame(userId, gameId);
 
-      // Assert
       expect(mockGameRepository.findById).toHaveBeenCalledWith(gameId);
       expect(mockGameRepository.save).toHaveBeenCalled();
       expect(result).toEqual({
@@ -284,48 +374,42 @@ describe('GameService', () => {
       });
     });
 
-    it('deve lançar erro quando jogo não existe', async () => {
-      // Arrange
+    it('should throw error when game not found', async () => {
       mockGameRepository.findById.mockResolvedValue(null);
-
-      // Act & Assert
       await expect(gameService.joinGame(userId, gameId)).rejects.toThrow(
         'Game not found',
       );
     });
 
-    it('deve lançar erro quando jogo não está em "Waiting"', async () => {
-      // Arrange
+    it('should throw error when game is not Waiting', async () => {
       mockGameRepository.findById.mockResolvedValue({
         ...mockGame,
         status: 'Active',
       });
-
-      // Act & Assert
       await expect(gameService.joinGame(userId, gameId)).rejects.toThrow(
         'Game is not accepting new players (Already Active or Ended)',
       );
     });
 
-    it('deve lançar erro quando jogo está cheio', async () => {
-      // Arrange
+    it('should throw error when game is full', async () => {
       mockGameRepository.findById.mockResolvedValue({
         ...mockGame,
         maxPlayers: 1,
-        players: [{ _id: 'creator123', ready: true, position: 1 }],
+        players: [
+          {
+            _id: 'creator123',
+            ready: true,
+            position: 1,
+          },
+        ],
       });
-
-      // Act & Assert
       await expect(gameService.joinGame(userId, gameId)).rejects.toThrow(
         'Game is full',
       );
     });
 
-    it('deve lançar erro quando usuário já está no jogo', async () => {
-      // Arrange
+    it('should throw error when user already in game', async () => {
       const existingUserId = 'creator123';
-
-      // Act & Assert
       await expect(
         gameService.joinGame(existingUserId, gameId),
       ).rejects.toThrow('User is already in this game');
@@ -347,11 +431,9 @@ describe('GameService', () => {
       mockGameRepository.save.mockResolvedValue({});
     });
 
-    it('deve marcar jogador como ready', async () => {
-      // Act
+    it('should mark player as ready', async () => {
       const result = await gameService.setPlayerReady(userId, gameId);
 
-      // Assert
       expect(mockGameRepository.findById).toHaveBeenCalledWith(gameId);
       expect(mockGameRepository.save).toHaveBeenCalled();
       expect(result).toEqual({
@@ -362,17 +444,14 @@ describe('GameService', () => {
       });
     });
 
-    it('deve retornar "Already ready" quando jogador já está pronto', async () => {
-      // Arrange
+    it('should return Already ready when player already ready', async () => {
       mockGameRepository.findById.mockResolvedValue({
         ...mockGame,
         players: [{ _id: userId, ready: true, position: 0 }],
       });
 
-      // Act
       const result = await gameService.setPlayerReady(userId, gameId);
 
-      // Assert
       expect(result).toEqual({
         success: true,
         message: 'Already ready',
@@ -382,34 +461,25 @@ describe('GameService', () => {
       expect(mockGameRepository.save).not.toHaveBeenCalled();
     });
 
-    it('deve lançar erro quando jogo não existe', async () => {
-      // Arrange
+    it('should throw error when game not found', async () => {
       mockGameRepository.findById.mockResolvedValue(null);
-
-      // Act & Assert
       await expect(gameService.setPlayerReady(userId, gameId)).rejects.toThrow(
         'Game not found',
       );
     });
 
-    it('deve lançar erro quando jogo não está em "Waiting"', async () => {
-      // Arrange
+    it('should throw error when game not Waiting', async () => {
       mockGameRepository.findById.mockResolvedValue({
         ...mockGame,
         status: 'Active',
       });
-
-      // Act & Assert
       await expect(gameService.setPlayerReady(userId, gameId)).rejects.toThrow(
         'Cannot ready now',
       );
     });
 
-    it('deve lançar erro quando jogador não está no jogo', async () => {
-      // Arrange
+    it('should throw error when player not in game', async () => {
       const nonPlayerId = 'nonPlayer123';
-
-      // Act & Assert
       await expect(
         gameService.setPlayerReady(nonPlayerId, gameId),
       ).rejects.toThrow('You are not in this game');
@@ -436,60 +506,46 @@ describe('GameService', () => {
       mockGameRepository.save.mockResolvedValue({});
     });
 
-    it('deve iniciar jogo quando todas as condições são atendidas', async () => {
-      // Act
+    it('should start game when all conditions met', async () => {
       const result = await gameService.startGame(creatorId, gameId);
 
-      // Assert
       expect(mockGameRepository.findById).toHaveBeenCalledWith(gameId);
       expect(mockGameRepository.save).toHaveBeenCalled();
       expect(gameResponseDtoSchema.parse).toHaveBeenCalled();
       expect(result).toEqual(mockParsedGame);
     });
 
-    it('deve lançar erro quando jogo não existe', async () => {
-      // Arrange
+    it('should throw error when game not found', async () => {
       mockGameRepository.findById.mockResolvedValue(null);
-
-      // Act & Assert
       await expect(gameService.startGame(creatorId, gameId)).rejects.toThrow(
         'Game not found',
       );
     });
 
-    it('deve lançar erro quando usuário não é o criador', async () => {
-      // Arrange
+    it('should throw error when user is not creator', async () => {
       const nonCreatorId = 'nonCreator123';
-
-      // Act & Assert
       await expect(gameService.startGame(nonCreatorId, gameId)).rejects.toThrow(
         'Only the game creator can start the game',
       );
     });
 
-    it('deve lançar erro quando jogo já começou', async () => {
-      // Arrange
+    it('should throw error when game already started', async () => {
       mockGameRepository.findById.mockResolvedValue({
         ...gameWithAllReady,
         status: 'Active',
       });
-
-      // Act & Assert
       await expect(gameService.startGame(creatorId, gameId)).rejects.toThrow(
         'Game has already started',
       );
     });
 
-    it('deve lançar erro quando não tem jogadores suficientes', async () => {
-      // Arrange
+    it('should throw error when insufficient players', async () => {
       mockGameRepository.findById.mockResolvedValue({
         ...gameWithAllReady,
         players: [{ _id: 'player1', ready: true, position: 0 }],
         minPlayers: 3,
         status: 'Waiting',
       });
-
-      // Act & Assert
       await expect(gameService.startGame(creatorId, gameId)).rejects.toThrow(
         'Minimum 3 players required to start',
       );
@@ -515,41 +571,29 @@ describe('GameService', () => {
       mockGameRepository.save.mockResolvedValue({});
     });
 
-    it('deve permitir jogador abandonar jogo ativo', async () => {
-      // Act
+    it('should allow player to abandon active game', async () => {
       const result = await gameService.abandonGame(userId, gameId);
 
-      // Assert
       expect(mockGameRepository.findById).toHaveBeenCalledWith(gameId);
       expect(mockGameRepository.save).toHaveBeenCalled();
-      expect(result).toEqual({
-        success: true,
-        message: 'You left the game',
-      });
+      expect(result).toEqual({ success: true, message: 'You left the game' });
     });
 
-    it('deve lançar erro quando jogo não existe', async () => {
-      // Arrange
+    it('should throw error when game not found', async () => {
       mockGameRepository.findById.mockResolvedValue(null);
-
-      // Act & Assert
       await expect(gameService.abandonGame(userId, gameId)).rejects.toThrow(
         'Game not found',
       );
     });
 
-    it('deve lançar erro quando jogador não está no jogo', async () => {
-      // Arrange
+    it('should throw error when player not in game', async () => {
       const nonPlayerId = 'nonPlayer123';
-
-      // Act & Assert
       await expect(
         gameService.abandonGame(nonPlayerId, gameId),
       ).rejects.toThrow('You are not in this game');
     });
 
-    it('deve finalizar jogo quando resta apenas um jogador', async () => {
-      // Arrange
+    it('should end game when only one player remains', async () => {
       const twoPlayerGame = {
         ...activeGame,
         players: [
@@ -559,11 +603,8 @@ describe('GameService', () => {
       };
 
       mockGameRepository.findById.mockResolvedValue(twoPlayerGame);
-
-      // Act
       await gameService.abandonGame(userId, gameId);
 
-      // Assert
       const savedGame = mockGameRepository.save.mock.calls[0][0];
       expect(savedGame.status).toBe('Ended');
       expect(savedGame.winnerId).toBe('player456');
@@ -574,25 +615,18 @@ describe('GameService', () => {
   describe('getGameStatus', () => {
     const gameId = 'game123';
 
-    it('deve retornar status do jogo', async () => {
-      // Arrange
+    it('should return game status', async () => {
       mockGameRepository.findGameStatus.mockResolvedValue({
         _id: gameId,
         status: 'Active',
       });
-
-      // Act
       const result = await gameService.getGameStatus(gameId);
-
-      // Assert
       expect(mockGameRepository.findGameStatus).toHaveBeenCalledWith(gameId);
       expect(result).toBe('Active');
     });
 
-    it('deve lançar erro para ID inválido', async () => {
-      // Test cases para IDs inválidos
+    it('should throw error for invalid ID', async () => {
       const invalidIds = ['', null, undefined, 123, {}];
-
       for (const invalidId of invalidIds) {
         await expect(gameService.getGameStatus(invalidId)).rejects.toThrow(
           'Invalid game ID',
@@ -600,85 +634,72 @@ describe('GameService', () => {
       }
     });
 
-    it('deve lançar erro quando jogo não existe', async () => {
-      // Arrange
+    it('should throw error when game not found', async () => {
       mockGameRepository.findGameStatus.mockResolvedValue(null);
-
-      // Act & Assert
       await expect(gameService.getGameStatus(gameId)).rejects.toThrow(
         'Game not found',
       );
     });
 
-    it('deve retornar diferentes status possíveis', async () => {
-      // Arrange
+    it('should return different possible statuses', async () => {
       const statuses = ['Waiting', 'Active', 'Paused', 'Ended'];
-
       for (const status of statuses) {
         mockGameRepository.findGameStatus.mockResolvedValue({
           _id: gameId,
           status,
         });
-
-        // Act
         const result = await gameService.getGameStatus(gameId);
-
-        // Assert
         expect(result).toBe(status);
       }
     });
 
-    it('deve fazer trim no ID antes de consultar', async () => {
-      // Arrange
+    it('should trim ID before querying', async () => {
       const gameIdWithSpaces = '   game123  ';
       mockGameRepository.findGameStatus.mockResolvedValue({
         _id: 'game123',
         status: 'Waiting',
       });
-
-      // Act
       const result = await gameService.getGameStatus(gameIdWithSpaces);
-
-      // Assert
       expect(mockGameRepository.findGameStatus).toHaveBeenCalledWith('game123');
       expect(result).toBe('Waiting');
     });
   });
 
   describe('Edge Cases', () => {
-    it('deve lidar com strings de ID vazias', async () => {
+    it('should handle empty ID strings', async () => {
       await expect(gameService.getGameById('')).rejects.toThrow(
         'Game not found',
       );
     });
 
-    it('deve lidar com IDs undefined', async () => {
+    it('should handle undefined IDs', async () => {
       await expect(gameService.getGameById(undefined)).rejects.toThrow(
         'Game not found',
       );
     });
 
-    it('deve manter imutabilidade dos objetos de entrada', async () => {
-      // Arrange
-      const originalGameData = { title: 'Original', maxPlayers: 4 };
+    it('should maintain input object immutability', async () => {
+      const originalGameData = {
+        name: 'Original',
+        rules: 'Original rules',
+        maxPlayers: 4,
+      };
       const gameDataCopy = { ...originalGameData };
+      const createdGameMock = {
+        ...mockGame,
+        _id: 'immutable-game-id',
+        title: originalGameData.name,
+        rules: originalGameData.rules,
+      };
 
-      mockGameRepository.createGame.mockResolvedValue(mockGame);
-
-      // Act
+      mockGameRepository.createGame.mockResolvedValue(createdGameMock);
       await gameService.createGame(originalGameData, 'user123');
-
-      // Assert
       expect(originalGameData).toEqual(gameDataCopy);
     });
 
-    it('deve converter ObjectId para string no DTO', async () => {
-      // Arrange
+    it('should convert ObjectId to string in DTO', async () => {
       const gameId = '123';
-      const gameWithObjectId = {
-        ...mockGame,
-        _id: { toString: () => '123' }, // Simulando ObjectId
-      };
+      const gameWithObjectId = { ...mockGame, _id: { toString: () => '123' } };
 
       mockGameRepository.findById.mockResolvedValue(gameWithObjectId);
       gameResponseDtoSchema.parse.mockReturnValue({
@@ -686,10 +707,7 @@ describe('GameService', () => {
         id: '123',
       });
 
-      // Act
       const result = await gameService.getGameById(gameId);
-
-      // Assert
       expect(result.id).toBe('123');
     });
   });

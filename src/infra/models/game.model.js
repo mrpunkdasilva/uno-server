@@ -6,6 +6,10 @@ const gameSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    rules: {
+      type: String,
+      required: true,
+    },
     creatorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Player',

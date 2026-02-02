@@ -8,7 +8,7 @@ import PlayerService from '../../core/services/player.service.js';
  */
 class AuthController {
   /**
-   *
+   * Initializes AuthController with instances of AuthService and PlayerService.
    */
   constructor() {
     this.authService = new AuthService();

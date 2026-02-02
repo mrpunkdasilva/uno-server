@@ -6,7 +6,7 @@ import PlayerService from '../../core/services/player.service.js';
  */
 class PlayerController {
   /**
-   *
+   * Initializes the PlayerController with a PlayerService instance.
    */
   constructor() {
     this.playerService = new PlayerService();

@@ -7,7 +7,7 @@ import loginDto from '../dtos/login.dto.js';
 import refreshTokenDto from '../dtos/refreshToken.dto.js';
 
 import validateDto from '../middlewares/validateDto.middleware.js';
-import authentication from '../middlewares/authentication.middleware.js';
+import { authenticateToken } from '../middlewares/authentication.middleware.js';
 
 const router = Router();
 const authController = new AuthController();
@@ -22,10 +22,10 @@ router.post('/refresh-token', validateDto(refreshTokenDto), (req, res) =>
   authController.refreshToken(req, res),
 );
 
-router.post('/logout', authentication, (req, res) =>
+router.post('/logout', authenticateToken, (req, res) =>
   authController.logout(req, res),
 );
-router.get('/profile', authentication, (req, res) =>
+router.get('/profile', authenticateToken, (req, res) =>
   authController.getAuthenticatedPlayerProfile(req, res),
 );
 
