@@ -6,14 +6,14 @@ import scoreRoutes from './score.routes.js';
 import authRoutes from './auth.routes.js';
 import cardroutes from './card.routes.js';
 
-import { authenticateToken } from '../middlewares/authentication.middleware.js'; // Import authenticateToken directly
+import { authenticateToken } from '../middlewares/authentication.middleware.js';
 
 const router = Router();
 
 router.use('/api/auth', authRoutes);
-router.use('/api/players', authenticateToken, playerRoutes); // Use authenticateToken directly
-router.use('/api/games', authenticateToken, gameRoutes); // Use authenticateToken directly
-router.use('/api/scores', authenticateToken, scoreRoutes); // Use authenticateToken directly
+router.use('/api/players', authenticateToken, playerRoutes);
+router.use('/api/games', authenticateToken, gameRoutes);
+router.use('/api/scores', authenticateToken, scoreRoutes);
 router.use('/api/cards', authenticateToken, cardroutes);
 
 export default router;

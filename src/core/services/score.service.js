@@ -1,3 +1,4 @@
+import logger from '../../config/logger.js';
 import ScoreRepository from '../../infra/repositories/score.repository.js';
 
 /**
@@ -17,8 +18,21 @@ class ScoreService {
    * @returns {Promise<Object>} The created score document.
    */
   async createScore(scoreData) {
-    const score = await this.scoreRepository.create(scoreData);
-    return score;
+    logger.info(
+      `Attempting to create a new score entry for player ${scoreData.playerId}.`,
+    );
+    try {
+      const newScore = await this.scoreRepository.create(scoreData);
+      logger.info(
+        `Score created successfully for player ${scoreData.playerId} with ID ${newScore._id}.`,
+      );
+      return newScore;
+    } catch (error) {
+      logger.error(
+        `Failed to create score for player ${scoreData.playerId}: ${error.message}`,
+      );
+      throw error;
+    }
   }
 
   /**
@@ -26,8 +40,15 @@ class ScoreService {
    * @returns {Promise<Array>} A list of scores sorted by date.
    */
   async getAllScores() {
-    const scores = await this.scoreRepository.findAll();
-    return scores;
+    logger.info('Attempting to retrieve all scores.');
+    try {
+      const scores = await this.scoreRepository.findAll();
+      logger.info(`Successfully retrieved ${scores.length} scores.`);
+      return scores;
+    } catch (error) {
+      logger.error(`Failed to retrieve all scores: ${error.message}`);
+      throw error;
+    }
   }
 
   /**
@@ -37,14 +58,21 @@ class ScoreService {
    * @returns {Promise<Object>} The updated score document.
    */
   async updateScore(id, scoreData) {
-    // new: true retorna o objeto já atualizado
-    const updatedScore = await this.scoreRepository.update(id, scoreData);
+    logger.info(`Attempting to update score with ID: ${id}`);
+    try {
+      const updatedScore = await this.scoreRepository.update(id, scoreData);
 
-    if (!updatedScore) {
-      throw new Error('Score not found');
+      if (!updatedScore) {
+        logger.warn(`Score with ID ${id} not found for update.`);
+        throw new Error('Score not found');
+      }
+
+      logger.info(`Score with ID ${id} updated successfully.`);
+      return updatedScore;
+    } catch (error) {
+      logger.error(`Failed to update score with ID ${id}: ${error.message}`);
+      throw error;
     }
-
-    return updatedScore;
   }
 
   /**
@@ -53,13 +81,21 @@ class ScoreService {
    * @returns {Promise<Object>} The deleted score document.
    */
   async deleteScore(id) {
-    const deletedScore = await this.scoreRepository.delete(id);
+    logger.info(`Attempting to delete score with ID: ${id}`);
+    try {
+      const deletedScore = await this.scoreRepository.delete(id);
 
-    if (!deletedScore) {
-      throw new Error('Score not found');
+      if (!deletedScore) {
+        logger.warn(`Score with ID ${id} not found for deletion.`);
+        throw new Error('Score not found');
+      }
+
+      logger.info(`Score with ID ${id} deleted successfully.`);
+      return deletedScore;
+    } catch (error) {
+      logger.error(`Failed to delete score with ID ${id}: ${error.message}`);
+      throw error;
     }
-
-    return deletedScore;
   }
 }
 

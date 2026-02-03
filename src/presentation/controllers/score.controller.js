@@ -60,8 +60,6 @@ class ScoreController {
    */
   async updateScore(req, res) {
     try {
-      // req.params.id vem da URL (/scores/:id)
-      // req.body vem dos dados enviados (o novo valor)
       const updatedScore = await this.scoreService.updateScore(
         req.params.id,
         req.body,
@@ -71,7 +69,6 @@ class ScoreController {
         data: updatedScore,
       });
     } catch (error) {
-      // Se o erro for "não encontrado", status 404, senão 400
       const status = error.message === 'Score not found' ? 404 : 400;
       res.status(status).json({
         success: false,

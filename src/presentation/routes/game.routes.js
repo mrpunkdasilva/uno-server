@@ -2,10 +2,8 @@ import { Router } from 'express';
 import GameController from '../controllers/game.controller.js';
 import validateDto from '../middlewares/validateDto.middleware.js';
 
-import authMiddleware from '../middlewares/authentication.middleware.js';
-
-import createGameDtoSchema from '../dtos/createGame.dto.js';
-import updateGameDtoSchema from '../dtos/updateGame.dto.js';
+import createGameDtoSchema from '../dtos/game/create-game.dto.js';
+import updateGameDtoSchema from '../dtos/game/update-game.dto.js';
 
 const router = Router();
 const controller = new GameController();
@@ -38,11 +36,5 @@ router.get(
 router.post('/discard/top', controller.getDiscardTop.bind(controller));
 
 router.delete('/:id', controller.deleteGame.bind(controller));
-
-router.post(
-  '/:id/end',
-  authMiddleware, // Obrigatório para verificar se é o criador
-  controller.endGame.bind(controller),
-);
 
 export default router;
