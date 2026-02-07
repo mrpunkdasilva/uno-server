@@ -146,6 +146,18 @@ class GameRepository {
 
     return game?.discardPile?.length || 0;
   }
+
+  /**
+   * Retrieves players from a specific game
+   * @param {string} gameId - The ID of the game
+   * @returns {Promise<Array>} Array of player objects in the game
+   */
+  async findPlayersByGameId(gameId) {
+    return await Game.findById(gameId)
+      .select('players')
+      .populate('players._id', 'username email')
+      .lean();
+  }
 }
 
 export default GameRepository;
