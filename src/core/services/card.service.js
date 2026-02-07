@@ -1,5 +1,6 @@
 import CardRepository from '../../infra/repositories/card.repository.js';
 import cardResponseDtoSchema from '../../presentation/dtos/cardResponse.dto.js';
+import { Either } from '../monads/Either.js';
 
 /**
  * Service class for managing card operations including CRUD operations,
@@ -199,6 +200,57 @@ class CardService {
    */
   async countCards(filters = {}) {
     return await this.cardRepository.countByFilters(filters);
+  }
+
+  /**
+   * Validates if a card can be played on top of another card using Functional Programming.
+   * Uses the Either Monad to encapsulate Success (Right) or Failure (Left) without throwing exceptions.
+   * * @param {Object} cardToPlay - The card the player wants to put down { color, value, type }
+   * @param cardToPlay
+   * @param {Object} topCard - The current card on the discard pile { color, value, type }
+   * @returns {Object} An Either instance (Left with error message or Right with boolean true)
+   */
+  canPlayCard(cardToPlay, topCard) {
+    // Functional validation chain
+    return Either.fromNullable(cardToPlay)
+      .chain(() => Either.fromNullable(topCard))
+      .map(() => true) // Just to ensure both exist before proceeding
+      .chain(() => {
+        // Rule 1: Wild cards can always be played
+        if (cardToPlay.color === 'wild' || cardToPlay.type === 'wild') {
+          return Either.right(true);
+        }
+
+        // Rule 2: Match by color
+        if (cardToPlay.color === topCard.color) {
+          return Either.right(true);
+        }
+
+        // Rule 3: Match by value/symbol
+        if (cardToPlay.value === topCard.value) {
+          return Either.right(true);
+        }
+
+        // If no rules match, return Left (Failure)
+        return Either.left(
+          'The card does not match the color or value of the top card.',
+        );
+      });
+  }
+
+  /**
+   * Formats the card name for display purposes using Functor transformations.
+   * * @param {Object} card - The card object
+   * @param card
+   * @returns {string} The formatted name or 'Unknown Card'
+   */
+  formatCardName(card) {
+    return Either.fromNullable(card)
+      .map((c) => `${c.color.toUpperCase()} ${c.value}`) // Map: Transform data safely
+      .fold(
+        () => 'Unknown Card', // Left handler (if card is null)
+        (name) => name, // Right handler (success)
+      );
   }
 }
 
