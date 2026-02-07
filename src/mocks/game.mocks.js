@@ -17,6 +17,12 @@ export const mockGame = {
   ],
   winnerId: null,
   endedAt: null,
+  discardPile: [],
+  initialCard: {
+    color: 'blue',
+    value: '0',
+    type: 'number',
+  },
 };
 
 export const mockParsedGame = {
@@ -127,6 +133,59 @@ export const mockGameStatus = {
   status: 'Active',
 };
 
+// Dados para testes de pilha de descarte
+export const mockGameWithDiscard = {
+  _id: 'game-discard-123',
+  status: 'Active',
+  discardPile: [
+    {
+      cardId: 'card-1',
+      color: 'red',
+      value: '5',
+      type: 'number',
+      playedBy: 'player-1',
+      playedAt: new Date('2024-01-01T10:00:00Z'),
+      order: 1,
+    },
+    {
+      cardId: 'card-2',
+      color: 'blue',
+      value: 'skip',
+      type: 'action',
+      playedBy: 'player-2',
+      playedAt: new Date('2024-01-01T10:01:00Z'),
+      order: 2,
+    },
+  ],
+  initialCard: {
+    color: 'blue',
+    value: '0',
+    type: 'number',
+  },
+};
+
+export const mockGameEmptyDiscard = {
+  _id: 'game-empty-123',
+  status: 'Active',
+  discardPile: [],
+  initialCard: {
+    color: 'blue',
+    value: '0',
+    type: 'number',
+  },
+};
+
+export const mockWaitingGame = {
+  _id: 'game-waiting-123',
+  status: 'Waiting',
+  discardPile: [],
+  initialCard: {
+    color: 'red',
+    value: '3',
+    type: 'number',
+  },
+};
+
 // Repository mocks
 export const mockGameRepository = {
   findAll: jest.fn(),
@@ -138,6 +197,9 @@ export const mockGameRepository = {
   findGameStatus: jest.fn(),
   findDiscardTop: jest.fn(),
   findRecentDiscards: jest.fn(),
+  addToDiscardPile: jest.fn(),
+  clearDiscardPile: jest.fn(),
+  getDiscardPileSize: jest.fn(),
 };
 
 export const mockPlayerRepository = {
@@ -167,6 +229,25 @@ export const mockSchemas = {
   },
   createGameDtoSchema: {
     parse: jest.fn(),
+  },
+};
+
+// Mock para enums de carta
+export const mockEnums = {
+  colorMap: {
+    red: 'Vermelho',
+    blue: 'Azul',
+    green: 'Verde',
+    yellow: 'Amarelo',
+    wild: 'Preto',
+  },
+  valueMap: {
+    5: '5',
+    skip: 'Pular',
+    reverse: 'Inverter',
+    draw_two: '+2',
+    wild: 'Curinga',
+    wild_draw_four: 'Curinga +4',
   },
 };
 
@@ -201,5 +282,6 @@ export const setupDefaultMocks = () => {
     playerRepository: mockPlayerRepository,
     logger: mockLogger,
     schemas: mockSchemas,
+    enums: mockEnums,
   };
 };

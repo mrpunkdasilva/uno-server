@@ -1069,4 +1069,415 @@ describe('GameService', () => {
       );
     });
   });
+  describe('getDiscardTop', () => {
+    it('deve retornar a carta superior da pilha de descarte quando o jogo está ativo e há cartas', async () => {
+      const gameId = 'game-123';
+      const mockGameWithDiscard = {
+        _id: gameId,
+        status: 'Active',
+        discardPile: [
+          {
+            cardId: 'card-1',
+            color: 'red',
+            value: '5',
+            type: 'number',
+            playedBy: 'player-1',
+            playedAt: new Date('2024-01-01T10:00:00Z'),
+            order: 1,
+          },
+          {
+            cardId: 'card-2',
+            color: 'blue',
+            value: 'skip',
+            type: 'action',
+            playedBy: 'player-2',
+            playedAt: new Date('2024-01-01T10:01:00Z'),
+            order: 2,
+          },
+        ],
+        initialCard: {
+          color: 'blue',
+          value: '0',
+          type: 'number',
+        },
+      };
+
+      mockGameRepository.findDiscardTop.mockResolvedValue(mockGameWithDiscard);
+
+      const result = await gameService.getDiscardTop(gameId);
+
+      expect(mockGameRepository.findDiscardTop).toHaveBeenCalledWith(gameId);
+      expect(result).toEqual({
+        game_id: gameId,
+        current_top_card: {
+          card_id: 'card-2',
+          color: 'blue',
+          value: 'skip',
+          type: 'action',
+          played_by: 'player-2',
+          played_at: new Date('2024-01-01T10:01:00Z'),
+          order: 2,
+        },
+        recent_cards: [
+          {
+            color: 'blue',
+            value: 'skip',
+            type: 'action',
+            played_by: 'player-2',
+            order: 2,
+          },
+          {
+            color: 'red',
+            value: '5',
+            type: 'number',
+            played_by: 'player-1',
+            order: 1,
+          },
+        ],
+        discard_pile_size: 2,
+      });
+    });
+
+    it('deve retornar mensagem de pilha vazia quando não há cartas descartadas', async () => {
+      const gameId = 'game-123';
+      const mockGameEmptyDiscard = {
+        _id: gameId,
+        status: 'Active',
+        discardPile: [],
+        initialCard: {
+          color: 'blue',
+          value: '0',
+          type: 'number',
+        },
+      };
+
+      mockGameRepository.findDiscardTop.mockResolvedValue(mockGameEmptyDiscard);
+
+      const result = await gameService.getDiscardTop(gameId);
+
+      expect(result).toEqual({
+        game_id: gameId,
+        top_card: null,
+        message: 'Discard pile is empty - no cards have been played yet',
+        discard_pile_size: 0,
+        initial_card: {
+          color: 'blue',
+          value: '0',
+          type: 'number',
+        },
+      });
+    });
+
+    it('deve retornar estado de espera quando o jogo não começou', async () => {
+      const gameId = 'game-123';
+      const mockWaitingGame = {
+        _id: gameId,
+        status: 'Waiting',
+        discardPile: [],
+        initialCard: {
+          color: 'red',
+          value: '3',
+          type: 'number',
+        },
+      };
+
+      mockGameRepository.findDiscardTop.mockResolvedValue(mockWaitingGame);
+
+      const result = await gameService.getDiscardTop(gameId);
+
+      expect(result).toEqual({
+        game_id: gameId,
+        error: 'Game has not started yet',
+        game_state: 'waiting',
+        initial_card: {
+          color: 'red',
+          value: '3',
+          type: 'number',
+        },
+      });
+    });
+
+    it('deve lidar com carta curinga na pilha de descarte', async () => {
+      const gameId = 'game-123';
+      const mockGameWithWild = {
+        _id: gameId,
+        status: 'Active',
+        discardPile: [
+          {
+            cardId: 'card-wild',
+            color: 'wild',
+            value: 'wild',
+            type: 'wild',
+            playedBy: 'player-1',
+            playedAt: new Date(),
+            order: 1,
+          },
+        ],
+        initialCard: {
+          color: 'blue',
+          value: '0',
+          type: 'number',
+        },
+      };
+
+      mockGameRepository.findDiscardTop.mockResolvedValue(mockGameWithWild);
+
+      const result = await gameService.getDiscardTop(gameId);
+
+      expect(result.current_top_card.color).toBe('wild');
+      expect(result.current_top_card.type).toBe('wild');
+    });
+
+    it('deve lançar erro quando o jogo não é encontrado', async () => {
+      const gameId = 'non-existent-game';
+      mockGameRepository.findDiscardTop.mockResolvedValue(null);
+
+      await expect(gameService.getDiscardTop(gameId)).rejects.toThrow(
+        'Game not found',
+      );
+    });
+
+    it('deve lançar erro quando o ID do jogo é inválido', async () => {
+      const invalidGameId = '';
+
+      await expect(gameService.getDiscardTop(invalidGameId)).rejects.toThrow(
+        'Invalid game ID',
+      );
+
+      expect(mockGameRepository.findDiscardTop).not.toHaveBeenCalled();
+    });
+
+    it('deve limitar corretamente as cartas recentes a 5', async () => {
+      const gameId = 'game-123';
+      const discardPile = [];
+
+      for (let i = 1; i <= 8; i++) {
+        discardPile.push({
+          cardId: `card-${i}`,
+          color: 'red',
+          value: i.toString(),
+          type: 'number',
+          playedBy: `player-${(i % 4) + 1}`,
+          playedAt: new Date(`2024-01-01T10:0${i}:00Z`),
+          order: i,
+        });
+      }
+
+      const mockGame = {
+        _id: gameId,
+        status: 'Active',
+        discardPile,
+        initialCard: {
+          color: 'blue',
+          value: '0',
+          type: 'number',
+        },
+      };
+
+      mockGameRepository.findDiscardTop.mockResolvedValue(mockGame);
+
+      const result = await gameService.getDiscardTop(gameId);
+
+      expect(result.recent_cards).toHaveLength(5);
+      expect(result.recent_cards[0].order).toBe(8);
+      expect(result.recent_cards[4].order).toBe(4);
+    });
+
+    it('deve lidar com playedBy ausente', async () => {
+      const gameId = 'game-123';
+      const mockGame = {
+        _id: gameId,
+        status: 'Active',
+        discardPile: [
+          {
+            cardId: 'card-1',
+            color: 'red',
+            value: '5',
+            type: 'number',
+            // playedBy is missing
+            playedAt: new Date(),
+            order: 1,
+          },
+        ],
+        initialCard: {
+          color: 'blue',
+          value: '0',
+          type: 'number',
+        },
+      };
+
+      mockGameRepository.findDiscardTop.mockResolvedValue(mockGame);
+
+      const result = await gameService.getDiscardTop(gameId);
+
+      expect(result.current_top_card.played_by).toBe('system');
+    });
+
+    it('deve usar initialCard padrão quando null', async () => {
+      const gameId = 'game-123';
+      const mockGame = {
+        _id: gameId,
+        status: 'Waiting',
+        discardPile: [],
+        initialCard: null,
+      };
+
+      mockGameRepository.findDiscardTop.mockResolvedValue(mockGame);
+
+      const result = await gameService.getDiscardTop(gameId);
+
+      expect(result.initial_card).toEqual({
+        color: 'blue',
+        value: '0',
+        type: 'number',
+      });
+    });
+  });
+
+  describe('getDiscardTopSimple', () => {
+    let originalGameServiceGetDiscardTop;
+
+    beforeEach(() => {
+      originalGameServiceGetDiscardTop = gameService.getDiscardTop;
+    });
+
+    afterEach(() => {
+      if (gameService.getDiscardTop !== originalGameServiceGetDiscardTop) {
+        gameService.getDiscardTop = originalGameServiceGetDiscardTop;
+      }
+    });
+
+    it('deve retornar nome formatado da carta quando há cartas na pilha', async () => {
+      const gameId = 'game-123';
+
+      gameService.getDiscardTop = jest.fn().mockResolvedValue({
+        game_id: gameId,
+        current_top_card: {
+          card_id: 'card-1',
+          color: 'red',
+          value: '5',
+          type: 'number',
+          played_by: 'player-1',
+          played_at: new Date(),
+          order: 1,
+        },
+        recent_cards: [],
+        discard_pile_size: 1,
+      });
+
+      const result = await gameService.getDiscardTopSimple(gameId);
+
+      expect(gameService.getDiscardTop).toHaveBeenCalledWith(gameId);
+      expect(result.game_ids).toEqual([gameId]);
+      expect(result.top_cards).toBeDefined();
+    });
+
+    it('deve retornar array vazio quando a pilha de descarte está vazia', async () => {
+      const gameId = 'game-123';
+
+      gameService.getDiscardTop = jest.fn().mockResolvedValue({
+        game_id: gameId,
+        top_card: null,
+        message: 'Discard pile is empty',
+        discard_pile_size: 0,
+        initial_card: {
+          color: 'blue',
+          value: '0',
+          type: 'number',
+        },
+      });
+
+      const result = await gameService.getDiscardTopSimple(gameId);
+
+      expect(result.top_cards).toEqual([]);
+    });
+
+    it('deve retornar erro quando getDiscardTop retorna erro', async () => {
+      const gameId = 'game-123';
+
+      gameService.getDiscardTop = jest.fn().mockResolvedValue({
+        game_id: gameId,
+        error: 'Game has not started yet',
+        game_state: 'waiting',
+        initial_card: {
+          color: 'blue',
+          value: '0',
+          type: 'number',
+        },
+      });
+
+      const result = await gameService.getDiscardTopSimple(gameId);
+
+      expect(result.error).toBe('Game has not started yet');
+    });
+
+    it('deve lidar com carta curinga usando mapeamento de cor', async () => {
+      const gameId = 'game-123';
+
+      gameService.getDiscardTop = jest.fn().mockResolvedValue({
+        game_id: gameId,
+        current_top_card: {
+          card_id: 'card-wild',
+          color: 'wild',
+          value: 'wild',
+          type: 'wild',
+          played_by: 'player-1',
+          played_at: new Date(),
+          order: 1,
+        },
+        recent_cards: [],
+        discard_pile_size: 1,
+      });
+
+      const result = await gameService.getDiscardTopSimple(gameId);
+
+      expect(result.top_cards).toBeDefined();
+    });
+
+    it('deve lidar com cartas de ação usando mapeamento de valor', async () => {
+      const gameId = 'game-123';
+
+      gameService.getDiscardTop = jest.fn().mockResolvedValue({
+        game_id: gameId,
+        current_top_card: {
+          card_id: 'card-skip',
+          color: 'blue',
+          value: 'skip',
+          type: 'action',
+          played_by: 'player-1',
+          played_at: new Date(),
+          order: 1,
+        },
+        recent_cards: [],
+        discard_pile_size: 1,
+      });
+
+      const result = await gameService.getDiscardTopSimple(gameId);
+
+      expect(result.top_cards).toBeDefined();
+    });
+
+    it('deve usar fallback quando cor ou valor não estão nos mapas', async () => {
+      const gameId = 'game-123';
+
+      gameService.getDiscardTop = jest.fn().mockResolvedValue({
+        game_id: gameId,
+        current_top_card: {
+          card_id: 'card-unknown',
+          color: 'purple',
+          value: 'unknown',
+          type: 'custom',
+          played_by: 'player-1',
+          played_at: new Date(),
+          order: 1,
+        },
+        recent_cards: [],
+        discard_pile_size: 1,
+      });
+
+      const result = await gameService.getDiscardTopSimple(gameId);
+
+      expect(result.top_cards).toBeDefined();
+    });
+  });
 });

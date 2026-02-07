@@ -16,3 +16,80 @@ export const mockCardDoc = {
     isDiscarded: false,
   }),
 };
+
+export const mockWildCardDoc = {
+  _id: '507f1f77bcf86cd799439012',
+  color: 'black',
+  type: 'wild',
+  number: null,
+  gameId: 'game-123',
+  isInDeck: false,
+  isDiscarded: true,
+  toObject: jest.fn().mockReturnValue({
+    _id: '507f1f77bcf86cd799439012',
+    color: 'black',
+    type: 'wild',
+    number: null,
+    gameId: 'game-123',
+    isInDeck: false,
+    isDiscarded: true,
+  }),
+};
+
+export const mockActionCardDoc = {
+  _id: '507f1f77bcf86cd799439013',
+  color: 'blue',
+  type: 'skip',
+  number: null,
+  gameId: 'game-123',
+  isInDeck: false,
+  isDiscarded: false,
+  toObject: jest.fn().mockReturnValue({
+    _id: '507f1f77bcf86cd799439013',
+    color: 'blue',
+    type: 'skip',
+    number: null,
+    gameId: 'game-123',
+    isInDeck: false,
+    isDiscarded: false,
+  }),
+};
+
+export const mockDeckCards = [
+  {
+    _id: 'card1',
+    color: 'red',
+    type: 'number',
+    number: 5,
+    gameId: 'game-123',
+    isInDeck: true,
+    isDiscarded: false,
+    toObject: jest.fn().mockReturnValue({
+      _id: 'card1',
+      color: 'red',
+      type: 'number',
+      number: 5,
+      gameId: 'game-123',
+      isInDeck: true,
+      isDiscarded: false,
+    }),
+  },
+  {
+    _id: 'card2',
+    color: 'blue',
+    type: 'skip',
+    number: null,
+    gameId: 'game-123',
+    isInDeck: true,
+    isDiscarded: false,
+    toObject: jest.fn().mockReturnValue({
+      _id: 'card2',
+      color: 'blue',
+      type: 'skip',
+      number: null,
+      gameId: 'game-123',
+      isInDeck: true,
+      isDiscarded: false,
+    }),
+  },
+];
