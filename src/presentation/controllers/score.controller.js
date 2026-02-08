@@ -18,18 +18,24 @@ class ScoreController {
    * @returns {Promise<void>}
    */
   async createScore(req, res) {
-    try {
-      const score = await this.scoreService.createScore(req.body);
-      res.status(201).json({
-        success: true,
-        data: score,
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
+    const result = await this.scoreService.createScore(req.body);
+
+    result.fold(
+      // On failure
+      (error) => {
+        res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+      },
+      // On success
+      (score) => {
+        res.status(201).json({
+          success: true,
+          data: score,
+        });
+      },
+    );
   }
 
   /**
@@ -39,18 +45,22 @@ class ScoreController {
    * @returns {Promise<void>}
    */
   async getAllScores(req, res) {
-    try {
-      const scores = await this.scoreService.getAllScores();
-      res.status(200).json({
-        success: true,
-        data: scores,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: error.message,
-      });
-    }
+    const result = await this.scoreService.getAllScores();
+
+    result.fold(
+      (error) => {
+        res.status(500).json({
+          success: false,
+          message: error.message,
+        });
+      },
+      (scores) => {
+        res.status(200).json({
+          success: true,
+          data: scores,
+        });
+      },
+    );
   }
 
   /**
@@ -59,22 +69,23 @@ class ScoreController {
    * @param res
    */
   async updateScore(req, res) {
-    try {
-      const updatedScore = await this.scoreService.updateScore(
-        req.params.id,
-        req.body,
-      );
-      res.status(200).json({
-        success: true,
-        data: updatedScore,
-      });
-    } catch (error) {
-      const status = error.message === 'Score not found' ? 404 : 400;
-      res.status(status).json({
-        success: false,
-        message: error.message,
-      });
-    }
+    const result = await this.scoreService.updateScore(req.params.id, req.body);
+
+    result.fold(
+      (error) => {
+        const status = error.message === 'Score not found' ? 404 : 400;
+        res.status(status).json({
+          success: false,
+          message: error.message,
+        });
+      },
+      (updatedScore) => {
+        res.status(200).json({
+          success: true,
+          data: updatedScore,
+        });
+      },
+    );
   }
 
   /**
@@ -83,19 +94,24 @@ class ScoreController {
    * @param res
    */
   async deleteScore(req, res) {
-    try {
-      await this.scoreService.deleteScore(req.params.id);
-      res.status(200).json({
-        success: true,
-        message: 'Score deleted successfully',
-      });
-    } catch (error) {
-      const status = error.message === 'Score not found' ? 404 : 500;
-      res.status(status).json({
-        success: false,
-        message: error.message,
-      });
-    }
+    const result = await this.scoreService.deleteScore(req.params.id);
+
+    result.fold(
+      (error) => {
+        const status = error.message === 'Score not found' ? 404 : 500;
+        res.status(status).json({
+          success: false,
+          message: error.message,
+        });
+      },
+      (deletedScore) => {
+        res.status(200).json({
+          success: true,
+          data: deletedScore,
+          message: 'Score deleted successfully',
+        });
+      },
+    );
   }
 }
 

@@ -1,8 +1,10 @@
+/* eslint-disable no-unused-vars */
 import logger from '../../config/logger.js';
 import ScoreRepository from '../../infra/repositories/score.repository.js';
+import Result from '../utils/Result.js';
 
 /**
- * Service to handle score business logic.
+ * Service to handle score business logic using Result Async Functor.
  */
 class ScoreService {
   /**
@@ -15,87 +17,179 @@ class ScoreService {
   /**
    * Creates a new score entry in the database.
    * @param {Object} scoreData - The data to create the score.
-   * @returns {Promise<Object>} The created score document.
+   * @returns {Promise<Result>} Result with created score or error.
    */
   async createScore(scoreData) {
-    logger.info(
-      `Attempting to create a new score entry for player ${scoreData.playerId}.`,
-    );
-    try {
-      const newScore = await this.scoreRepository.create(scoreData);
-      logger.info(
-        `Score created successfully for player ${scoreData.playerId} with ID ${newScore._id}.`,
-      );
-      return newScore;
-    } catch (error) {
-      logger.error(
-        `Failed to create score for player ${scoreData.playerId}: ${error.message}`,
-      );
-      throw error;
-    }
+    const playerId = scoreData.playerId;
+
+    return Result.success(scoreData)
+      .toAsync()
+      .tap(() =>
+        logger.info(
+          `Attempting to create a new score entry for player ${playerId}.`,
+        ),
+      )
+      .chain(async (data) => {
+        const score = await this.scoreRepository.create(data);
+
+        if (!score) {
+          throw new Error('Failed to create score - repository returned null');
+        }
+
+        return Result.success(score);
+      })
+      .tap((score) =>
+        logger.info(
+          `Score created successfully for player ${playerId} with ID ${score._id}.`,
+        ),
+      )
+      .tapError((error) =>
+        logger.error(
+          `Failed to create score for player ${playerId}: ${error.message}`,
+        ),
+      )
+      .toResult();
   }
 
   /**
    * Retrieves all scores from the database, populated with player info.
-   * @returns {Promise<Array>} A list of scores sorted by date.
+   * @returns {Promise<Result>} Result with scores list or error.
    */
   async getAllScores() {
-    logger.info('Attempting to retrieve all scores.');
-    try {
-      const scores = await this.scoreRepository.findAll();
-      logger.info(`Successfully retrieved ${scores.length} scores.`);
-      return scores;
-    } catch (error) {
-      logger.error(`Failed to retrieve all scores: ${error.message}`);
-      throw error;
-    }
+    return Result.success()
+      .toAsync()
+      .tap(() => logger.info('Attempting to retrieve all scores.'))
+      .chain(async () => {
+        const scores = await this.scoreRepository.findAll();
+        return Result.success(scores);
+      })
+      .tap((scores) =>
+        logger.info(`Successfully retrieved ${scores.length} scores.`),
+      )
+      .tapError((error) =>
+        logger.error(`Failed to retrieve all scores: ${error.message}`),
+      )
+      .toResult();
+  }
+
+  /**
+   * Retrieves a specific score by ID.
+   * @param {string} id - The ID of the score to retrieve.
+   * @returns {Promise<Result>} Result with score or error.
+   */
+  async getScoreById(id) {
+    const scoreId = id;
+
+    return Result.success(scoreId)
+      .toAsync()
+      .tap(() =>
+        logger.info(`Attempting to retrieve score with ID: ${scoreId}`),
+      )
+      .chain(async (idToFind) => {
+        const score = await this.scoreRepository.findById(idToFind);
+
+        if (!score) {
+          throw new Error('Score not found');
+        }
+
+        return Result.success(score);
+      })
+      .tap((score) =>
+        logger.info(`Score with ID ${scoreId} retrieved successfully.`),
+      )
+      .tapError((error) => {
+        const logMessage =
+          error.message === 'Score not found'
+            ? `Score with ID ${scoreId} not found.`
+            : `Failed to retrieve score with ID ${scoreId}: ${error.message}`;
+
+        if (error.message === 'Score not found') {
+          logger.warn(logMessage);
+        } else {
+          logger.error(logMessage);
+        }
+      })
+      .toResult();
   }
 
   /**
    * Updates a score entry in the database.
    * @param {string} id - The ID of the score to update.
    * @param {Object} scoreData - The data to update the score.
-   * @returns {Promise<Object>} The updated score document.
+   * @returns {Promise<Result>} Result with updated score or error.
    */
   async updateScore(id, scoreData) {
-    logger.info(`Attempting to update score with ID: ${id}`);
-    try {
-      const updatedScore = await this.scoreRepository.update(id, scoreData);
+    const scoreId = id;
 
-      if (!updatedScore) {
-        logger.warn(`Score with ID ${id} not found for update.`);
-        throw new Error('Score not found');
-      }
+    return Result.success({ id: scoreId, data: scoreData })
+      .toAsync()
+      .tap(() => logger.info(`Attempting to update score with ID: ${scoreId}`))
+      .chain(async ({ id: idToUpdate, data }) => {
+        const updatedScore = await this.scoreRepository.update(
+          idToUpdate,
+          data,
+        );
 
-      logger.info(`Score with ID ${id} updated successfully.`);
-      return updatedScore;
-    } catch (error) {
-      logger.error(`Failed to update score with ID ${id}: ${error.message}`);
-      throw error;
-    }
+        if (!updatedScore) {
+          throw new Error('Score not found');
+        }
+
+        return Result.success(updatedScore);
+      })
+      .tap((score) =>
+        logger.info(`Score with ID ${scoreId} updated successfully.`),
+      )
+      .tapError((error) => {
+        const logMessage =
+          error.message === 'Score not found'
+            ? `Score with ID ${scoreId} not found for update.`
+            : `Failed to update score with ID ${scoreId}: ${error.message}`;
+
+        if (error.message === 'Score not found') {
+          logger.warn(logMessage);
+        } else {
+          logger.error(logMessage);
+        }
+      })
+      .toResult();
   }
 
   /**
    * Deletes a score entry from the database.
    * @param {string} id - The ID of the score to delete.
-   * @returns {Promise<Object>} The deleted score document.
+   * @returns {Promise<Result>} Result with deleted score or error.
    */
   async deleteScore(id) {
-    logger.info(`Attempting to delete score with ID: ${id}`);
-    try {
-      const deletedScore = await this.scoreRepository.delete(id);
+    const scoreId = id;
 
-      if (!deletedScore) {
-        logger.warn(`Score with ID ${id} not found for deletion.`);
-        throw new Error('Score not found');
-      }
+    return Result.success(scoreId)
+      .toAsync()
+      .tap(() => logger.info(`Attempting to delete score with ID: ${scoreId}`))
+      .chain(async (idToDelete) => {
+        const deletedScore = await this.scoreRepository.delete(idToDelete);
 
-      logger.info(`Score with ID ${id} deleted successfully.`);
-      return deletedScore;
-    } catch (error) {
-      logger.error(`Failed to delete score with ID ${id}: ${error.message}`);
-      throw error;
-    }
+        if (!deletedScore) {
+          throw new Error('Score not found');
+        }
+
+        return Result.success(deletedScore);
+      })
+      .tap((deletedScore) =>
+        logger.info(`Score with ID ${scoreId} deleted successfully.`),
+      )
+      .tapError((error) => {
+        const logMessage =
+          error.message === 'Score not found'
+            ? `Score with ID ${scoreId} not found for deletion.`
+            : `Failed to delete score with ID ${scoreId}: ${error.message}`;
+
+        if (error.message === 'Score not found') {
+          logger.warn(logMessage);
+        } else {
+          logger.error(logMessage);
+        }
+      })
+      .toResult();
   }
 }
 

@@ -4,6 +4,7 @@ import createGameDtoSchema from '../../presentation/dtos/game/create-game.dto.js
 import GameRepository from '../../infra/repositories/game.repository.js';
 import logger from '../../config/logger.js';
 import { colorMap, valueMap } from '../enums/card.enum.js';
+import PlayerRepository from '../../infra/repositories/player.repository.js';
 
 /**
  * Service class for handling game-related business logic.
@@ -14,6 +15,7 @@ class GameService {
    */
   constructor() {
     this.gameRepository = new GameRepository();
+    this.playerRepository = new PlayerRepository();
   }
 
   /**
@@ -601,6 +603,81 @@ class GameService {
     } catch (error) {
       logger.error(
         `Failed to get simple discard top for game ID ${gameId}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieves the list of players in a specific game
+   * @param {string} gameId - The ID of the game
+   * @returns {Promise<Object>} Object containing game info and player list
+   * @throws {Error} When game is not found or ID is invalid
+   */
+  async getGamePlayers(gameId) {
+    logger.info(`Attempting to get players for game ID: ${gameId}`);
+    try {
+      if (!gameId || typeof gameId !== 'string' || gameId.trim() === '') {
+        logger.warn(
+          `Get game players failed: Invalid game ID provided - "${gameId}".`,
+        );
+        throw new Error('Invalid game ID');
+      }
+
+      const trimmedId = gameId.trim();
+      const game = await this.gameRepository.findById(trimmedId);
+
+      if (!game) {
+        logger.warn(
+          `Get game players failed: Game with ID ${trimmedId} not found.`,
+        );
+        throw new Error('Game not found');
+      }
+
+      // Get detailed player information
+      const playersWithDetails = await Promise.all(
+        game.players.map(async (player) => {
+          try {
+            const playerDetails = await this.playerRepository.findById(
+              player._id.toString(),
+            );
+            return {
+              id: player._id.toString(),
+              username: playerDetails?.username || 'Unknown',
+              email: playerDetails?.email || 'unknown@example.com',
+              ready: player.ready,
+              position: player.position,
+            };
+          } catch (error) {
+            logger.warn(
+              `Failed to fetch details for player ${player._id}: ${error.message}`,
+            );
+            return {
+              id: player._id.toString(),
+              username: 'Unknown',
+              email: 'unknown@example.com',
+              ready: player.ready,
+              position: player.position,
+            };
+          }
+        }),
+      );
+
+      logger.info(
+        `Successfully retrieved ${playersWithDetails.length} players for game ID ${trimmedId}.`,
+      );
+
+      return {
+        gameId: trimmedId,
+        gameTitle: game.title,
+        gameStatus: game.status,
+        totalPlayers: playersWithDetails.length,
+        maxPlayers: game.maxPlayers,
+        players: playersWithDetails,
+      };
+    } catch (error) {
+      logger.error(
+        `Failed to get players for game ID ${gameId}: ${error.message}`,
       );
       throw error;
     }
