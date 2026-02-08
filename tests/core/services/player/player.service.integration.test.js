@@ -1,12 +1,16 @@
 import mongoose from 'mongoose';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 import PlayerService from '../../../../src/core/services/player.service.js';
 import Player from '../../../../src/infra/models/player.model.js';
 
 describe('PlayerService Integration Tests', () => {
   let playerService;
+  let mongoServer;
 
   beforeAll(async () => {
-    await mongoose.connect(process.env.MONGO_URI);
+    mongoServer = await MongoMemoryServer.create();
+    const mongoUri = mongoServer.getUri();
+    await mongoose.connect(mongoUri);
     playerService = new PlayerService();
   });
 
@@ -16,6 +20,7 @@ describe('PlayerService Integration Tests', () => {
 
   afterAll(async () => {
     await mongoose.connection.close();
+    await mongoServer.stop();
   });
 
   it('should create a new player in the database', async () => {
@@ -26,7 +31,8 @@ describe('PlayerService Integration Tests', () => {
       password: originalPassword,
     };
 
-    const createdPlayer = await playerService.createPlayer(playerData);
+    const createdPlayerResult = await playerService.createPlayer(playerData);
+    const createdPlayer = createdPlayerResult.value;
 
     expect(createdPlayer).toBeDefined();
     expect(createdPlayer.username).toBe('testuser');
@@ -41,13 +47,15 @@ describe('PlayerService Integration Tests', () => {
   });
 
   it('should retrieve a player by ID from the database', async () => {
-    const created = await playerService.createPlayer({
+    const createdResult = await playerService.createPlayer({
       username: 'getmeuser',
       email: 'getme@example.com',
       password: 'password123',
     });
+    const created = createdResult.value;
 
-    const foundPlayer = await playerService.getPlayerById(created.id);
+    const foundPlayerResult = await playerService.getPlayerById(created.id);
+    const foundPlayer = foundPlayerResult.value;
 
     expect(foundPlayer).toBeDefined();
     expect(foundPlayer.id).toBe(created.id);
@@ -56,17 +64,19 @@ describe('PlayerService Integration Tests', () => {
   });
 
   it('should update a player in the database', async () => {
-    const created = await playerService.createPlayer({
+    const createdResult = await playerService.createPlayer({
       username: 'updatemeuser',
       email: 'updateme@example.com',
       password: 'password123',
     });
+    const created = createdResult.value;
 
     const updateData = { username: 'updatedUsername' };
-    const updatedPlayer = await playerService.updatePlayer(
+    const updatedPlayerResult = await playerService.updatePlayer(
       created.id,
       updateData,
     );
+    const updatedPlayer = updatedPlayerResult.value;
 
     expect(updatedPlayer).toBeDefined();
     expect(updatedPlayer.id).toBe(created.id);
@@ -77,11 +87,12 @@ describe('PlayerService Integration Tests', () => {
   });
 
   it('should delete a player from the database', async () => {
-    const created = await playerService.createPlayer({
+    const createdResult = await playerService.createPlayer({
       username: 'deletemeuser',
       email: 'deleteme@example.com',
       password: 'password123',
     });
+    const created = createdResult.value;
 
     await playerService.deletePlayer(created.id);
 
@@ -102,7 +113,7 @@ describe('PlayerService Integration Tests', () => {
         email: 'duplicate@example.com',
         password: 'password123',
       }),
-    ).rejects.toThrow('Player with this email already exists');
+    ).rejects.toThrow(/Player with email .* already exists/);
   });
 
   it('should not create a player with a duplicate username', async () => {
@@ -118,6 +129,6 @@ describe('PlayerService Integration Tests', () => {
         email: 'user2@example.com',
         password: 'password123',
       }),
-    ).rejects.toThrow('Player with this username already exists');
+    ).rejects.toThrow(/Player with username .* already exists/);
   });
 });
