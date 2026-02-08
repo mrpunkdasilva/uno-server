@@ -74,12 +74,14 @@ class GameService {
   async createGame(gameData, userId) {
     logger.info(`Attempting to create a new game by user ID: ${userId}`);
     try {
-      const { name, rules, maxPlayers } = createGameDtoSchema.parse(gameData);
+      const { name, rules, maxPlayers, minPlayers } =
+        createGameDtoSchema.parse(gameData);
 
       const data = {
         title: name,
         rules: rules,
         maxPlayers: maxPlayers,
+        minPlayers: minPlayers,
         creatorId: userId,
         players: [{ _id: userId, ready: true, position: 1 }],
       };
@@ -93,6 +95,7 @@ class GameService {
         rules: game.rules,
         status: game.status,
         maxPlayers: game.maxPlayers,
+        minPlayers: game.minPlayers,
         createdAt: game.createdAt,
         updatedAt: game.updatedAt,
       });
@@ -127,6 +130,7 @@ class GameService {
         title: updatedGame.title,
         status: updatedGame.status,
         maxPlayers: updatedGame.maxPlayers,
+        minPlayers: updatedGame.minPlayers,
         createdAt: updatedGame.createdAt,
         updatedAt: updatedGame.updatedAt,
       });
@@ -155,6 +159,62 @@ class GameService {
       return game;
     } catch (error) {
       logger.error(`Failed to delete game with ID ${id}: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Centralized method to end a game.
+   * Updates game status, sets winner, and records end time.
+   * @param {string} gameId - The ID of the game to end.
+   * @param {string|null} winnerId - The ID of the player who won, or null if no winner (e.g., all abandoned).
+   * @private
+   */
+  async _endGame(gameId, winnerId = null) {
+    logger.info(`Attempting to end game ${gameId} with winner ${winnerId}.`);
+    try {
+      const updatePayload = {
+        status: 'Ended',
+        endedAt: new Date(),
+        winnerId: winnerId,
+      };
+      await this.gameRepository.update(gameId, updatePayload);
+      logger.info(
+        `Game ${gameId} successfully ended. Winner: ${
+          winnerId || 'No specific winner'
+        }.`,
+      );
+    } catch (error) {
+      logger.error(`Failed to end game ${gameId}: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Checks if a player has won the game (zero cards in hand) and ends the game if so.
+   * @param {string} gameId - The ID of the game.
+   * @param {string} playerId - The ID of the player to check.
+   * @returns {Promise<boolean>} True if the game ended, false otherwise.
+   */
+  async checkAndEndGameIfPlayerWins(gameId, playerId) {
+    logger.info(
+      `Checking if player ${playerId} has won game ${gameId} by emptying hand.`,
+    );
+    try {
+      const handSize = await this.gameRepository.getPlayerHandSize(
+        gameId,
+        playerId,
+      );
+      if (handSize === 0) {
+        logger.info(`Player ${playerId} has won game ${gameId}. Ending game.`);
+        await this._endGame(gameId, playerId);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      logger.error(
+        `Error checking for game end for player ${playerId} in game ${gameId}: ${error.message}`,
+      );
       throw error;
     }
   }
@@ -401,17 +461,17 @@ class GameService {
       });
 
       if (game.players.length === 1) {
-        game.status = 'Ended';
-        game.winnerId = game.players[0]._id;
+        await this._endGame(gameId, game.players[0]._id);
         logger.info(
           `Game ${gameId} ended due to last player (${game.players[0]._id}) remaining after abandonment.`,
         );
       } else if (game.players.length === 0) {
-        game.status = 'Ended';
+        await this._endGame(gameId);
         logger.info(`Game ${gameId} ended as all players abandoned.`);
+      } else {
+        await this.gameRepository.save(game); // Only save if game is not ended
       }
 
-      await this.gameRepository.save(game);
       logger.info(`User ${userId} successfully abandoned game ${gameId}.`);
 
       return {
