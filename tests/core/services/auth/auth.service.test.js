@@ -1,6 +1,15 @@
 jest.mock('jsonwebtoken');
 jest.mock('bcrypt');
-jest.mock('../../../../src/config/redis.js');
+jest.mock('../../../../src/config/redis.js', () => ({
+  get: jest.fn(),
+  set: jest.fn(),
+  del: jest.fn(),
+  exists: jest.fn(),
+  expire: jest.fn(),
+  on: jest.fn(),
+  connect: jest.fn(),
+  disconnect: jest.fn(),
+}));
 jest.mock('../../../../src/infra/repositories/player.repository.js');
 jest.mock('../../../../src/config/logger.js', () => ({
   info: jest.fn(),
