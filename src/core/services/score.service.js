@@ -191,6 +191,34 @@ class ScoreService {
       })
       .toResult();
   }
+  /**
+   * Retrieves scores for a specific match/game.
+   * @param {string} matchId - The ID of the match.
+   * @returns {Promise<Result>} Result with list of scores for the match.
+   */
+  async getScoresByMatchId(matchId) {
+    return Result.success(matchId)
+      .toAsync()
+      .tap(() =>
+        logger.info(`Attempting to retrieve scores for match: ${matchId}`),
+      )
+      .chain(async (id) => {
+        // Chama o método específico do repositório que filtra pelo ID
+        const scores = await this.scoreRepository.findByMatchId(id);
+        return Result.success(scores);
+      })
+      .tap((scores) =>
+        logger.info(
+          `Successfully retrieved ${scores.length} scores for match ${matchId}.`,
+        ),
+      )
+      .tapError((error) =>
+        logger.error(
+          `Failed to retrieve scores for match ${matchId}: ${error.message}`,
+        ),
+      )
+      .toResult();
+  }
 }
 
 export default ScoreService;
