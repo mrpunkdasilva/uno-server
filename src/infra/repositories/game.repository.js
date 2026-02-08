@@ -1,4 +1,5 @@
 import Game from '../models/game.model.js';
+import mongoose from 'mongoose';
 
 /**
  * Repository class for managing game data operations in the database.
@@ -157,6 +158,25 @@ class GameRepository {
       .select('players')
       .populate('players._id', 'username email')
       .lean();
+  }
+
+  /**
+   * Retrieves the number of cards in a player's hand for a specific game.
+   * This is determined by counting cards associated with the player and game,
+   * that are neither in the deck nor in the discard pile.
+   *
+   * @param {string} gameId - The ID of the game.
+   * @param {string} playerId - The ID of the player.
+   * @returns {Promise<number>} The number of cards in the player's hand.
+   */
+  async getPlayerHandSize(gameId, playerId) {
+    const handSize = await mongoose.model('Card').countDocuments({
+      gameId: gameId,
+      playerId: playerId,
+      isInDeck: false,
+      isDiscarded: false,
+    });
+    return handSize;
   }
 }
 

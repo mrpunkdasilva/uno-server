@@ -674,13 +674,20 @@ describe('GameService', () => {
       };
 
       mockGameRepository.findById.mockResolvedValue(twoPlayerGame);
+      mockGameRepository.update.mockResolvedValue({}); // _endGame calls update
 
       await gameService.abandonGame(mockAbandonUserId, mockAbandonGameId);
 
-      const savedGame = mockGameRepository.save.mock.calls[0][0];
-      expect(savedGame.status).toBe('Ended');
-      expect(savedGame.winnerId).toBe('player456');
-      expect(savedGame.players).toHaveLength(1);
+      expect(mockGameRepository.findById).toHaveBeenCalledWith(
+        mockAbandonGameId,
+      );
+      expect(mockGameRepository.update).toHaveBeenCalledWith(
+        mockAbandonGameId,
+        expect.objectContaining({
+          status: 'Ended',
+          winnerId: 'player456',
+        }),
+      );
       expect(mockLogger.info).toHaveBeenCalledWith(
         `Game ${mockAbandonGameId} ended due to last player (player456) remaining after abandonment.`,
       );
@@ -693,12 +700,20 @@ describe('GameService', () => {
       };
 
       mockGameRepository.findById.mockResolvedValue(singlePlayerGame);
+      mockGameRepository.update.mockResolvedValue({}); // _endGame calls update
 
       await gameService.abandonGame(mockAbandonUserId, mockAbandonGameId);
 
-      const savedGame = mockGameRepository.save.mock.calls[0][0];
-      expect(savedGame.status).toBe('Ended');
-      expect(savedGame.players).toHaveLength(0);
+      expect(mockGameRepository.findById).toHaveBeenCalledWith(
+        mockAbandonGameId,
+      );
+      expect(mockGameRepository.update).toHaveBeenCalledWith(
+        mockAbandonGameId,
+        expect.objectContaining({
+          status: 'Ended',
+          winnerId: null,
+        }),
+      );
       expect(mockLogger.info).toHaveBeenCalledWith(
         `Game ${mockAbandonGameId} ended as all players abandoned.`,
       );

@@ -8,7 +8,11 @@ const createGameDtoSchema = z.object({
   maxPlayers: z
     .number()
     .min(2, 'The game must have at least 2 players')
-    .default(4), // Adicionei um default para maxPlayers já que não está na US
+    .default(4),
+  minPlayers: z
+    .number()
+    .min(2, 'A game needs a minimum of 2 players')
+    .default(2),
 });
 
 export default createGameDtoSchema;
