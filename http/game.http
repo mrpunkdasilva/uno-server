@@ -67,3 +67,121 @@ POST {{baseUrl}}/api/games/discard/top
 Authorization: Bearer {{accessToken}}
 
 ###
+
+### Test: Abandon game - last player remains (game ends with winner)
+# @name abandonGameOnePlayerRemaining
+POST {{baseUrl}}/api/users/register
+Content-Type: application/json
+
+{
+  "username": "playerGameEnd1",
+  "email": "player.gameend1@example.com",
+  "password": "password123"
+}
+
+@playerGameEnd1Token = {{abandonGameOnePlayerRemaining.response.body.accessToken}}
+@playerGameEnd1Id = {{abandonGameOnePlayerRemaining.response.body.player.id}}
+
+### Register a second player
+# @name registerPlayer2GameEnd
+POST {{baseUrl}}/api/users/register
+Content-Type: application/json
+
+{
+  "username": "playerGameEnd2",
+  "email": "player.gameend2@example.com",
+  "password": "password123"
+}
+
+@playerGameEnd2Token = {{registerPlayer2GameEnd.response.body.accessToken}}
+@playerGameEnd2Id = {{registerPlayer2GameEnd.response.body.player.id}}
+
+### Create a game by playerGameEnd1
+# @name createGameForAbandonTest
+POST {{baseUrl}}/api/games
+Content-Type: application/json
+Authorization: Bearer {{playerGameEnd1Token}}
+
+{
+  "name": "Game for Abandon Test",
+  "rules": "Standard rules.",
+  "maxPlayers": 2,
+  "minPlayers": 2
+}
+
+@gameIdForAbandonTest = {{createGameForAbandonTest.response.body.id}}
+
+### PlayerGameEnd2 joins the game
+# @name player2JoinsAbandonTest
+GET {{baseUrl}}/api/games/{{gameIdForAbandonTest}}/join
+Authorization: Bearer {{playerGameEnd2Token}}
+
+### PlayerGameEnd1 sets ready
+# @name player1ReadyAbandonTest
+GET {{baseUrl}}/api/games/{{gameIdForAbandonTest}}/ready
+Authorization: Bearer {{playerGameEnd1Token}}
+
+### PlayerGameEnd2 sets ready
+# @name player2ReadyAbandonTest
+GET {{baseUrl}}/api/games/{{gameIdForAbandonTest}}/ready
+Authorization: Bearer {{playerGameEnd2Token}}
+
+### Start the game by playerGameEnd1
+# @name startGameAbandonTest
+GET {{baseUrl}}/api/games/{{gameIdForAbandonTest}}/start
+Authorization: Bearer {{playerGameEnd1Token}}
+
+### PlayerGameEnd1 abandons the game
+# @name abandonGameByPlayer1
+GET {{baseUrl}}/api/games/{{gameIdForAbandonTest}}/abandon
+Authorization: Bearer {{playerGameEnd1Token}}
+
+### Get game status after PlayerGameEnd1 abandons (expect PlayerGameEnd2 to win)
+# @name checkStatusAfterAbandon1
+GET {{baseUrl}}/api/games/{{gameIdForAbandonTest}}/status
+Authorization: Bearer {{playerGameEnd2Token}}
+
+// Expected: status: "Ended", winnerId: "{{playerGameEnd2Id}}"
+
+### Test: Abandon game - all players abandon (game ends with no winner)
+
+### Create a new game for all abandon scenario by playerGameEnd1
+# @name createGameForTotalAbandonTest
+POST {{baseUrl}}/api/games
+Content-Type: application/json
+Authorization: Bearer {{playerGameEnd1Token}}
+
+{
+  "name": "Game for Total Abandon Test",
+  "rules": "Standard rules.",
+  "maxPlayers": 1,
+  "minPlayers": 1
+}
+
+@gameIdForTotalAbandonTest = {{createGameForTotalAbandonTest.response.body.id}}
+
+### PlayerGameEnd1 starts the game (single player game)
+# @name startGameTotalAbandonTest
+GET {{baseUrl}}/api/games/{{gameIdForTotalAbandonTest}}/start
+Authorization: Bearer {{playerGameEnd1Token}}
+
+### PlayerGameEnd1 abandons the single player game
+# @name abandonGameByPlayer1Total
+GET {{baseUrl}}/api/games/{{gameIdForTotalAbandonTest}}/abandon
+Authorization: Bearer {{playerGameEnd1Token}}
+
+### Get game status after PlayerGameEnd1 abandons (expect game to end with no winner)
+# @name checkStatusTotalAbandon
+GET {{baseUrl}}/api/games/{{gameIdForTotalAbandonTest}}/status
+Authorization: Bearer {{playerGameEnd1Token}}
+
+// Expected: status: "Ended", winnerId: null
+
+### Test: Abandon game - game already ended
+
+### Abandon already ended game by playerGameEnd1
+# @name abandonAlreadyEndedGame
+GET {{baseUrl}}/api/games/{{gameIdForTotalAbandonTest}}/abandon
+Authorization: Bearer {{playerGameEnd1Token}}
+
+// Expected: Error "Cannot abandon now"
