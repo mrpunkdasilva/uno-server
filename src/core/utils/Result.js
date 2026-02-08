@@ -292,7 +292,7 @@ class ResultAsync {
 
         // Se retornar Promise, aguarda
         if (newResult instanceof Promise) {
-          return newResult;
+          return newResult.catch((error) => Result.failure(error));
         }
 
         return newResult;
