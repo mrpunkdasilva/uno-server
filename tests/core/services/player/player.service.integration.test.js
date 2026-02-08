@@ -107,13 +107,16 @@ describe('PlayerService Integration Tests', () => {
       password: 'password123',
     });
 
-    await expect(
-      playerService.createPlayer({
-        username: 'user2',
-        email: 'duplicate@example.com',
-        password: 'password123',
-      }),
-    ).rejects.toThrow(/Player with email .* already exists/);
+    const createdPlayerResult = await playerService.createPlayer({
+      username: 'user2',
+      email: 'duplicate@example.com',
+      password: 'password123',
+    });
+
+    expect(createdPlayerResult.isFailure).toBe(true);
+    expect(createdPlayerResult.error.message).toBe(
+      'Player with email duplicate@example.com already exists',
+    );
   });
 
   it('should not create a player with a duplicate username', async () => {
@@ -123,12 +126,15 @@ describe('PlayerService Integration Tests', () => {
       password: 'password123',
     });
 
-    await expect(
-      playerService.createPlayer({
-        username: 'duplicateuser',
-        email: 'user2@example.com',
-        password: 'password123',
-      }),
-    ).rejects.toThrow(/Player with username .* already exists/);
+    const createdPlayerResult = await playerService.createPlayer({
+      username: 'duplicateuser',
+      email: 'user2@example.com',
+      password: 'password123',
+    });
+
+    expect(createdPlayerResult.isFailure).toBe(true);
+    expect(createdPlayerResult.error.message).toBe(
+      'Player with username duplicateuser already exists',
+    );
   });
 });
