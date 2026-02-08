@@ -396,6 +396,8 @@ class GameService {
       }
 
       game.status = 'Active';
+      game.currentPlayerIndex = 0; // First player starts
+      game.turnDirection = 1; // Clockwise
       game.players.forEach((player, index) => {
         player.position = index + 1;
       });
@@ -414,6 +416,111 @@ class GameService {
     } catch (error) {
       logger.error(
         `Failed for user ${userId} to start game ${gameId}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieves the current player whose turn it is for a given game.
+   *
+   * @param {string} gameId - The ID of the game.
+   * @returns {Promise<string>} The ID of the current player.
+   * @throws {Error} If the game is not found, not active, or no players are in the game.
+   */
+  async getCurrentPlayer(gameId) {
+    logger.info(`Attempting to retrieve current player for game ID: ${gameId}`);
+    try {
+      const game = await this.gameRepository.findById(gameId);
+
+      if (!game) {
+        logger.warn(
+          `Current player retrieval failed: Game ${gameId} not found.`,
+        );
+        throw new Error('Game not found');
+      }
+
+      if (game.status !== 'Active') {
+        logger.warn(
+          `Current player retrieval failed for game ${gameId}: Game is not active. Status: ${game.status}`,
+        );
+        throw new Error('Game is not active');
+      }
+
+      if (!game.players || game.players.length === 0) {
+        logger.warn(
+          `Current player retrieval failed for game ${gameId}: No players in the game.`,
+        );
+        throw new Error('No players in game');
+      }
+
+      const currentPlayer = game.players[game.currentPlayerIndex];
+      if (!currentPlayer) {
+        logger.error(
+          `Current player retrieval failed for game ${gameId}: Invalid currentPlayerIndex ${game.currentPlayerIndex}.`,
+        );
+        throw new Error('Could not determine current player');
+      }
+
+      logger.info(
+        `Successfully retrieved current player ${currentPlayer._id} for game ${gameId}.`,
+      );
+      return currentPlayer._id.toString();
+    } catch (error) {
+      logger.error(
+        `Failed to retrieve current player for game ${gameId}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Advances the game turn to the next player based on current direction.
+   *
+   * @param {string} gameId - The ID of the game.
+   * @returns {Promise<string>} The ID of the next current player.
+   * @throws {Error} If the game is not found, not active, or no players are in the game.
+   */
+  async advanceTurn(gameId) {
+    logger.info(`Advancing turn for game ID: ${gameId}`);
+    try {
+      const game = await this.gameRepository.findById(gameId);
+
+      if (!game) {
+        logger.warn(`Advance turn failed: Game ${gameId} not found.`);
+        throw new Error('Game not found');
+      }
+
+      if (game.status !== 'Active') {
+        logger.warn(
+          `Advance turn failed for game ${gameId}: Game is not active. Status: ${game.status}`,
+        );
+        throw new Error('Game is not active');
+      }
+
+      if (!game.players || game.players.length === 0) {
+        logger.warn(
+          `Advance turn failed for game ${gameId}: No players in the game.`,
+        );
+        throw new Error('No players in game');
+      }
+
+      const numPlayers = game.players.length;
+      let nextPlayerIndex =
+        (game.currentPlayerIndex + game.turnDirection + numPlayers) %
+        numPlayers;
+
+      game.currentPlayerIndex = nextPlayerIndex;
+      await this.gameRepository.save(game);
+
+      const nextPlayerId = game.players[nextPlayerIndex]._id.toString();
+      logger.info(
+        `Turn advanced for game ${gameId}. Next player: ${nextPlayerId}.`,
+      );
+      return nextPlayerId;
+    } catch (error) {
+      logger.error(
+        `Failed to advance turn for game ${gameId}: ${error.message}`,
       );
       throw error;
     }
