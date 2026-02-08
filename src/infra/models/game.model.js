@@ -51,6 +51,15 @@ const gameSchema = mongoose.Schema(
       type: Date,
       default: null,
     },
+    currentPlayerIndex: {
+      type: Number,
+      default: 0,
+    },
+    turnDirection: {
+      type: Number,
+      enum: [1, -1],
+      default: 1, // 1 for clockwise, -1 for counter-clockwise
+    },
     // NOVO: Pilha de descarte
     discardPile: [
       {
