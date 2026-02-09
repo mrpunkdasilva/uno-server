@@ -20,15 +20,17 @@ class GameService {
   }
 
   /**
-   * Retrieves all games from the database
-   * @returns {Promise<Array>} Array of all game objects
-   * @throws {Error} When database operation fails
+   * Retrieves all games from the database.
+   * @returns {Promise<Array>} Array of all game objects.
+   * @throws {Error} When database operation fails.
    */
   async getAllGames() {
-    const gameResult = new ResultAsync(Result.fromAsync(async () => {
-      logger.info('Attempting to retrieve all games.');
-      return await this.gameRepository.findAll();
-    }));
+    const gameResult = new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info('Attempting to retrieve all games.');
+        return await this.gameRepository.findAll();
+      }),
+    );
 
     return gameResult
       .tap((games) =>
@@ -48,14 +50,16 @@ class GameService {
    * @throws {Error} When game is not found
    */
   async getGameById(id) {
-    const gameResult = new ResultAsync(Result.fromAsync(async () => {
-      logger.info(`Attempting to retrieve game by ID: ${id}`);
-      const game = await this.gameRepository.findById(id);
-      if (!game) {
-        throw new Error('Game not found');
-      }
-      return game;
-    }));
+    const gameResult = new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info(`Attempting to retrieve game by ID: ${id}`);
+        const game = await this.gameRepository.findById(id);
+        if (!game) {
+          throw new Error('Game not found');
+        }
+        return game;
+      }),
+    );
 
     return gameResult
       .tap((game) =>
@@ -73,44 +77,73 @@ class GameService {
   }
 
   /**
-   * Creates a new game with the provided game data
-   * @param {Object} gameData - The data for creating a new game
-   * @param {string} userId - The ID of the user creating the game
-   * @returns {Promise<Object>} The created game object formatted as response DTO
-   * @throws {Error} When game creation fails or validation errors occur
+
+     * Creates a new game with the provided game data.
+
+     * @param {Object} gameData - The data for creating a new game.
+
+     * @param {string} userId - The ID of the user creating the game.
+
+     * @returns {Promise<Object>} The created game object formatted as response DTO.
+
+     */
+
+  /**
+   * Creates a new game with the provided game data.
+   * @param {Object} gameData - The data for creating a new game.
+   * @param {string} userId - The ID of the user creating the game.
+   * @returns {Promise<Object>} The created game object formatted as response DTO.
+   */
+  /**
+   * Creates a new game with the provided game data.
+   * @param {Object} gameData - The data for creating a new game.
+   * @param {string} userId - The ID of the user creating the game.
+   * @returns {Promise<Object>} The created game object formatted as response DTO.
+   */
+  /**
+   * Creates a new game with the provided game data.
+   * @param {Object} gameData - The data for creating a new game.
+   * @param {string} userId - The ID of the user creating the game.
+   * @returns {Promise<Object>} The created game object formatted as response DTO.
    */
   async createGame(gameData, userId) {
-    return new ResultAsync(Result.fromAsync(async () => {
-      logger.info(`Attempting to create a new game by user ID: ${userId}`);
-      const { name, rules, maxPlayers, minPlayers } =
-        createGameDtoSchema.parse(gameData);
+    return new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info(`Attempting to create a new game by user ID: ${userId}`);
+        const { name, rules, maxPlayers, minPlayers } =
+          createGameDtoSchema.parse(gameData);
 
-      const data = {
-        title: name,
-        rules: rules,
-        maxPlayers: maxPlayers,
-        minPlayers: minPlayers,
-        creatorId: userId,
-        players: [{ _id: userId, ready: true, position: 1 }],
-      };
+        const data = {
+          title: name,
+          rules: rules,
+          maxPlayers: maxPlayers,
+          minPlayers: minPlayers,
+          creatorId: userId,
+          players: [{ _id: userId, ready: true, position: 1 }],
+        };
 
-      return await this.gameRepository.createGame(data);
-    }))
+        return await this.gameRepository.createGame(data);
+      }),
+    )
       .tap((game) =>
         logger.info(`Game ${game._id} created successfully by user ${userId}.`),
       )
-      .map((game) => gameResponseDtoSchema.parse({
-        id: game._id.toString(),
-        title: game.title,
-        rules: game.rules,
-        status: game.status,
-        maxPlayers: game.maxPlayers,
-        minPlayers: game.minPlayers,
-        createdAt: game.createdAt,
-        updatedAt: game.updatedAt,
-      }))
+      .map((game) =>
+        gameResponseDtoSchema.parse({
+          id: game._id.toString(),
+          title: game.title,
+          rules: game.rules,
+          status: game.status,
+          maxPlayers: game.maxPlayers,
+          minPlayers: game.minPlayers,
+          createdAt: game.createdAt,
+          updatedAt: game.updatedAt,
+        }),
+      )
       .tapError((error) =>
-        logger.error(`Failed to create game by user ${userId}: ${error.message}`),
+        logger.error(
+          `Failed to create game by user ${userId}: ${error.message}`,
+        ),
       )
       .getOrThrow();
   }
@@ -123,31 +156,35 @@ class GameService {
    * @throws {Error} When game is not found or validation fails
    */
   async updateGame(id, updateData) {
-    const gameResult = new ResultAsync(Result.fromAsync(async () => {
-      logger.info(`Attempting to update game with ID: ${id}`);
-      const validatedData = updateGameDtoSchema.parse(updateData);
+    const gameResult = new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info(`Attempting to update game with ID: ${id}`);
+        const validatedData = updateGameDtoSchema.parse(updateData);
 
-      const updatedGame = await this.gameRepository.update(id, validatedData);
+        const updatedGame = await this.gameRepository.update(id, validatedData);
 
-      if (!updatedGame) {
-        throw new Error('Game not found');
-      }
-      return updatedGame;
-    }));
+        if (!updatedGame) {
+          throw new Error('Game not found');
+        }
+        return updatedGame;
+      }),
+    );
 
     return gameResult
       .tap((game) =>
         logger.info(`Game with ID ${game._id} updated successfully.`),
       )
-      .map((updatedGame) => gameResponseDtoSchema.parse({
-        id: updatedGame._id.toString(),
-        title: updatedGame.title,
-        status: updatedGame.status,
-        maxPlayers: updatedGame.maxPlayers,
-        minPlayers: updatedGame.minPlayers,
-        createdAt: updatedGame.createdAt,
-        updatedAt: updatedGame.updatedAt,
-      }))
+      .map((updatedGame) =>
+        gameResponseDtoSchema.parse({
+          id: updatedGame._id.toString(),
+          title: updatedGame.title,
+          status: updatedGame.status,
+          maxPlayers: updatedGame.maxPlayers,
+          minPlayers: updatedGame.minPlayers,
+          createdAt: updatedGame.createdAt,
+          updatedAt: updatedGame.updatedAt,
+        }),
+      )
       .tapError((error) => {
         if (error.message === 'Game not found') {
           logger.warn(`Game with ID ${id} not found for update.`);
@@ -165,15 +202,17 @@ class GameService {
    * @throws {Error} When game is not found
    */
   async deleteGame(id) {
-    const gameResult = new ResultAsync(Result.fromAsync(async () => {
-      logger.info(`Attempting to delete game with ID: ${id}`);
-      const game = await this.gameRepository.findById(id);
-      if (!game) {
-        throw new Error('Game not found');
-      }
-      await this.gameRepository.delete(id);
-      return game;
-    }));
+    const gameResult = new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info(`Attempting to delete game with ID: ${id}`);
+        const game = await this.gameRepository.findById(id);
+        if (!game) {
+          throw new Error('Game not found');
+        }
+        await this.gameRepository.delete(id);
+        return game;
+      }),
+    );
 
     return gameResult
       .tap((game) =>
@@ -197,15 +236,19 @@ class GameService {
    * @private
    */
   async _endGame(gameId, winnerId = null) {
-    return new ResultAsync(Result.fromAsync(async () => {
-      logger.info(`Attempting to end game ${gameId} with winner ${winnerId}.`);
-      const updatePayload = {
-        status: 'Ended',
-        endedAt: new Date(),
-        winnerId: winnerId,
-      };
-      return await this.gameRepository.update(gameId, updatePayload);
-    }))
+    return new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info(
+          `Attempting to end game ${gameId} with winner ${winnerId}.`,
+        );
+        const updatePayload = {
+          status: 'Ended',
+          endedAt: new Date(),
+          winnerId: winnerId,
+        };
+        return await this.gameRepository.update(gameId, updatePayload);
+      }),
+    )
       .tap(() =>
         logger.info(
           `Game ${gameId} successfully ended. Winner: ${
@@ -226,21 +269,25 @@ class GameService {
    * @returns {Promise<boolean>} True if the game ended, false otherwise.
    */
   async checkAndEndGameIfPlayerWins(gameId, playerId) {
-    const checkResult = new ResultAsync(Result.fromAsync(async () => {
-      logger.info(
-        `Checking if player ${playerId} has won game ${gameId} by emptying hand.`,
-      );
-      const handSize = await this.gameRepository.getPlayerHandSize(
-        gameId,
-        playerId,
-      );
-      if (handSize === 0) {
-        logger.info(`Player ${playerId} has won game ${gameId}. Ending game.`);
-        await this._endGame(gameId, playerId);
-        return true;
-      }
-      return false;
-    }));
+    const checkResult = new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info(
+          `Checking if player ${playerId} has won game ${gameId} by emptying hand.`,
+        );
+        const handSize = await this.gameRepository.getPlayerHandSize(
+          gameId,
+          playerId,
+        );
+        if (handSize === 0) {
+          logger.info(
+            `Player ${playerId} has won game ${gameId}. Ending game.`,
+          );
+          await this._endGame(gameId, playerId);
+          return true;
+        }
+        return false;
+      }),
+    );
 
     return checkResult
       .tapError((error) =>
@@ -263,19 +310,23 @@ class GameService {
    * @throws {Error} If the user is already a participant in the game (409).
    */
   async joinGame(userId, gameId) {
-    return new ResultAsync(Result.fromAsync(async () => {
-      logger.info(`User ${userId} attempting to join game ${gameId}.`);
-      const game = await this.gameRepository.findById(gameId);
+    return new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info(`User ${userId} attempting to join game ${gameId}.`);
+        const game = await this.gameRepository.findById(gameId);
 
-      if (!game) {
-        throw new Error('Game not found');
-      }
-      return game;
-    }))
+        if (!game) {
+          throw new Error('Game not found');
+        }
+        return game;
+      }),
+    )
       .chain((game) => {
         if (game.status !== 'Waiting') {
           return Result.failure(
-            new Error('Game is not accepting new players (Already Active or Ended)'),
+            new Error(
+              'Game is not accepting new players (Already Active or Ended)',
+            ),
           );
         }
         return Result.success(game);
@@ -304,7 +355,7 @@ class GameService {
           currentPlayerCount: game.players.length,
         });
       })
-      .tap((result) =>
+      .tap(() =>
         logger.info(`User ${userId} successfully joined game ${gameId}.`),
       )
       .tapError((error) => {
@@ -313,7 +364,8 @@ class GameService {
             `Join game failed for user ${userId}: Game ${gameId} not found.`,
           );
         } else if (
-          error.message === 'Game is not accepting new players (Already Active or Ended)'
+          error.message ===
+          'Game is not accepting new players (Already Active or Ended)'
         ) {
           logger.warn(
             `Join game failed for user ${userId} in game ${gameId}: Game not in 'Waiting' status.`,
@@ -343,15 +395,19 @@ class GameService {
    * @returns {Promise<Object>} Object with success message and counts.
    */
   async setPlayerReady(userId, gameId) {
-    return new ResultAsync(Result.fromAsync(async () => {
-      logger.info(`User ${userId} attempting to set ready in game ${gameId}.`);
-      const game = await this.gameRepository.findById(gameId);
+    return new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info(
+          `User ${userId} attempting to set ready in game ${gameId}.`,
+        );
+        const game = await this.gameRepository.findById(gameId);
 
-      if (!game) {
-        throw new Error('Game not found');
-      }
-      return game;
-    }))
+        if (!game) {
+          throw new Error('Game not found');
+        }
+        return game;
+      }),
+    )
       .chain((game) => {
         if (game.status !== 'Waiting') {
           return Result.failure(new Error('Cannot ready now'));
@@ -359,7 +415,9 @@ class GameService {
         return Result.success(game);
       })
       .chain((game) => {
-        const playerEntry = game.players.find((p) => p._id.toString() === userId);
+        const playerEntry = game.players.find(
+          (p) => p._id.toString() === userId,
+        );
         if (!playerEntry) {
           return Result.failure(new Error('You are not in this game'));
         }
@@ -416,18 +474,22 @@ class GameService {
    * @returns {Promise<Object>} The started game object.
    */
   async startGame(userId, gameId) {
-    return new ResultAsync(Result.fromAsync(async () => {
-      logger.info(`User ${userId} attempting to start game ${gameId}.`);
-      const game = await this.gameRepository.findById(gameId);
+    return new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info(`User ${userId} attempting to start game ${gameId}.`);
+        const game = await this.gameRepository.findById(gameId);
 
-      if (!game) {
-        throw new Error('Game not found');
-      }
-      return game;
-    }))
+        if (!game) {
+          throw new Error('Game not found');
+        }
+        return game;
+      }),
+    )
       .chain((game) => {
         if (game.creatorId.toString() !== userId) {
-          return Result.failure(new Error('Only the game creator can start the game'));
+          return Result.failure(
+            new Error('Only the game creator can start the game'),
+          );
         }
         return Result.success(game);
       })
@@ -463,21 +525,25 @@ class GameService {
         await this.gameRepository.save(game);
         logger.info(`Game ${gameId} successfully started by user ${userId}.`);
 
-        return Result.success(gameResponseDtoSchema.parse({
-          id: game._id.toString(),
-          title: game.title,
-          status: game.status,
-          maxPlayers: game.maxPlayers,
-          createdAt: game.createdAt,
-          updatedAt: game.updatedAt,
-        }));
+        return Result.success(
+          gameResponseDtoSchema.parse({
+            id: game._id.toString(),
+            title: game.title,
+            status: game.status,
+            maxPlayers: game.maxPlayers,
+            createdAt: game.createdAt,
+            updatedAt: game.updatedAt,
+          }),
+        );
       })
       .tapError((error) => {
         if (error.message === 'Game not found') {
           logger.warn(
             `Game start failed for user ${userId}: Game ${gameId} not found.`,
           );
-        } else if (error.message === 'Only the game creator can start the game') {
+        } else if (
+          error.message === 'Only the game creator can start the game'
+        ) {
           logger.warn(
             `Game start failed for user ${userId} in game ${gameId}: Not the game creator.`,
           );
@@ -510,15 +576,19 @@ class GameService {
    * @throws {Error} If the game is not found, not active, or no players are in the game.
    */
   async getCurrentPlayer(gameId) {
-    return new ResultAsync(Result.fromAsync(async () => {
-      logger.info(`Attempting to retrieve current player for game ID: ${gameId}`);
-      const game = await this.gameRepository.findById(gameId);
+    return new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info(
+          `Attempting to retrieve current player for game ID: ${gameId}`,
+        );
+        const game = await this.gameRepository.findById(gameId);
 
-      if (!game) {
-        throw new Error('Game not found');
-      }
-      return game;
-    }))
+        if (!game) {
+          throw new Error('Game not found');
+        }
+        return game;
+      }),
+    )
       .chain((game) => {
         if (game.status !== 'Active') {
           return Result.failure(new Error('Game is not active'));
@@ -534,7 +604,9 @@ class GameService {
       .chain((game) => {
         const currentPlayer = game.players[game.currentPlayerIndex];
         if (!currentPlayer) {
-          return Result.failure(new Error('Could not determine current player'));
+          return Result.failure(
+            new Error('Could not determine current player'),
+          );
         }
         return Result.success(currentPlayer);
       })
@@ -578,15 +650,17 @@ class GameService {
    * @throws {Error} If the game is not found, not active, or no players are in the game.
    */
   async advanceTurn(gameId) {
-    return new ResultAsync(Result.fromAsync(async () => {
-      logger.info(`Advancing turn for game ID: ${gameId}`);
-      const game = await this.gameRepository.findById(gameId);
+    return new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info(`Advancing turn for game ID: ${gameId}`);
+        const game = await this.gameRepository.findById(gameId);
 
-      if (!game) {
-        throw new Error('Game not found');
-      }
-      return game;
-    }))
+        if (!game) {
+          throw new Error('Game not found');
+        }
+        return game;
+      }),
+    )
       .chain((game) => {
         if (game.status !== 'Active') {
           return Result.failure(new Error('Game is not active'));
@@ -644,15 +718,17 @@ class GameService {
    * @throws {Error} If the game is not found, user is not in the game, or game cannot be abandoned.
    */
   async abandonGame(userId, gameId) {
-    return new ResultAsync(Result.fromAsync(async () => {
-      logger.info(`User ${userId} attempting to abandon game ${gameId}.`);
-      const game = await this.gameRepository.findById(gameId);
+    return new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info(`User ${userId} attempting to abandon game ${gameId}.`);
+        const game = await this.gameRepository.findById(gameId);
 
-      if (!game) {
-        throw new Error('Game not found');
-      }
-      return game;
-    }))
+        if (!game) {
+          throw new Error('Game not found');
+        }
+        return game;
+      }),
+    )
       .chain((game) => {
         const player = game.players.find((p) => p._id.toString() === userId);
         if (!player) {
@@ -685,7 +761,7 @@ class GameService {
         }
         return Result.success({ success: true, message: 'You left the game' });
       })
-      .tap((result) =>
+      .tap(() =>
         logger.info(`User ${userId} successfully abandoned game ${gameId}.`),
       )
       .tapError((error) => {
@@ -718,22 +794,26 @@ class GameService {
    * @throws {Error} If the game ID is invalid or the game is not found.
    */
   async getGameStatus(id) {
-    return new ResultAsync(Result.fromAsync(async () => {
-      logger.info(`Attempting to retrieve status for game ID: ${id}`);
-      if (!id || typeof id !== 'string' || id.trim() === '') {
-        throw new Error('Invalid game ID');
-      }
+    return new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info(`Attempting to retrieve status for game ID: ${id}`);
+        if (!id || typeof id !== 'string' || id.trim() === '') {
+          throw new Error('Invalid game ID');
+        }
 
-      const trimmedId = id.trim();
-      const game = await this.gameRepository.findGameStatus(trimmedId);
-      if (!game) {
-        throw new Error('Game not found');
-      }
-      return game;
-    }))
+        const trimmedId = id.trim();
+        const game = await this.gameRepository.findGameStatus(trimmedId);
+        if (!game) {
+          throw new Error('Game not found');
+        }
+        return game;
+      }),
+    )
       .tap((game) =>
         logger.info(
-          `Successfully retrieved status for game ID ${id.trim()}: ${game.status}`,
+          `Successfully retrieved status for game ID ${id.trim()}: ${
+            game.status
+          }`,
         ),
       )
       .map((game) => game.status)
@@ -764,19 +844,23 @@ class GameService {
   async getDiscardTop(gameId) {
     const trimmedId = gameId.trim(); // Declare trimmedId once
 
-    return new ResultAsync(Result.fromAsync(async () => {
-      logger.info(`Attempting to get top discard card for game ID: ${gameId}`);
-      if (!gameId || typeof gameId !== 'string' || trimmedId === '') {
-        throw new Error('Invalid game ID');
-      }
+    return new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info(
+          `Attempting to get top discard card for game ID: ${gameId}`,
+        );
+        if (!gameId || typeof gameId !== 'string' || trimmedId === '') {
+          throw new Error('Invalid game ID');
+        }
 
-      const game = await this.gameRepository.findDiscardTop(trimmedId);
+        const game = await this.gameRepository.findDiscardTop(trimmedId);
 
-      if (!game) {
-        throw new Error('Game not found');
-      }
-      return game;
-    }))
+        if (!game) {
+          throw new Error('Game not found');
+        }
+        return game;
+      }),
+    )
       .chain((game) => {
         if (game.status === 'Waiting') {
           logger.warn(
@@ -796,7 +880,8 @@ class GameService {
         return Result.success(game);
       })
       .chain((game) => {
-        if (game.error) { // If it's a special status object from previous chain
+        if (game.error) {
+          // If it's a special status object from previous chain
           return Result.success(game);
         }
         if (!game.discardPile || game.discardPile.length === 0) {
@@ -818,7 +903,10 @@ class GameService {
         return Result.success(game);
       })
       .map((gameOrSpecialResult) => {
-        if (gameOrSpecialResult.error || gameOrSpecialResult.top_card === null) {
+        if (
+          gameOrSpecialResult.error ||
+          gameOrSpecialResult.top_card === null
+        ) {
           return gameOrSpecialResult; // Pass through special results
         }
 
@@ -875,19 +963,17 @@ class GameService {
    * @returns {Promise<Object>} Simple top card response
    */
   async getDiscardTopSimple(gameId) {
-    return new ResultAsync(Result.fromAsync(async () => {
-      logger.info(
-        `Attempting to get simple top discard card for game ID: ${gameId}`,
-      );
-      // getDiscardTop já retorna ou lança um erro, então precisamos encapsulá-lo
-      // para que seja tratado como um Result.
-      try {
+    return new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info(
+          `Attempting to get simple top discard card for game ID: ${gameId}`,
+        );
+        // getDiscardTop já retorna ou lança um erro, então precisamos encapsulá-lo
+        // para que seja tratado como um Result.
         const result = await this.getDiscardTop(gameId);
         return result;
-      } catch (error) {
-        throw error; // Propagate the error to be caught by Result.fromAsync
-      }
-    }))
+      }),
+    )
       .map((result) => {
         if (result.error) {
           logger.warn(
@@ -936,19 +1022,21 @@ class GameService {
   async getGamePlayers(gameId) {
     const trimmedId = gameId.trim(); // Declare trimmedId once
 
-    return new ResultAsync(Result.fromAsync(async () => {
-      logger.info(`Attempting to get players for game ID: ${gameId}`);
-      if (!gameId || typeof gameId !== 'string' || trimmedId === '') {
-        throw new Error('Invalid game ID');
-      }
+    return new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info(`Attempting to get players for game ID: ${gameId}`);
+        if (!gameId || typeof gameId !== 'string' || trimmedId === '') {
+          throw new Error('Invalid game ID');
+        }
 
-      const game = await this.gameRepository.findById(trimmedId);
+        const game = await this.gameRepository.findById(trimmedId);
 
-      if (!game) {
-        throw new Error('Game not found');
-      }
-      return game;
-    }))
+        if (!game) {
+          throw new Error('Game not found');
+        }
+        return game;
+      }),
+    )
       .chain(async (game) => {
         // Get detailed player information
         const playersWithDetails = await Promise.all(

@@ -65,6 +65,7 @@ export const mockLogger = {
 
 /**
  * Function to reset all mocks to their initial state
+ * @returns {void}
  */
 export const resetAllMocks = () => {
   jest.clearAllMocks();
