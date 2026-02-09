@@ -576,7 +576,7 @@ describe('GameService', () => {
       ).rejects.toThrow('Minimum 3 players required to start');
 
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        `Game start failed for user ${mockCreatorId} in game ${mockStartGameId}: Not enough players (1/3).`,
+        `Game start failed for user ${mockCreatorId} in game ${mockStartGameId}: Minimum 3 players required to start`,
       );
     });
 

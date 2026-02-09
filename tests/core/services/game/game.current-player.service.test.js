@@ -140,7 +140,7 @@ describe('GameService Current Player and Turn Logic', () => {
         'Game is not active',
       );
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        `Current player retrieval failed for game ${mockGameId}: Game is not active. Status: Waiting`,
+        `Current player retrieval failed for game ${mockGameId}: Game is not active.`,
       );
     });
 
@@ -164,7 +164,7 @@ describe('GameService Current Player and Turn Logic', () => {
         'Could not determine current player',
       );
       expect(mockLogger.error).toHaveBeenCalledWith(
-        `Current player retrieval failed for game ${mockGameId}: Invalid currentPlayerIndex 999.`,
+        `Current player retrieval failed for game ${mockGameId}: Invalid currentPlayerIndex.`,
       );
     });
   });
@@ -238,7 +238,7 @@ describe('GameService Current Player and Turn Logic', () => {
         'Game is not active',
       );
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        `Advance turn failed for game ${mockGameId}: Game is not active. Status: Waiting`,
+        `Advance turn failed for game ${mockGameId}: Game is not active.`,
       );
     });
 
