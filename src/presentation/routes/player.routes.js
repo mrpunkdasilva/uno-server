@@ -1,5 +1,7 @@
 import express from 'express';
 import PlayerController from '../controllers/player.controller.js';
+import PlayerService from '../../core/services/player.service.js';
+import PlayerRepository from '../../infra/repositories/player.repository.js';
 
 import createPlayerDto from '../dtos/player/create-player.dto.js';
 import updatePlayerDto from '../dtos/player/update-player.dto.js';
@@ -7,7 +9,10 @@ import updatePlayerDto from '../dtos/player/update-player.dto.js';
 import validateDto from '../middlewares/validateDto.middleware.js';
 
 const router = express.Router();
-const playerController = new PlayerController();
+
+const playerRepository = new PlayerRepository();
+const playerService = new PlayerService(playerRepository);
+const playerController = new PlayerController(playerService);
 
 router.get('/', (req, res) => playerController.getAllPlayers(req, res));
 router.post('/', validateDto(createPlayerDto), (req, res) =>
