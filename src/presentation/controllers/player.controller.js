@@ -1,5 +1,3 @@
-import PlayerService from '../../core/services/player.service.js';
-
 /**
  * Controller class for handling player-related HTTP requests.
  * Manages player CRUD operations including creation, retrieval, updating, and deletion.
@@ -7,9 +5,11 @@ import PlayerService from '../../core/services/player.service.js';
 class PlayerController {
   /**
    * Initializes the PlayerController with a PlayerService instance.
+   * Dependency Injection applied here (DIP).
+   * @param {PlayerService} playerService - The injected player service
    */
-  constructor() {
-    this.playerService = new PlayerService();
+  constructor(playerService) {
+    this.playerService = playerService;
   }
 
   /**
