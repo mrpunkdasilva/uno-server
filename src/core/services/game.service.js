@@ -1,11 +1,26 @@
-import { Result, ResultAsync } from '../../core/utils/Result.js';
+import { Result, ResultAsync } from '../utils/Result.js';
+import { getStrategyForCard } from './game/card-strategies/strategy.factory.js';
 import gameResponseDtoSchema from '../../presentation/dtos/game/game-response.dto.js';
 import updateGameDtoSchema from '../../presentation/dtos/game/update-game.dto.js';
 import createGameDtoSchema from '../../presentation/dtos/game/create-game.dto.js';
-import GameRepository from '../../infra/repositories/game.repository.js';
 import logger from '../../config/logger.js';
 import { colorMap, valueMap } from '../enums/card.enum.js';
-import PlayerRepository from '../../infra/repositories/player.repository.js';
+import {
+  GameNotFoundError,
+  InvalidGameIdError,
+  GameNotActiveError,
+  GameHasNotStartedError,
+  GameAlreadyStartedError,
+  NotGameCreatorError,
+  MinimumPlayersRequiredError,
+  NotAllPlayersReadyError,
+  GameFullError,
+  UserAlreadyInGameError,
+  UserNotInGameError,
+  CannotPerformActionError,
+  CouldNotDetermineCurrentPlayerError,
+  GameNotAcceptingPlayersError,
+} from '../errors/game.errors.js';
 
 /**
  * Service class for handling game-related business logic.
@@ -13,10 +28,12 @@ import PlayerRepository from '../../infra/repositories/player.repository.js';
 class GameService {
   /**
    * Initializes the GameService with a GameRepository instance.
+   * @param gameRepository
+   * @param playerRepository
    */
-  constructor() {
-    this.gameRepository = new GameRepository();
-    this.playerRepository = new PlayerRepository();
+  constructor(gameRepository, playerRepository) {
+    this.gameRepository = gameRepository;
+    this.playerRepository = playerRepository;
   }
 
   /**
@@ -55,7 +72,7 @@ class GameService {
         logger.info(`Attempting to retrieve game by ID: ${id}`);
         const game = await this.gameRepository.findById(id);
         if (!game) {
-          throw new Error('Game not found');
+          throw new GameNotFoundError();
         }
         return game;
       }),
@@ -78,15 +95,15 @@ class GameService {
 
   /**
 
-     * Creates a new game with the provided game data.
+   * Creates a new game with the provided game data.
 
-     * @param {Object} gameData - The data for creating a new game.
+   * @param {Object} gameData - The data for creating a new game.
 
-     * @param {string} userId - The ID of the user creating the game.
+   * @param {string} userId - The ID of the user creating the game.
 
-     * @returns {Promise<Object>} The created game object formatted as response DTO.
+   * @returns {Promise<Object>} The created game object formatted as response DTO.
 
-     */
+   */
 
   /**
    * Creates a new game with the provided game data.
@@ -94,6 +111,7 @@ class GameService {
    * @param {string} userId - The ID of the user creating the game.
    * @returns {Promise<Object>} The created game object formatted as response DTO.
    */
+
   /**
    * Creates a new game with the provided game data.
    * @param {Object} gameData - The data for creating a new game.
@@ -164,7 +182,7 @@ class GameService {
         const updatedGame = await this.gameRepository.update(id, validatedData);
 
         if (!updatedGame) {
-          throw new Error('Game not found');
+          throw new GameNotFoundError();
         }
         return updatedGame;
       }),
@@ -178,6 +196,7 @@ class GameService {
         gameResponseDtoSchema.parse({
           id: updatedGame._id.toString(),
           title: updatedGame.title,
+          rules: updatedGame.rules,
           status: updatedGame.status,
           maxPlayers: updatedGame.maxPlayers,
           minPlayers: updatedGame.minPlayers,
@@ -207,7 +226,7 @@ class GameService {
         logger.info(`Attempting to delete game with ID: ${id}`);
         const game = await this.gameRepository.findById(id);
         if (!game) {
-          throw new Error('Game not found');
+          throw new GameNotFoundError();
         }
         await this.gameRepository.delete(id);
         return game;
@@ -316,24 +335,20 @@ class GameService {
         const game = await this.gameRepository.findById(gameId);
 
         if (!game) {
-          throw new Error('Game not found');
+          throw new GameNotFoundError();
         }
         return game;
       }),
     )
       .chain((game) => {
         if (game.status !== 'Waiting') {
-          return Result.failure(
-            new Error(
-              'Game is not accepting new players (Already Active or Ended)',
-            ),
-          );
+          return Result.failure(new GameNotAcceptingPlayersError());
         }
         return Result.success(game);
       })
       .chain((game) => {
         if (game.players.length >= game.maxPlayers) {
-          return Result.failure(new Error('Game is full'));
+          return Result.failure(new GameFullError());
         }
         return Result.success(game);
       })
@@ -342,7 +357,7 @@ class GameService {
           (p) => p._id.toString() === userId,
         );
         if (isAlreadyInGame) {
-          return Result.failure(new Error('User is already in this game'));
+          return Result.failure(new UserAlreadyInGameError());
         }
         return Result.success(game);
       })
@@ -403,14 +418,16 @@ class GameService {
         const game = await this.gameRepository.findById(gameId);
 
         if (!game) {
-          throw new Error('Game not found');
+          throw new GameNotFoundError();
         }
         return game;
       }),
     )
       .chain((game) => {
         if (game.status !== 'Waiting') {
-          return Result.failure(new Error('Cannot ready now'));
+          return Result.failure(
+            new CannotPerformActionError('Cannot ready now'),
+          );
         }
         return Result.success(game);
       })
@@ -419,7 +436,7 @@ class GameService {
           (p) => p._id.toString() === userId,
         );
         if (!playerEntry) {
-          return Result.failure(new Error('You are not in this game'));
+          return Result.failure(new UserNotInGameError());
         }
         return Result.success({ game, playerEntry });
       })
@@ -480,29 +497,27 @@ class GameService {
         const game = await this.gameRepository.findById(gameId);
 
         if (!game) {
-          throw new Error('Game not found');
+          throw new GameNotFoundError();
         }
         return game;
       }),
     )
       .chain((game) => {
         if (game.creatorId.toString() !== userId) {
-          return Result.failure(
-            new Error('Only the game creator can start the game'),
-          );
+          return Result.failure(new NotGameCreatorError());
         }
         return Result.success(game);
       })
       .chain((game) => {
         if (game.status === 'Active') {
-          return Result.failure(new Error('Game has already started'));
+          return Result.failure(new GameAlreadyStartedError());
         }
         return Result.success(game);
       })
       .chain((game) => {
         if (game.players.length < game.minPlayers) {
           return Result.failure(
-            new Error(`Minimum ${game.minPlayers} players required to start`),
+            new MinimumPlayersRequiredError(game.minPlayers),
           );
         }
         return Result.success(game);
@@ -510,14 +525,14 @@ class GameService {
       .chain((game) => {
         const notReadyPlayers = game.players.filter((player) => !player.ready);
         if (notReadyPlayers.length > 0) {
-          return Result.failure(new Error('Not all players are ready'));
+          return Result.failure(new NotAllPlayersReadyError());
         }
         return Result.success(game);
       })
       .chain(async (game) => {
         game.status = 'Active';
-        game.currentPlayerIndex = 0; // First player starts
-        game.turnDirection = 1; // Clockwise
+        game.currentPlayerIndex = 0;
+        game.turnDirection = 1;
         game.players.forEach((player, index) => {
           player.position = index + 1;
         });
@@ -529,8 +544,10 @@ class GameService {
           gameResponseDtoSchema.parse({
             id: game._id.toString(),
             title: game.title,
+            rules: game.rules,
             status: game.status,
             maxPlayers: game.maxPlayers,
+            minPlayers: game.minPlayers,
             createdAt: game.createdAt,
             updatedAt: game.updatedAt,
           }),
@@ -542,10 +559,10 @@ class GameService {
             `Game start failed for user ${userId}: Game ${gameId} not found.`,
           );
         } else if (
-          error.message === 'Only the game creator can start the game'
+          error.message === 'Only the game creator can perform this action'
         ) {
           logger.warn(
-            `Game start failed for user ${userId} in game ${gameId}: Not the game creator.`,
+            `Game start failed for user ${userId} in game ${gameId}: ${error.message}`,
           );
         } else if (error.message === 'Game has already started') {
           logger.warn(
@@ -584,29 +601,29 @@ class GameService {
         const game = await this.gameRepository.findById(gameId);
 
         if (!game) {
-          throw new Error('Game not found');
+          throw new GameNotFoundError();
         }
         return game;
       }),
     )
       .chain((game) => {
         if (game.status !== 'Active') {
-          return Result.failure(new Error('Game is not active'));
+          return Result.failure(new GameNotActiveError());
         }
         return Result.success(game);
       })
       .chain((game) => {
         if (!game.players || game.players.length === 0) {
-          return Result.failure(new Error('No players in game'));
+          return Result.failure(
+            new CannotPerformActionError('No players in game'),
+          );
         }
         return Result.success(game);
       })
       .chain((game) => {
         const currentPlayer = game.players[game.currentPlayerIndex];
         if (!currentPlayer) {
-          return Result.failure(
-            new Error('Could not determine current player'),
-          );
+          return Result.failure(new CouldNotDetermineCurrentPlayerError());
         }
         return Result.success(currentPlayer);
       })
@@ -656,20 +673,22 @@ class GameService {
         const game = await this.gameRepository.findById(gameId);
 
         if (!game) {
-          throw new Error('Game not found');
+          throw new GameNotFoundError();
         }
         return game;
       }),
     )
       .chain((game) => {
         if (game.status !== 'Active') {
-          return Result.failure(new Error('Game is not active'));
+          return Result.failure(new GameNotActiveError());
         }
         return Result.success(game);
       })
       .chain((game) => {
         if (!game.players || game.players.length === 0) {
-          return Result.failure(new Error('No players in game'));
+          return Result.failure(
+            new CannotPerformActionError('No players in game'),
+          );
         }
         return Result.success(game);
       })
@@ -724,7 +743,7 @@ class GameService {
         const game = await this.gameRepository.findById(gameId);
 
         if (!game) {
-          throw new Error('Game not found');
+          throw new GameNotFoundError();
         }
         return game;
       }),
@@ -732,13 +751,15 @@ class GameService {
       .chain((game) => {
         const player = game.players.find((p) => p._id.toString() === userId);
         if (!player) {
-          return Result.failure(new Error('You are not in this game'));
+          return Result.failure(new UserNotInGameError());
         }
         return Result.success(game);
       })
       .chain((game) => {
         if (game.status !== 'Active') {
-          return Result.failure(new Error('Cannot abandon now'));
+          return Result.failure(
+            new CannotPerformActionError('Cannot abandon now'),
+          );
         }
         return Result.success(game);
       })
@@ -798,13 +819,13 @@ class GameService {
       Result.fromAsync(async () => {
         logger.info(`Attempting to retrieve status for game ID: ${id}`);
         if (!id || typeof id !== 'string' || id.trim() === '') {
-          throw new Error('Invalid game ID');
+          throw new InvalidGameIdError();
         }
 
         const trimmedId = id.trim();
         const game = await this.gameRepository.findGameStatus(trimmedId);
         if (!game) {
-          throw new Error('Game not found');
+          throw new GameNotFoundError();
         }
         return game;
       }),
@@ -842,7 +863,7 @@ class GameService {
    * @throws {Error} When game is not found or ID is invalid
    */
   async getDiscardTop(gameId) {
-    const trimmedId = gameId.trim(); // Declare trimmedId once
+    const trimmedId = gameId.trim();
 
     return new ResultAsync(
       Result.fromAsync(async () => {
@@ -850,45 +871,28 @@ class GameService {
           `Attempting to get top discard card for game ID: ${gameId}`,
         );
         if (!gameId || typeof gameId !== 'string' || trimmedId === '') {
-          throw new Error('Invalid game ID');
+          throw new InvalidGameIdError();
         }
 
         const game = await this.gameRepository.findDiscardTop(trimmedId);
 
         if (!game) {
-          throw new Error('Game not found');
+          throw new GameNotFoundError();
         }
-        return game;
-      }),
-    )
-      .chain((game) => {
+
         if (game.status === 'Waiting') {
           logger.warn(
             `Get discard top for game ${trimmedId}: Game has not started yet.`,
           );
-          return Result.success({
-            game_id: trimmedId,
-            error: 'Game has not started yet',
-            game_state: 'waiting',
-            initial_card: game.initialCard || {
-              color: 'blue',
-              value: '0',
-              type: 'number',
-            },
-          });
+          throw new GameHasNotStartedError();
         }
-        return Result.success(game);
-      })
-      .chain((game) => {
-        if (game.error) {
-          // If it's a special status object from previous chain
-          return Result.success(game);
-        }
+
         if (!game.discardPile || game.discardPile.length === 0) {
           logger.info(
             `Get discard top for game ${trimmedId}: Discard pile is empty.`,
           );
-          return Result.success({
+
+          return {
             game_id: trimmedId,
             top_card: null,
             message: 'Discard pile is empty - no cards have been played yet',
@@ -898,19 +902,17 @@ class GameService {
               value: '0',
               type: 'number',
             },
-          });
+          };
         }
-        return Result.success(game);
-      })
+        return game;
+      }),
+    )
       .map((gameOrSpecialResult) => {
-        if (
-          gameOrSpecialResult.error ||
-          gameOrSpecialResult.top_card === null
-        ) {
-          return gameOrSpecialResult; // Pass through special results
+        if (gameOrSpecialResult.top_card === null) {
+          return gameOrSpecialResult;
         }
 
-        const game = gameOrSpecialResult; // It's a game object
+        const game = gameOrSpecialResult;
         const topCard = game.discardPile[game.discardPile.length - 1];
         logger.info(
           `Successfully retrieved top discard card for game ID ${trimmedId}.`,
@@ -940,13 +942,17 @@ class GameService {
         };
       })
       .tapError((error) => {
-        if (error.message === 'Invalid game ID') {
+        if (error instanceof InvalidGameIdError) {
           logger.warn(
             `Get discard top failed: Invalid game ID provided - "${gameId}".`,
           );
-        } else if (error.message === 'Game not found') {
+        } else if (error instanceof GameNotFoundError) {
           logger.warn(
             `Get discard top failed: Game with ID ${trimmedId} not found.`,
+          );
+        } else if (error instanceof GameHasNotStartedError) {
+          logger.warn(
+            `Get discard top failed: Game ${trimmedId} has not started yet.`,
           );
         } else {
           logger.error(
@@ -968,31 +974,23 @@ class GameService {
         logger.info(
           `Attempting to get simple top discard card for game ID: ${gameId}`,
         );
-        // getDiscardTop já retorna ou lança um erro, então precisamos encapsulá-lo
-        // para que seja tratado como um Result.
-        const result = await this.getDiscardTop(gameId);
-        return result;
+
+        const gameResult = await this.getDiscardTop(gameId);
+        return gameResult;
       }),
     )
-      .map((result) => {
-        if (result.error) {
-          logger.warn(
-            `Simple discard top retrieval failed for game ${gameId}: ${result.error}`,
-          );
-          return result; // Propagate special error result
-        }
-
-        if (result.top_card === null) {
+      .map((gameOrSpecialResult) => {
+        if (gameOrSpecialResult.top_card === null) {
           logger.info(
             `Simple discard top for game ${gameId}: Discard pile is empty.`,
           );
           return {
-            game_ids: [result.game_id],
+            game_ids: [gameOrSpecialResult.game_id],
             top_cards: [],
           };
         }
 
-        const card = result.current_top_card;
+        const card = gameOrSpecialResult.current_top_card;
         const color = colorMap[card.color] || card.color;
         const value = valueMap[card.value] || card.value;
         const cardName = `${color} ${value}`;
@@ -1001,7 +999,7 @@ class GameService {
           `Successfully retrieved simple top discard card for game ID ${gameId}.`,
         );
         return {
-          game_ids: [result.game_id],
+          game_ids: [gameOrSpecialResult.game_id],
           top_cards: [cardName],
         };
       })
@@ -1020,25 +1018,24 @@ class GameService {
    * @throws {Error} When game is not found or ID is invalid
    */
   async getGamePlayers(gameId) {
-    const trimmedId = gameId.trim(); // Declare trimmedId once
+    const trimmedId = gameId.trim();
 
     return new ResultAsync(
       Result.fromAsync(async () => {
         logger.info(`Attempting to get players for game ID: ${gameId}`);
         if (!gameId || typeof gameId !== 'string' || trimmedId === '') {
-          throw new Error('Invalid game ID');
+          throw new InvalidGameIdError();
         }
 
         const game = await this.gameRepository.findById(trimmedId);
 
         if (!game) {
-          throw new Error('Game not found');
+          throw new GameNotFoundError();
         }
         return game;
       }),
     )
       .chain(async (game) => {
-        // Get detailed player information
         const playersWithDetails = await Promise.all(
           game.players.map(async (player) => {
             try {
@@ -1096,6 +1093,123 @@ class GameService {
         }
       })
       .getOrThrow();
+  }
+
+  /**
+   * Retrieves recent cards from the discard pile for a specific game.
+   *
+   * @param {string} gameId - The ID of the game.
+   * @param {number} limit - The maximum number of recent cards to retrieve.
+   * @returns {Promise<Object>} The game object containing recent discards.
+   * @throws {Error} If the game is not found or ID is invalid.
+   */
+  async getRecentDiscards(gameId, limit) {
+    const trimmedId = gameId.trim();
+
+    return new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info(
+          `Attempting to retrieve recent discards for game ID: ${trimmedId} with limit: ${limit}`,
+        );
+        if (!gameId || typeof gameId !== 'string' || trimmedId === '') {
+          throw new InvalidGameIdError();
+        }
+
+        const game = await this.gameRepository.findRecentDiscards(
+          trimmedId,
+          limit,
+        );
+        if (!game) {
+          throw new GameNotFoundError();
+        }
+        return game;
+      }),
+    )
+      .tap(() =>
+        logger.info(
+          `Successfully retrieved recent discards for game ID ${trimmedId}.`,
+        ),
+      )
+      .tapError((error) => {
+        if (error.message === 'Invalid game ID') {
+          logger.warn(
+            `Get recent discards failed: Invalid game ID provided - "${gameId}".`,
+          );
+        } else if (error.message === 'Game not found') {
+          logger.warn(
+            `Get recent discards failed: Game with ID ${trimmedId} not found.`,
+          );
+        } else {
+          logger.error(
+            `Failed to get recent discards for game ID ${gameId}: ${error.message}`,
+          );
+        }
+      })
+      .getOrThrow();
+  }
+
+  /**
+   * Processes a player's move to play a card.
+   * @param {string} gameId - The ID of the game.
+   * @param {string} playerId - The ID of the player making the move.
+   * @param {string} cardId - The ID of the card being played from the player's hand.
+   * @param {string|null} [chosenColor=null] - The color chosen by the player, required for Wild cards.
+   * @returns {Promise<Object>} The result of the action.
+   */
+  async playCard(gameId, playerId, cardId, chosenColor = null) {
+    return new ResultAsync(
+      Result.fromAsync(async () => {
+        logger.info(
+          `Player ${playerId} attempting to play card ${cardId} in game ${gameId}.`,
+        );
+
+        const _game = await this.gameRepository.findById(gameId);
+        if (!_game) throw new GameNotFoundError();
+        if (_game.status !== 'Active') throw new GameNotActiveError();
+
+        const currentPlayer = _game.players[_game.currentPlayerIndex];
+        if (currentPlayer._id.toString() !== playerId) {
+          throw new CannotPerformActionError('It is not your turn.');
+        }
+
+        const cardIndex = currentPlayer.hand.findIndex(
+          (c) => c.cardId === cardId,
+        );
+        if (cardIndex === -1) {
+          throw new CannotPerformActionError('Card not in your hand.');
+        }
+
+        const cardToPlay = currentPlayer.hand[cardIndex];
+
+        const StrategyClass = getStrategyForCard(cardToPlay);
+        const strategy = new StrategyClass();
+        const gameContext = { game: _game, card: cardToPlay, chosenColor };
+
+        if (!strategy.canExecute(gameContext)) {
+          throw new CannotPerformActionError(
+            'Invalid action for this card (e.g., missing color for Wild).',
+          );
+        }
+
+        strategy.execute(gameContext);
+
+        currentPlayer.hand.splice(cardIndex, 1);
+        _game.discardPile.push(cardToPlay);
+
+        if (currentPlayer.hand.length === 0) {
+          await this._endGame(gameId, playerId);
+          await this.gameRepository.save(_game);
+          logger.info(`Player ${playerId} has won game ${gameId}!`);
+          return {
+            success: true,
+            message: 'You played your last card and won!',
+          };
+        }
+
+        await this.gameRepository.save(_game);
+        return { success: true, message: `Card played successfully.` };
+      }),
+    ).getOrThrow();
   }
 }
 

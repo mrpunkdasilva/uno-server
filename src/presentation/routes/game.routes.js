@@ -5,8 +5,18 @@ import validateDto from '../middlewares/validateDto.middleware.js';
 import createGameDtoSchema from '../dtos/game/create-game.dto.js';
 import updateGameDtoSchema from '../dtos/game/update-game.dto.js';
 
+// Import repositories and service for DI
+import GameRepository from '../../infra/repositories/game.repository.js';
+import PlayerRepository from '../../infra/repositories/player.repository.js';
+import GameService from '../../core/services/game.service.js';
+
 const router = Router();
-const controller = new GameController();
+
+// Instantiate dependencies
+const gameRepository = new GameRepository();
+const playerRepository = new PlayerRepository();
+const gameService = new GameService(gameRepository, playerRepository);
+const controller = new GameController(gameService);
 
 router.get('/', controller.getAllGames.bind(controller));
 router.get('/:id', controller.getGameById.bind(controller));

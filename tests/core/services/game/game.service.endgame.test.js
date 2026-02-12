@@ -41,7 +41,8 @@ describe('GameService Game Ending Logic', () => {
     logger.warn = mockLogger.warn;
     logger.error = mockLogger.error;
 
-    gameService = new GameService();
+    const mockPlayerRepository = {};
+    gameService = new GameService(mockGameRepository, mockPlayerRepository);
   });
 
   describe('checkAndEndGameIfPlayerWins', () => {
@@ -50,7 +51,7 @@ describe('GameService Game Ending Logic', () => {
       const playerId = 'player1';
 
       mockGameRepository.getPlayerHandSize.mockResolvedValue(0);
-      mockGameRepository.update.mockResolvedValue({}); // _endGame calls update
+      mockGameRepository.update.mockResolvedValue({});
 
       const result = await gameService.checkAndEndGameIfPlayerWins(
         gameId,
@@ -84,7 +85,7 @@ describe('GameService Game Ending Logic', () => {
       const gameId = 'game123';
       const playerId = 'player1';
 
-      mockGameRepository.getPlayerHandSize.mockResolvedValue(1); // Player still has cards
+      mockGameRepository.getPlayerHandSize.mockResolvedValue(1);
 
       const result = await gameService.checkAndEndGameIfPlayerWins(
         gameId,
@@ -95,7 +96,7 @@ describe('GameService Game Ending Logic', () => {
         gameId,
         playerId,
       );
-      expect(mockGameRepository.update).not.toHaveBeenCalled(); // _endGame should not be called
+      expect(mockGameRepository.update).not.toHaveBeenCalled();
       expect(result).toBe(false);
     });
 
@@ -134,7 +135,7 @@ describe('GameService Game Ending Logic', () => {
       };
 
       mockGameRepository.findById.mockResolvedValue(game);
-      mockGameRepository.update.mockResolvedValue({}); // For _endGame call
+      mockGameRepository.update.mockResolvedValue({});
 
       await gameService.abandonGame(abandoningPlayerId, gameId);
 
@@ -167,7 +168,7 @@ describe('GameService Game Ending Logic', () => {
       };
 
       mockGameRepository.findById.mockResolvedValue(game);
-      mockGameRepository.update.mockResolvedValue({}); // For _endGame call
+      mockGameRepository.update.mockResolvedValue({});
 
       await gameService.abandonGame(abandoningPlayerId, gameId);
 
@@ -176,7 +177,7 @@ describe('GameService Game Ending Logic', () => {
         gameId,
         expect.objectContaining({
           status: 'Ended',
-          winnerId: null, // No specific winner
+          winnerId: null,
         }),
       );
       expect(mockLogger.info).toHaveBeenCalledWith(
@@ -206,14 +207,14 @@ describe('GameService Game Ending Logic', () => {
       };
 
       mockGameRepository.findById.mockResolvedValue(game);
-      mockGameRepository.save.mockResolvedValue({}); // Game state updated
+      mockGameRepository.save.mockResolvedValue({});
 
       await gameService.abandonGame(abandoningPlayerId, gameId);
 
       expect(mockGameRepository.findById).toHaveBeenCalledWith(gameId);
-      expect(mockGameRepository.update).not.toHaveBeenCalled(); // _endGame should not be called
-      expect(mockGameRepository.save).toHaveBeenCalledTimes(1); // game.players is modified and saved
-      expect(game.players).toHaveLength(2); // Verify that player was removed
+      expect(mockGameRepository.update).not.toHaveBeenCalled();
+      expect(mockGameRepository.save).toHaveBeenCalledTimes(1);
+      expect(game.players).toHaveLength(2);
       expect(mockLogger.info).not.toHaveBeenCalledWith(
         expect.stringContaining('ended'),
       );
@@ -224,7 +225,7 @@ describe('GameService Game Ending Logic', () => {
       const playerId = 'player1';
       const game = {
         _id: gameId,
-        status: 'Waiting', // Not active
+        status: 'Waiting',
         players: [{ _id: playerId, ready: true, position: 1 }],
         creatorId: playerId,
       };
@@ -245,7 +246,7 @@ describe('GameService Game Ending Logic', () => {
       const playerId = 'player1';
       const game = {
         _id: gameId,
-        status: 'Ended', // Already ended
+        status: 'Ended',
         players: [{ _id: playerId, ready: true, position: 1 }],
         creatorId: playerId,
       };

@@ -1,3 +1,11 @@
+export const CardColor = {
+  RED: 'red',
+  BLUE: 'blue',
+  GREEN: 'green',
+  YELLOW: 'yellow',
+  WILD: 'wild',
+};
+
 export const colorMap = {
   red: 'Red',
   blue: 'Blue',
