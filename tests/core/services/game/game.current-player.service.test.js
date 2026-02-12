@@ -7,7 +7,7 @@ jest.mock('../../../../src/config/logger.js', () => ({
 }));
 
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import GameService from '../../../../src/core/services/game.service.js';
+import GameService from '../../../../src/core/services/game/game.service.js';
 import GameRepository from '../../../../src/infra/repositories/game.repository.js';
 import logger from '../../../../src/config/logger.js';
 import mongoose from 'mongoose';

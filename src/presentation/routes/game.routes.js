@@ -8,7 +8,7 @@ import updateGameDtoSchema from '../dtos/game/update-game.dto.js';
 // Import repositories and service for DI
 import GameRepository from '../../infra/repositories/game.repository.js';
 import PlayerRepository from '../../infra/repositories/player.repository.js';
-import GameService from '../../core/services/game.service.js';
+import GameService from '../../core/services/game/game.service.js';
 
 const router = Router();
 

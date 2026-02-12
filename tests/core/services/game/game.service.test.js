@@ -1,4 +1,4 @@
-import GameService from '../../../../src/core/services/game.service.js';
+import GameService from '../../../../src/core/services/game/game.service.js';
 import {
   GameNotFoundError,
   UserNotInGameError,
