@@ -1,7 +1,6 @@
-// src/core/errors/game.errors.js
-
 /**
- *
+ * Base class for all game-related errors.
+ * Provides a standard structure for error messages and status codes.
  */
 export class GameError extends Error {
   /**
@@ -18,7 +17,7 @@ export class GameError extends Error {
 }
 
 /**
- *
+ * Error thrown when a requested game cannot be found.
  */
 export class GameNotFoundError extends GameError {
   /**
@@ -31,7 +30,7 @@ export class GameNotFoundError extends GameError {
 }
 
 /**
- *
+ * Error thrown when an invalid game ID is provided.
  */
 export class InvalidGameIdError extends GameError {
   /**
@@ -44,7 +43,7 @@ export class InvalidGameIdError extends GameError {
 }
 
 /**
- *
+ * Error thrown when an action is attempted on a game that is not active.
  */
 export class GameNotActiveError extends GameError {
   /**
@@ -57,7 +56,7 @@ export class GameNotActiveError extends GameError {
 }
 
 /**
- *
+ * Error thrown when an action is attempted on a game that has not started yet.
  */
 export class GameHasNotStartedError extends GameError {
   /**
@@ -70,7 +69,7 @@ export class GameHasNotStartedError extends GameError {
 }
 
 /**
- *
+ * Error thrown when an attempt is made to start a game that has already begun.
  */
 export class GameAlreadyStartedError extends GameError {
   /**
@@ -83,7 +82,7 @@ export class GameAlreadyStartedError extends GameError {
 }
 
 /**
- *
+ * Error thrown when an action requiring game creator privileges is attempted by another user.
  */
 export class NotGameCreatorError extends GameError {
   /**
@@ -96,7 +95,7 @@ export class NotGameCreatorError extends GameError {
 }
 
 /**
- *
+ * Error thrown when the minimum number of players required to start a game is not met.
  */
 export class MinimumPlayersRequiredError extends GameError {
   /**
@@ -109,7 +108,7 @@ export class MinimumPlayersRequiredError extends GameError {
 }
 
 /**
- *
+ * Error thrown when an action requires all players to be ready, but some are not.
  */
 export class NotAllPlayersReadyError extends GameError {
   /**
@@ -122,7 +121,7 @@ export class NotAllPlayersReadyError extends GameError {
 }
 
 /**
- *
+ * Error thrown when an attempt is made to join a game that is already full.
  */
 export class GameFullError extends GameError {
   /**
@@ -135,7 +134,7 @@ export class GameFullError extends GameError {
 }
 
 /**
- *
+ * Error thrown when a user attempts to join a game they are already a part of.
  */
 export class UserAlreadyInGameError extends GameError {
   /**
@@ -148,7 +147,7 @@ export class UserAlreadyInGameError extends GameError {
 }
 
 /**
- *
+ * Error thrown when a user attempts to perform an action in a game they are not currently participating in.
  */
 export class UserNotInGameError extends GameError {
   /**
@@ -161,7 +160,7 @@ export class UserNotInGameError extends GameError {
 }
 
 /**
- *
+ * Error thrown when a requested action cannot be performed due to the current game state or other conditions.
  */
 export class CannotPerformActionError extends GameError {
   /**
@@ -174,7 +173,8 @@ export class CannotPerformActionError extends GameError {
 }
 
 /**
- *
+ * Error thrown when the current player in a game cannot be determined,
+ * often indicating an unexpected internal state or data inconsistency.
  */
 export class CouldNotDetermineCurrentPlayerError extends GameError {
   /**
@@ -187,7 +187,8 @@ export class CouldNotDetermineCurrentPlayerError extends GameError {
 }
 
 /**
- *
+ * Error thrown when an attempt is made to join a game that is not in a state
+ * to accept new players (e.g., already active or has ended).
  */
 export class GameNotAcceptingPlayersError extends GameError {
   /**

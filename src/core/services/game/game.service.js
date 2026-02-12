@@ -1,10 +1,10 @@
-import { Result, ResultAsync } from '../utils/Result.js';
-import { getStrategyForCard } from './game/card-strategies/strategy.factory.js';
-import gameResponseDtoSchema from '../../presentation/dtos/game/game-response.dto.js';
-import updateGameDtoSchema from '../../presentation/dtos/game/update-game.dto.js';
-import createGameDtoSchema from '../../presentation/dtos/game/create-game.dto.js';
-import logger from '../../config/logger.js';
-import { colorMap, valueMap } from '../enums/card.enum.js';
+import { Result, ResultAsync } from '../../utils/Result.js';
+import { getStrategyForCard } from './card-strategies/strategy.factory.js';
+import gameResponseDtoSchema from '../../../presentation/dtos/game/game-response.dto.js';
+import updateGameDtoSchema from '../../../presentation/dtos/game/update-game.dto.js';
+import createGameDtoSchema from '../../../presentation/dtos/game/create-game.dto.js';
+import logger from '../../../config/logger.js';
+import { colorMap, valueMap } from '../../enums/card.enum.js';
 import {
   GameNotFoundError,
   InvalidGameIdError,
@@ -20,7 +20,7 @@ import {
   CannotPerformActionError,
   CouldNotDetermineCurrentPlayerError,
   GameNotAcceptingPlayersError,
-} from '../errors/game.errors.js';
+} from '../../errors/game.errors.js';
 
 /**
  * Service class for handling game-related business logic.
