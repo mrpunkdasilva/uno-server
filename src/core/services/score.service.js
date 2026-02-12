@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-description */
 /* eslint-disable no-unused-vars */
 import logger from '../../config/logger.js';
 import ScoreRepository from '../../infra/repositories/score.repository.js';
@@ -8,10 +9,10 @@ import Result from '../utils/Result.js';
  */
 class ScoreService {
   /**
-   * Initializes the ScoreService with a ScoreRepository instance.
+   * @param scoreRepository instance initializes the ScoreService
    */
-  constructor() {
-    this.scoreRepository = new ScoreRepository();
+  constructor(scoreRepository) {
+    this.scoreRepository = scoreRepository || new ScoreRepository();
   }
 
   /**
