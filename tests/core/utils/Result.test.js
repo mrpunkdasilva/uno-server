@@ -117,7 +117,9 @@ describe('Result', () => {
 
     it('should not change the result if the tap function throws an error', () => {
       const error = new Error('Tap error');
-      const result = Result.success(10).tap(() => { throw error; });
+      const result = Result.success(10).tap(() => {
+        throw error;
+      });
       expect(result.isSuccess).toBe(true);
       expect(result.value).toBe(10);
     });
@@ -142,7 +144,9 @@ describe('Result', () => {
     it('should not change the result if the tapError function throws an error', () => {
       const error = new Error('TapError error');
       const originalError = new Error('Original error');
-      const result = Result.failure(originalError).tapError(() => { throw error; });
+      const result = Result.failure(originalError).tapError(() => {
+        throw error;
+      });
       expect(result.isFailure).toBe(true);
       expect(result.error).toBe(originalError);
     });
@@ -151,7 +155,9 @@ describe('Result', () => {
   describe('catch', () => {
     it('should recover from failure if handler returns a value', () => {
       const error = new Error('Failed');
-      const result = Result.failure(error).catch((err) => `Recovered from ${err.message}`);
+      const result = Result.failure(error).catch(
+        (err) => `Recovered from ${err.message}`,
+      );
       expect(result.isSuccess).toBe(true);
       expect(result.value).toBe('Recovered from Failed');
     });
@@ -165,7 +171,9 @@ describe('Result', () => {
     it('should propagate new failure if handler throws error', () => {
       const originalError = new Error('Original');
       const newError = new Error('New error');
-      const result = Result.failure(originalError).catch(() => { throw newError; });
+      const result = Result.failure(originalError).catch(() => {
+        throw newError;
+      });
       expect(result.isFailure).toBe(true);
       expect(result.error).toBe(newError);
     });
@@ -181,7 +189,9 @@ describe('Result', () => {
     });
 
     it('should not do anything if successful', () => {
-      const result = Result.success(10).mapError(() => new Error('Transformed'));
+      const result = Result.success(10).mapError(
+        () => new Error('Transformed'),
+      );
       expect(result.isSuccess).toBe(true);
       expect(result.value).toBe(10);
     });
@@ -189,7 +199,9 @@ describe('Result', () => {
     it('should propagate new failure if mapper throws error', () => {
       const originalError = new Error('Original');
       const mapError = new Error('Map error');
-      const result = Result.failure(originalError).mapError(() => { throw mapError; });
+      const result = Result.failure(originalError).mapError(() => {
+        throw mapError;
+      });
       expect(result.isFailure).toBe(true);
       expect(result.error).toBe(mapError);
     });
@@ -207,7 +219,9 @@ describe('Result', () => {
     });
 
     it('should execute default function if failed', () => {
-      const result = Result.failure(new Error('Error')).getOrElse((err) => `Default: ${err.message}`);
+      const result = Result.failure(new Error('Error')).getOrElse(
+        (err) => `Default: ${err.message}`,
+      );
       expect(result).toBe('Default: Error');
     });
   });
@@ -281,7 +295,9 @@ describe('ResultAsync', () => {
 
     it('should not apply the function if failed', async () => {
       const error = new Error('Failed');
-      const result = await new ResultAsync(Promise.resolve(Result.failure(error)))
+      const result = await new ResultAsync(
+        Promise.resolve(Result.failure(error)),
+      )
         .map((x) => x * 2)
         .toResult();
       expect(result.isFailure).toBe(true);
@@ -332,7 +348,9 @@ describe('ResultAsync', () => {
 
     it('should not apply the function if failed', async () => {
       const error = new Error('Failed');
-      const result = await new ResultAsync(Promise.resolve(Result.failure(error)))
+      const result = await new ResultAsync(
+        Promise.resolve(Result.failure(error)),
+      )
         .chain((x) => Result.success(x * 2))
         .toResult();
       expect(result.isFailure).toBe(true);
@@ -374,7 +392,9 @@ describe('ResultAsync', () => {
 
     it('should execute onFailure for failed ResultAsync', async () => {
       const error = new Error('Failed');
-      const resultAsync = new ResultAsync(Promise.resolve(Result.failure(error)));
+      const resultAsync = new ResultAsync(
+        Promise.resolve(Result.failure(error)),
+      );
       const output = await resultAsync.fold(
         (err) => `Error: ${err.message}`,
         (val) => `Success: ${val}`,
@@ -397,14 +417,18 @@ describe('ResultAsync', () => {
     it('should not execute the function if failed', async () => {
       const fn = jest.fn();
       const error = new Error('Failed');
-      await new ResultAsync(Promise.resolve(Result.failure(error))).tap(fn).toResult();
+      await new ResultAsync(Promise.resolve(Result.failure(error)))
+        .tap(fn)
+        .toResult();
       expect(fn).not.toHaveBeenCalled();
     });
 
     it('should not change the result if the tap function throws an error (sync)', async () => {
       const error = new Error('Tap error');
       const result = await new ResultAsync(Promise.resolve(Result.success(10)))
-        .tap(() => { throw error; })
+        .tap(() => {
+          throw error;
+        })
         .toResult();
       expect(result.isSuccess).toBe(true);
       expect(result.value).toBe(10);
@@ -413,7 +437,9 @@ describe('ResultAsync', () => {
     it('should not change the result if the tap function throws an error (async)', async () => {
       const error = new Error('Tap error');
       const result = await new ResultAsync(Promise.resolve(Result.success(10)))
-        .tap(async () => { throw error; })
+        .tap(async () => {
+          throw error;
+        })
         .toResult();
       expect(result.isSuccess).toBe(true);
       expect(result.value).toBe(10);
@@ -424,7 +450,9 @@ describe('ResultAsync', () => {
     it('should execute the function if failed and return the same ResultAsync', async () => {
       const fn = jest.fn();
       const error = new Error('Failed');
-      const result = await new ResultAsync(Promise.resolve(Result.failure(error)))
+      const result = await new ResultAsync(
+        Promise.resolve(Result.failure(error)),
+      )
         .tapError(fn)
         .toResult();
       expect(fn).toHaveBeenCalledWith(error);
@@ -434,15 +462,21 @@ describe('ResultAsync', () => {
 
     it('should not execute the function if successful', async () => {
       const fn = jest.fn();
-      await new ResultAsync(Promise.resolve(Result.success(10))).tapError(fn).toResult();
+      await new ResultAsync(Promise.resolve(Result.success(10)))
+        .tapError(fn)
+        .toResult();
       expect(fn).not.toHaveBeenCalled();
     });
 
     it('should not change the result if the tapError function throws an error (sync)', async () => {
       const error = new Error('TapError error');
       const originalError = new Error('Original error');
-      const result = await new ResultAsync(Promise.resolve(Result.failure(originalError)))
-        .tapError(() => { throw error; })
+      const result = await new ResultAsync(
+        Promise.resolve(Result.failure(originalError)),
+      )
+        .tapError(() => {
+          throw error;
+        })
         .toResult();
       expect(result.isFailure).toBe(true);
       expect(result.error).toBe(originalError);
@@ -451,8 +485,12 @@ describe('ResultAsync', () => {
     it('should not change the result if the tapError function throws an error (async)', async () => {
       const error = new Error('TapError error');
       const originalError = new Error('Original error');
-      const result = await new ResultAsync(Promise.resolve(Result.failure(originalError)))
-        .tapError(async () => { throw error; })
+      const result = await new ResultAsync(
+        Promise.resolve(Result.failure(originalError)),
+      )
+        .tapError(async () => {
+          throw error;
+        })
         .toResult();
       expect(result.isFailure).toBe(true);
       expect(result.error).toBe(originalError);
@@ -462,7 +500,9 @@ describe('ResultAsync', () => {
   describe('catch', () => {
     it('should recover from failure if handler returns a value (sync)', async () => {
       const error = new Error('Failed');
-      const result = await new ResultAsync(Promise.resolve(Result.failure(error)))
+      const result = await new ResultAsync(
+        Promise.resolve(Result.failure(error)),
+      )
         .catch((err) => `Recovered from ${err.message}`)
         .toResult();
       expect(result.isSuccess).toBe(true);
@@ -471,7 +511,9 @@ describe('ResultAsync', () => {
 
     it('should recover from failure if handler returns a value (async)', async () => {
       const error = new Error('Failed');
-      const result = await new ResultAsync(Promise.resolve(Result.failure(error)))
+      const result = await new ResultAsync(
+        Promise.resolve(Result.failure(error)),
+      )
         .catch(async (err) => Promise.resolve(`Recovered from ${err.message}`))
         .toResult();
       expect(result.isSuccess).toBe(true);
@@ -489,8 +531,12 @@ describe('ResultAsync', () => {
     it('should propagate new failure if handler throws error (sync)', async () => {
       const originalError = new Error('Original');
       const newError = new Error('New error');
-      const result = await new ResultAsync(Promise.resolve(Result.failure(originalError)))
-        .catch(() => { throw newError; })
+      const result = await new ResultAsync(
+        Promise.resolve(Result.failure(originalError)),
+      )
+        .catch(() => {
+          throw newError;
+        })
         .toResult();
       expect(result.isFailure).toBe(true);
       expect(result.error).toBe(newError);
@@ -499,8 +545,12 @@ describe('ResultAsync', () => {
     it('should propagate new failure if handler throws error (async)', async () => {
       const originalError = new Error('Original');
       const newError = new Error('New error');
-      const result = await new ResultAsync(Promise.resolve(Result.failure(originalError)))
-        .catch(async () => { throw newError; })
+      const result = await new ResultAsync(
+        Promise.resolve(Result.failure(originalError)),
+      )
+        .catch(async () => {
+          throw newError;
+        })
         .toResult();
       expect(result.isFailure).toBe(true);
       expect(result.error).toBe(newError);
@@ -511,7 +561,9 @@ describe('ResultAsync', () => {
     it('should transform the error if failed', async () => {
       const originalError = new Error('Failed');
       const newError = new Error('Transformed');
-      const result = await new ResultAsync(Promise.resolve(Result.failure(originalError)))
+      const result = await new ResultAsync(
+        Promise.resolve(Result.failure(originalError)),
+      )
         .mapError(() => newError)
         .toResult();
       expect(result.isFailure).toBe(true);
@@ -529,8 +581,12 @@ describe('ResultAsync', () => {
     it('should propagate new failure if mapper throws error', async () => {
       const originalError = new Error('Original');
       const mapError = new Error('Map error');
-      const result = await new ResultAsync(Promise.resolve(Result.failure(originalError)))
-        .mapError(() => { throw mapError; })
+      const result = await new ResultAsync(
+        Promise.resolve(Result.failure(originalError)),
+      )
+        .mapError(() => {
+          throw mapError;
+        })
         .toResult();
       expect(result.isFailure).toBe(true);
       expect(result.error).toBe(mapError);
@@ -539,34 +595,40 @@ describe('ResultAsync', () => {
 
   describe('getOrElse', () => {
     it('should return value if successful', async () => {
-      const result = await new ResultAsync(Promise.resolve(Result.success(10)))
-        .getOrElse(0);
+      const result = await new ResultAsync(
+        Promise.resolve(Result.success(10)),
+      ).getOrElse(0);
       expect(result).toBe(10);
     });
 
     it('should return default value if failed', async () => {
-      const result = await new ResultAsync(Promise.resolve(Result.failure('Error')))
-        .getOrElse(0);
+      const result = await new ResultAsync(
+        Promise.resolve(Result.failure('Error')),
+      ).getOrElse(0);
       expect(result).toBe(0);
     });
 
     it('should execute default function if failed', async () => {
-      const result = await new ResultAsync(Promise.resolve(Result.failure(new Error('Error'))))
-        .getOrElse((err) => `Default: ${err.message}`);
+      const result = await new ResultAsync(
+        Promise.resolve(Result.failure(new Error('Error'))),
+      ).getOrElse((err) => `Default: ${err.message}`);
       expect(result).toBe('Default: Error');
     });
   });
 
   describe('getOrThrow', () => {
     it('should return value if successful', async () => {
-      const result = await new ResultAsync(Promise.resolve(Result.success(10)))
-        .getOrThrow();
+      const result = await new ResultAsync(
+        Promise.resolve(Result.success(10)),
+      ).getOrThrow();
       expect(result).toBe(10);
     });
 
     it('should throw error if failed', async () => {
       const error = new Error('Failed');
-      const resultAsync = new ResultAsync(Promise.resolve(Result.failure(error)));
+      const resultAsync = new ResultAsync(
+        Promise.resolve(Result.failure(error)),
+      );
       await expect(resultAsync.getOrThrow()).rejects.toThrow(error);
     });
   });

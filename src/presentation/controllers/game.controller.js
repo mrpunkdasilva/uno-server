@@ -192,28 +192,25 @@ class GameController {
    * @returns {Promise<void>} JSON response with success status or error message.
    */
   async abandonGame(req, res) {
-    try {
-      const gameId = req.params.id;
-      const userId = req.user.id;
-      await this.gameService.abandonGame(userId, gameId);
-      return res.status(200).json({
-        success: true,
-        message: 'You left the game',
-      });
-    } catch (error) {
-      let status = 500;
-      if (error.message === 'Game not found') {
-        status = 404;
-      } else if (error.message === 'You are not in this game') {
-        status = 404;
-      } else if (error.message === 'Cannot abandon now') {
-        status = 400;
-      }
-      return res.status(status).json({
-        success: false,
-        message: error.message,
-      });
-    }
+    const gameId = req.params.id;
+    const userId = req.user.id;
+
+    const result = await this.gameService.abandonGame(userId, gameId);
+
+    return result.fold(
+      (error) => {
+        return res.status(error.status).json({
+          success: false,
+          message: error.message,
+        });
+      },
+      (message) => {
+        return res.status(200).json({
+          success: true,
+          message,
+        });
+      },
+    );
   }
 
   /**
