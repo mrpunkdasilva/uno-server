@@ -1,5 +1,3 @@
-import CardService from '../../core/services/card.service.js';
-
 /**
  * Controller class for handling card-related HTTP requests.
  * Manages card CRUD operations including creation, retrieval, updating, and deletion.
@@ -7,9 +5,10 @@ import CardService from '../../core/services/card.service.js';
 class CardController {
   /**
    * Initializes the CardController with a CardService instance.
+   * @param {CardService} cardService - The CardService instance to use for card operations.
    */
-  constructor() {
-    this.cardService = new CardService();
+  constructor(cardService) {
+    this.cardService = cardService;
   }
 
   /**
