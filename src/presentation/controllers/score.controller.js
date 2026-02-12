@@ -1,5 +1,3 @@
-import ScoreService from '../../core/services/score.service.js';
-
 /**
  * Controller to handle score HTTP requests.
  */
@@ -7,8 +5,8 @@ class ScoreController {
   /**
    * Initializes the ScoreController with a ScoreService instance.
    */
-  constructor() {
-    this.scoreService = new ScoreService();
+  constructor(scoreService) {
+    this.scoreService = new scoreService();
   }
 
   /**
