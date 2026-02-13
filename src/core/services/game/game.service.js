@@ -14,13 +14,15 @@ import {
   NotGameCreatorError,
   MinimumPlayersRequiredError,
   NotAllPlayersReadyError,
-  GameFullError,
-  UserAlreadyInGameError,
   UserNotInGameError,
   CannotPerformActionError,
   CouldNotDetermineCurrentPlayerError,
-  GameNotAcceptingPlayersError,
 } from '../../errors/game.errors.js';
+import {
+  validateGameIsWaiting,
+  validateGameNotFull,
+  validateUserNotInGame,
+} from '../../domain/game/game.validators.js';
 
 /**
  * Service class for handling game-related business logic.
@@ -93,31 +95,6 @@ class GameService {
       .getOrThrow();
   }
 
-  /**
-
-   * Creates a new game with the provided game data.
-
-   * @param {Object} gameData - The data for creating a new game.
-
-   * @param {string} userId - The ID of the user creating the game.
-
-   * @returns {Promise<Object>} The created game object formatted as response DTO.
-
-   */
-
-  /**
-   * Creates a new game with the provided game data.
-   * @param {Object} gameData - The data for creating a new game.
-   * @param {string} userId - The ID of the user creating the game.
-   * @returns {Promise<Object>} The created game object formatted as response DTO.
-   */
-
-  /**
-   * Creates a new game with the provided game data.
-   * @param {Object} gameData - The data for creating a new game.
-   * @param {string} userId - The ID of the user creating the game.
-   * @returns {Promise<Object>} The created game object formatted as response DTO.
-   */
   /**
    * Creates a new game with the provided game data.
    * @param {Object} gameData - The data for creating a new game.
@@ -340,27 +317,9 @@ class GameService {
         return game;
       }),
     )
-      .chain((game) => {
-        if (game.status !== 'Waiting') {
-          return Result.failure(new GameNotAcceptingPlayersError());
-        }
-        return Result.success(game);
-      })
-      .chain((game) => {
-        if (game.players.length >= game.maxPlayers) {
-          return Result.failure(new GameFullError());
-        }
-        return Result.success(game);
-      })
-      .chain((game) => {
-        const isAlreadyInGame = game.players.some(
-          (p) => p._id.toString() === userId,
-        );
-        if (isAlreadyInGame) {
-          return Result.failure(new UserAlreadyInGameError());
-        }
-        return Result.success(game);
-      })
+      .chain(validateGameIsWaiting)
+      .chain(validateGameNotFull)
+      .chain(validateUserNotInGame(userId))
       .chain(async (game) => {
         game.players.push({ _id: userId, ready: false, position: 0 });
         await this.gameRepository.save(game);

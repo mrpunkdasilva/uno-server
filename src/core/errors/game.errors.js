@@ -1,12 +1,17 @@
 /**
+ * @fileoverview Defines custom error classes for game-related operations.
+ * Provides a centralized location for handling and categorizing various game-specific exceptions.
+ */
+
+/**
  * Base class for all game-related errors.
  * Provides a standard structure for error messages and status codes.
  */
 export class GameError extends Error {
   /**
-   *
-   * @param message
-   * @param statusCode
+   * Creates an instance of GameError.
+   * @param {string} message - The error message.
+   * @param {number} [statusCode=500] - The HTTP status code associated with the error.
    */
   constructor(message, statusCode = 500) {
     super(message);
@@ -21,8 +26,8 @@ export class GameError extends Error {
  */
 export class GameNotFoundError extends GameError {
   /**
-   *
-   * @param message
+   * Creates an instance of GameNotFoundError.
+   * @param {string} [message='Game not found'] - The error message.
    */
   constructor(message = 'Game not found') {
     super(message, 404);
@@ -34,8 +39,8 @@ export class GameNotFoundError extends GameError {
  */
 export class InvalidGameIdError extends GameError {
   /**
-   *
-   * @param message
+   * Creates an instance of InvalidGameIdError.
+   * @param {string} [message='Invalid game ID'] - The error message.
    */
   constructor(message = 'Invalid game ID') {
     super(message, 400);
@@ -47,8 +52,8 @@ export class InvalidGameIdError extends GameError {
  */
 export class GameNotActiveError extends GameError {
   /**
-   *
-   * @param message
+   * Creates an instance of GameNotActiveError.
+   * @param {string} [message='Game is not active'] - The error message.
    */
   constructor(message = 'Game is not active') {
     super(message, 400);
@@ -60,8 +65,8 @@ export class GameNotActiveError extends GameError {
  */
 export class GameHasNotStartedError extends GameError {
   /**
-   *
-   * @param message
+   * Creates an instance of GameHasNotStartedError.
+   * @param {string} [message='Game has not started yet'] - The error message.
    */
   constructor(message = 'Game has not started yet') {
     super(message, 412);
@@ -73,8 +78,8 @@ export class GameHasNotStartedError extends GameError {
  */
 export class GameAlreadyStartedError extends GameError {
   /**
-   *
-   * @param message
+   * Creates an instance of GameAlreadyStartedError.
+   * @param {string} [message='Game has already started'] - The error message.
    */
   constructor(message = 'Game has already started') {
     super(message, 409);
@@ -86,8 +91,8 @@ export class GameAlreadyStartedError extends GameError {
  */
 export class NotGameCreatorError extends GameError {
   /**
-   *
-   * @param message
+   * Creates an instance of NotGameCreatorError.
+   * @param {string} [message='Only the game creator can perform this action'] - The error message.
    */
   constructor(message = 'Only the game creator can perform this action') {
     super(message, 403);
@@ -99,8 +104,8 @@ export class NotGameCreatorError extends GameError {
  */
 export class MinimumPlayersRequiredError extends GameError {
   /**
-   *
-   * @param minPlayers
+   * Creates an instance of MinimumPlayersRequiredError.
+   * @param {number} minPlayers - The minimum number of players required.
    */
   constructor(minPlayers) {
     super(`Minimum ${minPlayers} players required to start`, 400);
@@ -112,8 +117,8 @@ export class MinimumPlayersRequiredError extends GameError {
  */
 export class NotAllPlayersReadyError extends GameError {
   /**
-   *
-   * @param message
+   * Creates an instance of NotAllPlayersReadyError.
+   * @param {string} [message='Not all players are ready'] - The error message.
    */
   constructor(message = 'Not all players are ready') {
     super(message, 400);
@@ -125,8 +130,8 @@ export class NotAllPlayersReadyError extends GameError {
  */
 export class GameFullError extends GameError {
   /**
-   *
-   * @param message
+   * Creates an instance of GameFullError.
+   * @param {string} [message='Game is full'] - The error message.
    */
   constructor(message = 'Game is full') {
     super(message, 400);
@@ -138,8 +143,8 @@ export class GameFullError extends GameError {
  */
 export class UserAlreadyInGameError extends GameError {
   /**
-   *
-   * @param message
+   * Creates an instance of UserAlreadyInGameError.
+   * @param {string} [message='User is already in this game'] - The error message.
    */
   constructor(message = 'User is already in this game') {
     super(message, 409);
@@ -151,8 +156,8 @@ export class UserAlreadyInGameError extends GameError {
  */
 export class UserNotInGameError extends GameError {
   /**
-   *
-   * @param message
+   * Creates an instance of UserNotInGameError.
+   * @param {string} [message='You are not in this game'] - The error message.
    */
   constructor(message = 'You are not in this game') {
     super(message, 404);
@@ -164,8 +169,8 @@ export class UserNotInGameError extends GameError {
  */
 export class CannotPerformActionError extends GameError {
   /**
-   *
-   * @param message
+   * Creates an instance of CannotPerformActionError.
+   * @param {string} [message='Cannot perform this action now'] - The error message.
    */
   constructor(message = 'Cannot perform this action now') {
     super(message, 400);
@@ -178,8 +183,8 @@ export class CannotPerformActionError extends GameError {
  */
 export class CouldNotDetermineCurrentPlayerError extends GameError {
   /**
-   *
-   * @param message
+   * Creates an instance of CouldNotDetermineCurrentPlayerError.
+   * @param {string} [message='Could not determine current player'] - The error message.
    */
   constructor(message = 'Could not determine current player') {
     super(message, 500); // Internal server error if player index is invalid
@@ -192,8 +197,8 @@ export class CouldNotDetermineCurrentPlayerError extends GameError {
  */
 export class GameNotAcceptingPlayersError extends GameError {
   /**
-   *
-   * @param message
+   * Creates an instance of GameNotAcceptingPlayersError.
+   * @param {string} [message='Game is not accepting new players (Already Active or Ended)'] - The error message.
    */
   constructor(
     message = 'Game is not accepting new players (Already Active or Ended)',
