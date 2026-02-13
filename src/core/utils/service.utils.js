@@ -8,7 +8,12 @@ import { Result, ResultAsync } from './Result.js';
  * @param {string} entityName - The name of the entity for logging purposes (e.g., 'game', 'player').
  * @returns {ResultAsync<Array, Error>} A ResultAsync containing an array of DTOs or an error.
  */
-export const fetchAllAndMapToDto = (repository, dtoSchema, logger, entityName) => {
+export const fetchAllAndMapToDto = (
+  repository,
+  dtoSchema,
+  logger,
+  entityName,
+) => {
   return new ResultAsync(
     Result.fromAsync(async () => {
       logger.info(`Attempting to retrieve all ${entityName}s.`);
@@ -53,7 +58,9 @@ export const fetchByIdAndMapToDto = (
     }),
   )
     .tap((entity) =>
-      logger.info(`${entityName} with ID ${entity._id} retrieved successfully.`),
+      logger.info(
+        `${entityName} with ID ${entity._id} retrieved successfully.`,
+      ),
     )
     .map((entity) => dtoSchema.parse(entity))
     .tapError((error) => {
@@ -165,7 +172,13 @@ export const deleteByIdAndReturn = (
  * @param {Error} notFoundError - The specific error to throw if the entity is not found.
  * @returns {ResultAsync<object, Error>} A ResultAsync containing the entity or an error.
  */
-export const fetchById = (repository, id, logger, entityName, notFoundError) => {
+export const fetchById = (
+  repository,
+  id,
+  logger,
+  entityName,
+  notFoundError,
+) => {
   return new ResultAsync(
     Result.fromAsync(async () => {
       logger.info(`Attempting to retrieve ${entityName} by ID: ${id}`);
