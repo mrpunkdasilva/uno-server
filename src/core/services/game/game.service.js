@@ -59,6 +59,7 @@ import {
   fetchAllAndMapToDto,
   fetchById,
   fetchByIdAndMapToDto,
+  fetchWithCustomQuery,
   saveAndMapToDto,
   saveEntityAndReturnCustomResponse,
   updateAndMapToDto,
@@ -778,40 +779,29 @@ class GameService {
    * @throws {Error} If the game is not found or ID is invalid.
    */
   async getRecentDiscards(gameId, limit) {
-    const trimmedId = gameId.trim();
-
-    return new ResultAsync(
-      Result.fromAsync(async () => {
+    return new ResultAsync(validateGameId(gameId)) // Validate first
+      .chain((trimmedId) =>
+        fetchWithCustomQuery({
+          queryFn: () => this.gameRepository.findRecentDiscards(trimmedId, limit),
+          logger,
+          logMessage: `Attempting to retrieve recent discards for game ID: ${trimmedId} with limit: ${limit}`,
+          notFoundError: new GameNotFoundError(),
+        }),
+      )
+      .tap((game) =>
         logger.info(
-          `Attempting to retrieve recent discards for game ID: ${trimmedId} with limit: ${limit}`,
-        );
-        if (!gameId || typeof gameId !== 'string' || trimmedId === '') {
-          throw new InvalidGameIdError();
-        }
-
-        const game = await this.gameRepository.findRecentDiscards(
-          trimmedId,
-          limit,
-        );
-        if (!game) {
-          throw new GameNotFoundError();
-        }
-        return game;
-      }),
-    )
-      .tap(() =>
-        logger.info(
-          `Successfully retrieved recent discards for game ID ${trimmedId}.`,
+          `Successfully retrieved recent discards for game ID ${game._id}.`,
         ),
       )
       .tapError((error) => {
-        if (error.message === 'Invalid game ID') {
+        if (error instanceof InvalidGameIdError) {
           logger.warn(
             `Get recent discards failed: Invalid game ID provided - "${gameId}".`,
           );
-        } else if (error.message === 'Game not found') {
+        } else if (error instanceof GameNotFoundError) {
+          const idToLog = gameId ? gameId.trim() : gameId;
           logger.warn(
-            `Get recent discards failed: Game with ID ${trimmedId} not found.`,
+            `Get recent discards failed: Game with ID ${idToLog} not found.`,
           );
         } else {
           logger.error(

@@ -237,3 +237,30 @@ export const saveAndMapToDto = (
     }),
   );
 };
+
+/**
+ * Fetches a single entity using a custom repository method.
+ * @param {object} params - The parameters for the fetch operation.
+ * @param {function(): Promise<object|null>} params.queryFn - A function that calls the custom repository method and returns a promise.
+ * @param {object} params.logger - The logger instance.
+ * @param {string} params.logMessage - A message to log when starting the query.
+ * @param {Error} params.notFoundError - The specific error to throw if the entity is not found.
+ * @returns {ResultAsync<object, Error>} A ResultAsync containing the entity or an error.
+ */
+export const fetchWithCustomQuery = ({
+  queryFn,
+  logger,
+  logMessage,
+  notFoundError,
+}) => {
+  return new ResultAsync(
+    Result.fromAsync(async () => {
+      logger.info(logMessage);
+      const entity = await queryFn();
+      if (!entity) {
+        throw notFoundError;
+      }
+      return entity;
+    }),
+  );
+};
