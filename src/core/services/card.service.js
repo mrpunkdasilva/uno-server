@@ -1,4 +1,3 @@
-import CardRepository from '../../infra/repositories/card.repository.js';
 import cardResponseDtoSchema from '../../presentation/dtos/cardResponse.dto.js';
 import { Either } from '../monads/Either.js';
 
@@ -12,7 +11,22 @@ class CardService {
    * @param {CardRepository} cardRepository
    */
   constructor(cardRepository) {
-    this.cardRepository = cardRepository || new CardRepository();
+    this.cardRepository = cardRepository;
+  }
+
+  /**
+   * Converts a card document to a response DTO object.
+   * @param {Object} card - The card document from repository
+   * @returns {Object} Card object formatted as response DTO
+   * @privat  e
+   */
+  _convertToResponseDto(card) {
+    const cardObject = card.toObject();
+    const dataToReturn = {
+      ...cardObject,
+      id: cardObject._id.toString(),
+    };
+    return cardResponseDtoSchema.parse(dataToReturn);
   }
 
   /**
@@ -23,14 +37,7 @@ class CardService {
    */
   async findAll(filters = {}) {
     const cards = await this.cardRepository.findByFilters(filters);
-    return cards.map((card) => {
-      const cardObject = card.toObject();
-      const dataToReturn = {
-        ...cardObject,
-        id: cardObject._id.toString(),
-      };
-      return cardResponseDtoSchema.parse(dataToReturn);
-    });
+    return cards.map((card) => this._convertToResponseDto(card));
   }
 
   /**
@@ -41,14 +48,7 @@ class CardService {
    */
   async create(cardData) {
     const newCard = await this.cardRepository.create(cardData);
-    const cardObject = newCard.toObject();
-    const dataToReturn = {
-      ...cardObject,
-      id: cardObject._id.toString(),
-    };
-
-    const responseDto = cardResponseDtoSchema.parse(dataToReturn);
-    return responseDto;
+    return this._convertToResponseDto(newCard);
   }
 
   /**
@@ -62,15 +62,7 @@ class CardService {
     if (!card) {
       throw new Error('Card not found');
     }
-
-    const cardObject = card.toObject();
-    const dataToReturn = {
-      ...cardObject,
-      id: cardObject._id.toString(),
-    };
-
-    const responseDto = cardResponseDtoSchema.parse(dataToReturn);
-    return responseDto;
+    return this._convertToResponseDto(card);
   }
 
   /**
@@ -87,14 +79,7 @@ class CardService {
     }
 
     const updatedCard = await this.cardRepository.update(id, cardData);
-    const cardObject = updatedCard.toObject();
-    const dataToReturn = {
-      ...cardObject,
-      id: cardObject._id.toString(),
-    };
-
-    const responseDto = cardResponseDtoSchema.parse(dataToReturn);
-    return responseDto;
+    return this._convertToResponseDto(updatedCard);
   }
 
   /**
@@ -119,14 +104,7 @@ class CardService {
    */
   async initializeGameDeck(gameId) {
     const cards = await this.cardRepository.initializeGameDeck(gameId);
-    return cards.map((card) => {
-      const cardObject = card.toObject();
-      const dataToReturn = {
-        ...cardObject,
-        id: cardObject._id.toString(),
-      };
-      return cardResponseDtoSchema.parse(dataToReturn);
-    });
+    return cards.map((card) => this._convertToResponseDto(card));
   }
 
   /**
@@ -138,14 +116,7 @@ class CardService {
    */
   async getCardsByGame(gameId, filters = {}) {
     const cards = await this.cardRepository.getCardsByGame(gameId, filters);
-    return cards.map((card) => {
-      const cardObject = card.toObject();
-      const dataToReturn = {
-        ...cardObject,
-        id: cardObject._id.toString(),
-      };
-      return cardResponseDtoSchema.parse(dataToReturn);
-    });
+    return cards.map((card) => this._convertToResponseDto(card));
   }
 
   /**
@@ -159,15 +130,7 @@ class CardService {
     if (!card) {
       throw new Error('No cards available to draw');
     }
-
-    const cardObject = card.toObject();
-    const dataToReturn = {
-      ...cardObject,
-      id: cardObject._id.toString(),
-    };
-
-    const responseDto = cardResponseDtoSchema.parse(dataToReturn);
-    return responseDto;
+    return this._convertToResponseDto(card);
   }
 
   /**
@@ -182,14 +145,7 @@ class CardService {
       throw new Error('Card not found');
     }
 
-    const cardObject = card.toObject();
-    const dataToReturn = {
-      ...cardObject,
-      id: cardObject._id.toString(),
-    };
-
-    const responseDto = cardResponseDtoSchema.parse(dataToReturn);
-    return responseDto;
+    return this._convertToResponseDto(card);
   }
 
   /**
@@ -205,8 +161,7 @@ class CardService {
   /**
    * Validates if a card can be played on top of another card using Functional Programming.
    * Uses the Either Monad to encapsulate Success (Right) or Failure (Left) without throwing exceptions.
-   * * @param {Object} cardToPlay - The card the player wants to put down { color, value, type }
-   * @param cardToPlay
+   * @param {Object} cardToPlay - The card the player wants to put down { color, value, type }
    * @param {Object} topCard - The current card on the discard pile { color, value, type }
    * @returns {Object} An Either instance (Left with error message or Right with boolean true)
    */

@@ -1,5 +1,7 @@
 import express from 'express';
 import CardController from '../controllers/card.controller.js';
+import CardService from '../../core/services/card.service.js';
+import CardRepository from '../../infra/repositories/card.repository.js';
 
 import validateDto from '../middlewares/validateDto.middleware.js';
 
@@ -7,7 +9,10 @@ import createCardDto from '../dtos/createCard.dto.js';
 import updateCardDto from '../dtos/updateCard.dto.js';
 
 const router = express.Router();
-const cardController = new CardController();
+
+const cardRepository = new CardRepository();
+const cardService = new CardService(cardRepository);
+const cardController = new CardController(cardService);
 
 router.get('/', (req, res) => cardController.getAllCards(req, res));
 router.post('/', validateDto(createCardDto), (req, res) =>
