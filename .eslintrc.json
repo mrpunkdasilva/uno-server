@@ -21,7 +21,15 @@
     "jsdoc/require-jsdoc": ["warn", {"require": {"FunctionDeclaration": true, "MethodDefinition": true, "ClassDeclaration": true}}],
     "jsdoc/require-description": "warn",
     "jsdoc/require-param": "warn",
-    "jsdoc/require-returns": "warn"
+    "jsdoc/require-returns": "warn",
+
+    //ADDED: allow unused parameters starting with "_" (e.g. _next in Express middleware)
+    "no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_"
+      }
+    ]
   },
   "overrides": [
     {
