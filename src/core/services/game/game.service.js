@@ -1,10 +1,8 @@
 import { Result, ResultAsync } from '../../utils/Result.js';
-import { getStrategyForCard } from './card-strategies/strategy.factory.js';
 import gameResponseDtoSchema from '../../../presentation/dtos/game/game-response.dto.js';
 import updateGameDtoSchema from '../../../presentation/dtos/game/update-game.dto.js';
 import createGameDtoSchema from '../../../presentation/dtos/game/create-game.dto.js';
 import logger from '../../../config/logger.js';
-import { colorMap, valueMap, PostPlayAction } from '../../enums/card.enum.js';
 import {
   CannotPerformActionError,
   CouldNotDetermineCurrentPlayerError,
@@ -41,7 +39,6 @@ import {
   abandonGame as abandonGameLogic,
   addPlayer,
   advanceTurn as advanceTurnLogic,
-  applyCardPlayEffects,
   buildAbandonGameSuccessResponse,
   buildAdvanceTurnSuccessResponse,
   buildGetDiscardTopResponse,
@@ -50,7 +47,6 @@ import {
   buildPlayerDetails,
   buildJoinGameSuccessResponse,
   buildSetPlayerReadySuccessResponse,
-  checkWinConditionAndGetOutcome,
   createEndGamePayload,
   createInitialGame,
   getCurrentPlayer as getCurrentPlayerFromGame,
@@ -71,6 +67,7 @@ import {
 
 import { PostAbandonmentActionExecutor } from './executors/PostAbandonmentActionExecutor.js';
 import { PostPlayOutcomeExecutor } from './executors/PostPlayOutcomeExecutor.js';
+import { CardPlayCoordinator } from './coordinators/CardPlayCoordinator.js';
 
 /**
  * Service class for handling game-related business logic.
@@ -88,6 +85,7 @@ class GameService {
       this,
     );
     this.postPlayOutcomeExecutor = new PostPlayOutcomeExecutor(this);
+    this.cardPlayCoordinator = new CardPlayCoordinator(this);
   }
 
   /**
@@ -828,7 +826,7 @@ class GameService {
    * @returns {Promise<Object>} The result of the action.
    */
   async playCard(gameId, playerId, cardId, chosenColor = null) {
-    return new ResultAsync(validateGameId(gameId)) // Initial ID validation
+    return new ResultAsync(validateGameId(gameId))
       .tap((trimmedGameId) =>
         logger.info(
           `Player ${playerId} attempting to play card ${cardId} in game ${trimmedGameId}.`,
@@ -846,48 +844,25 @@ class GameService {
       .chain(validateGameIsActive)
       .chain(validateIsCurrentPlayer(playerId))
       .chain(validatePlayerHasCard(playerId, cardId))
-      .chain(async ({ game, currentPlayer, cardIndex, cardToPlay }) => {
-        const StrategyClass = getStrategyForCard(cardToPlay);
-        const strategy = new StrategyClass();
-        const gameContext = { game, card: cardToPlay, chosenColor };
-
-        if (!strategy.canExecute(gameContext)) {
-          return Result.failure(
-            new CannotPerformActionError(
-              'Invalid action for this card (e.g., missing color for Wild).',
-            ),
-          );
-        }
-
-        strategy.execute(gameContext);
-
-        applyCardPlayEffects(game, currentPlayer, cardIndex, cardToPlay);
-
-        const { action, winnerId } = checkWinConditionAndGetOutcome(game, currentPlayer);
-
-        await this.postPlayOutcomeExecutor.execute(action, { game, gameId, winnerId });
-
-        return Result.success({
-          success: true,
-          message:
-            action === PostPlayAction.END_GAME_WITH_WINNER
-              ? 'You played your last card and won!'
-              : 'Card played successfully.',
-        });
+      .chain(async ({ game, cardIndex, cardToPlay }) => {
+        return await this.cardPlayCoordinator.execute(
+          game,
+          gameId,
+          playerId,
+          cardIndex,
+          cardToPlay,
+          chosenColor,
+        );
       })
       .tapError((error) => {
         if (error instanceof GameNotFoundError) {
-          logger.warn(
-            `Play card failed: Game ${gameId} not found.`,
-          );
+          logger.warn(`Play card failed: Game ${gameId} not found.`);
         } else if (error instanceof InvalidGameIdError) {
           logger.warn(
             `Play card failed: Invalid game ID provided - "${gameId}".`,
           );
         } else if (error instanceof GameNotActiveError) {
-          logger.warn(
-            `Play card failed: Game ${gameId} is not active.`,
-          );
+          logger.warn(`Play card failed: Game ${gameId} is not active.`);
         } else if (error instanceof CannotPerformActionError) {
           logger.warn(
             `Play card failed for player ${playerId} in game ${gameId}: ${error.message}`,

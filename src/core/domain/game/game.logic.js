@@ -334,3 +334,14 @@ export const checkWinConditionAndGetOutcome = (game, currentPlayer) => {
   }
   return { action: PostPlayAction.CONTINUE_GAME };
 };
+
+/**
+ * Builds the success message for a card play operation.
+ * @param {string} action - The post-play action taken (from PostPlayAction enum).
+ * @returns {string} The appropriate success message.
+ */
+export const buildPlayCardSuccessMessage = (action) => {
+  return action === PostPlayAction.END_GAME_WITH_WINNER
+    ? 'You played your last card and won!'
+    : 'Card played successfully.';
+};
