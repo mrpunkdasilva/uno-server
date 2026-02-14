@@ -1,28 +1,23 @@
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
 import redisClient from '../../config/redis.js';
 import logger from '../../config/logger.js';
 import PlayerRepository from '../../infra/repositories/player.repository.js';
 
-/**
- * Authentication service for handling user login, logout, token management, and password operations
- * Provides JWT authentication with Redis session storage and token blacklisting
- */
+import {
+  generateToken,
+  verifyToken,
+  decodeToken,
+} from '../../core/utils/token.util.js';
+import {
+  comparePassword,
+  hashPassword,
+} from '../../core/utils/password.util.js';
+import { AppError } from '../../core/errors/AppError.js';
+
 class AuthService {
-  /**
-   * Constructor
-   */
   constructor() {
     this.playerRepository = new PlayerRepository();
   }
 
-  /**
-   * Authenticates a user with email and password
-   * @param {string} email - User's email address
-   * @param {string} password - User's plain text password
-   * @returns {Promise<Object>} Authentication result with tokens
-   * @throws {Error} When authentication fails
-   */
   async login(email, password) {
     try {
       const user = await this.playerRepository.findByEmail(email);
@@ -31,25 +26,26 @@ class AuthService {
         logger.warn(
           `Authentication failed for email: ${email}. User not found.`,
         );
-        throw new Error('Invalid credentials');
+        throw new AppError('Invalid credentials', 401);
       }
 
-      const isPasswordValid = await bcrypt.compare(password, user.password);
+      const isPasswordValid = await comparePassword(password, user.password);
+
       if (!isPasswordValid) {
         logger.warn(
           `Authentication failed for email: ${email}. Invalid password.`,
         );
-        throw new Error('Invalid credentials');
+        throw new AppError('Invalid credentials', 401);
       }
 
-      logger.info(`User ${user._id} logged in successfully.`);
-      const accessToken = this.generateToken(
-        user,
+      const accessToken = generateToken(
+        { id: user._id },
         process.env.JWT_SECRET,
         '15m',
       );
-      const refreshToken = this.generateToken(
-        user,
+
+      const refreshToken = generateToken(
+        { id: user._id },
         process.env.JWT_REFRESH_SECRET,
         '7d',
       );
@@ -58,167 +54,82 @@ class AuthService {
         EX: 7 * 24 * 60 * 60,
       });
 
+      logger.info(`User ${user._id} logged in successfully.`);
+
       return {
         success: true,
         accessToken,
         refreshToken,
       };
     } catch (error) {
-      logger.error(
-        `Login failed for email: ${email} with error: ${error.message}`,
-      );
-      throw new Error('Authentication failed: ' + error.message);
+      logger.error(`Login failed for email: ${email} - ${error.message}`);
+      throw error;
     }
   }
 
-  /**
-   * Logs out a user by invalidating their session and blacklisting their access token
-   * @param {string} userId - The ID of the user to log out
-   * @param {string} accessToken - The access token to blacklist
-   * @returns {Promise<Object>} Logout result with success status and message
-   * @throws {Error} When logout operation fails
-   */
   async logout(userId, accessToken) {
-    logger.info(`Attempting to log out user: ${userId}`);
+    logger.info(`Attempting logout for user: ${userId}`);
+
     await redisClient.del(`session:${userId}`);
 
     if (accessToken) {
-      try {
-        const decoded = jwt.decode(accessToken);
-        if (decoded && decoded.exp) {
-          const currentTime = Math.floor(Date.now() / 1000);
-          const timeToLive = decoded.exp - currentTime;
-          if (timeToLive > 0) {
-            await redisClient.set(`blacklist:${accessToken}`, 'blacklisted', {
-              EX: timeToLive,
-            });
-            logger.info(
-              `Access token for user ${userId} blacklisted successfully.`,
-            );
-          }
+      const decoded = decodeToken(accessToken);
+
+      if (decoded && decoded.exp) {
+        const currentTime = Math.floor(Date.now() / 1000);
+        const ttl = decoded.exp - currentTime;
+
+        if (ttl > 0) {
+          await redisClient.set(`blacklist:${accessToken}`, 'blacklisted', {
+            EX: ttl,
+          });
         }
-      } catch (error) {
-        logger.error(
-          `Error blacklisting access token for user ${userId}: ${error.message}`,
-        );
-        console.error('Error adding token in blacklist');
       }
     }
 
     logger.info(`User ${userId} logged out successfully.`);
+
     return {
       success: true,
       message: 'Logged out successfully',
     };
   }
 
-  /**
-   * Refreshes an access token using a valid refresh token
-   * @param {string} refreshToken - The refresh token to validate and use for generating new access token
-   * @returns {Promise<Object>} Object containing success status and new access token
-   * @throws {Error} When refresh token is invalid, expired, or revoked
-   */
   async refreshToken(refreshToken) {
     try {
       if (!refreshToken) {
-        logger.warn('Refresh token request missing refresh token.');
-        throw new Error('Refresh token is required');
+        throw new AppError('Refresh token is required', 400);
       }
 
-      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-      logger.info(`Refresh token received for user ID: ${decoded.id}`);
+      const decoded = verifyToken(refreshToken, process.env.JWT_REFRESH_SECRET);
 
       const storedToken = await redisClient.get(`session:${decoded.id}`);
+
       if (!storedToken || storedToken !== refreshToken) {
-        logger.warn(
-          `Refresh token invalid or revoked for user ID: ${decoded.id}`,
-        );
-        throw new Error('Refresh token invalid or revoked');
+        throw new AppError('Refresh token invalid or revoked', 401);
       }
 
-      const newToken = this.generateToken(
+      const newToken = generateToken(
         { id: decoded.id },
         process.env.JWT_SECRET,
         '15m',
       );
 
-      logger.info(`New access token generated for user ID: ${decoded.id}`);
       return {
         success: true,
         token: newToken,
       };
     } catch (error) {
-      if (error.name === 'TokenExpiredError') {
-        logger.warn(`Expired refresh token detected: ${error.message}`);
-        throw new Error('Refresh token has expired');
-      }
-      if (error.name === 'JsonWebTokenError') {
-        logger.warn(`Invalid refresh token detected: ${error.message}`);
-        throw new Error('Invalid refresh token');
-      }
-      logger.error(`Token refresh failed with error: ${error.message}`);
-      throw new Error('Token refresh failed: ' + error.message);
+      logger.error(`Refresh token error: ${error.message}`);
+      throw error;
     }
   }
 
-  /**
-   * Generates a JWT token for a user
-   * @param {Object} user - User object containing user information
-   * @param {string} secret - Secret key used to sign the token
-   * @param {string} expiresIn - Token expiration time (e.g., '15m', '7d')
-   * @returns {string} Generated JWT token
-   */
-  generateToken(user, secret, expiresIn) {
-    const payload = {
-      id: user._id,
-    };
-
-    return jwt.sign(payload, secret, { expiresIn: expiresIn });
-  }
-
-  /**
-   * Verifies a JWT token and returns the decoded payload
-   * @param {string} token - JWT token to verify
-   * @param {string} secret - Secret key used to verify the token
-   * @returns {Object} Decoded token payload
-   * @throws {Error} When token is invalid, expired, or malformed
-   */
-  verifyToken(token, secret) {
-    try {
-      return jwt.verify(token, secret);
-    } catch (error) {
-      if (error.name === 'TokenExpiredError') {
-        logger.warn('Token verification failed: Token has expired');
-        throw new Error('Token has expired');
-      }
-      if (error.name === 'JsonWebTokenError') {
-        logger.warn('Token verification failed: Invalid token');
-        throw new Error('Invalid token');
-      }
-      logger.error(`Token verification failed with error: ${error.message}`);
-      throw new Error('Token verification failed: ' + error.message);
-    }
-  }
-
-  /**
-   * Hashes a password using bcrypt
-   * @param {string} password - Plain text password to hash
-   * @returns {Promise<string>} Hashed password
-   * @throws {Error} When password hashing fails
-   */
   async hashPassword(password) {
-    logger.info('Hashing password...');
-    const saltRounds = 10;
-    return await bcrypt.hash(password, saltRounds);
+    return hashPassword(password);
   }
 
-  /**
-   * Checks if a token is blacklisted in Redis
-   * @param {string} token - JWT token to check against blacklist
-   * @returns {Promise<boolean>} True if token is blacklisted, false otherwise
-   */
   async verifyTokenIsBlacklisted(token) {
-    logger.info('Checking if token is blacklisted...');
     return await redisClient.get(`blacklist:${token}`);
   }
 }

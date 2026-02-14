@@ -6,7 +6,7 @@ class ScoreController {
    * Initializes the ScoreController with a ScoreService instance.
    */
   constructor(scoreService) {
-    this.scoreService = new scoreService();
+    this.scoreService = scoreService;
   }
 
   /**
