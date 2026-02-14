@@ -1,4 +1,8 @@
-import { GameStatus, PostAbandonmentAction } from '../../enums/game.enum.js';
+import {
+  GameStatus,
+  PostAbandonmentAction,
+  PostPlayAction,
+} from '../../enums/game.enum.js';
 import { CouldNotDetermineCurrentPlayerError } from '../../errors/game.errors.js';
 import { Result } from '../../utils/Result.js';
 import { colorMap, valueMap } from '../../enums/card.enum.js';
@@ -294,3 +298,39 @@ export const buildPlayerDetails = (player, playerDetails) => ({
   ready: player.ready,
   position: player.position,
 });
+
+/**
+ * Applies the effects of playing a card to the game state.
+ * Mutates the game object by removing the card from the player's hand and adding it to the discard pile.
+ * @param {object} game - The game object.
+ * @param {object} currentPlayer - The player who played the card.
+ * @param {number} cardIndex - The index of the card in the player's hand.
+ * @param {object} cardToPlay - The card being played.
+ * @returns {object} The mutated game object.
+ */
+export const applyCardPlayEffects = (
+  game,
+  currentPlayer,
+  cardIndex,
+  cardToPlay,
+) => {
+  currentPlayer.hand.splice(cardIndex, 1);
+  game.discardPile.push(cardToPlay);
+  return game;
+};
+
+/**
+ * Checks if the current player has won the game after playing a card and determines the post-play action.
+ * @param {object} game - The game object.
+ * @param {object} currentPlayer - The current player object.
+ * @returns {{action: string, winnerId?: string | null}} - An object indicating the action to take (e.g., 'END_GAME_WITH_WINNER' or 'CONTINUE_GAME').
+ */
+export const checkWinConditionAndGetOutcome = (game, currentPlayer) => {
+  if (hasPlayerWon(currentPlayer.hand.length)) {
+    return {
+      action: PostPlayAction.END_GAME_WITH_WINNER,
+      winnerId: currentPlayer._id.toString(),
+    };
+  }
+  return { action: PostPlayAction.CONTINUE_GAME };
+};

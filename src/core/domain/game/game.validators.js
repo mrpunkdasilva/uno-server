@@ -162,15 +162,24 @@ export const validateIsCurrentPlayer = (userId) => (game) => {
  * @returns {function(object): Result<object, CannotPerformActionError>} A function that takes the game object and returns a Result.
  */
 export const validatePlayerHasCard = (playerId, cardId) => (game) => {
-  const playerInGame = game.players.find(p => p._id.toString() === playerId);
+  const playerInGame = game.players.find((p) => p._id.toString() === playerId);
   if (!playerInGame) {
-    return Result.failure(new CannotPerformActionError('Player not found in game.'));
+    return Result.failure(
+      new CannotPerformActionError('Player not found in game.'),
+    );
   }
   const cardIndex = playerInGame.hand.findIndex((c) => c.cardId === cardId);
   if (cardIndex === -1) {
-    return Result.failure(new CannotPerformActionError('Card not in your hand.'));
+    return Result.failure(
+      new CannotPerformActionError('Card not in your hand.'),
+    );
   }
   const cardToPlay = playerInGame.hand[cardIndex];
   // Return an object that carries all necessary context for subsequent operations
-  return Result.success({ game, currentPlayer: playerInGame, cardIndex, cardToPlay });
+  return Result.success({
+    game,
+    currentPlayer: playerInGame,
+    cardIndex,
+    cardToPlay,
+  });
 };

@@ -4,7 +4,7 @@ import gameResponseDtoSchema from '../../../presentation/dtos/game/game-response
 import updateGameDtoSchema from '../../../presentation/dtos/game/update-game.dto.js';
 import createGameDtoSchema from '../../../presentation/dtos/game/create-game.dto.js';
 import logger from '../../../config/logger.js';
-import { colorMap, valueMap } from '../../enums/card.enum.js';
+import { colorMap, valueMap, PostPlayAction } from '../../enums/card.enum.js';
 import {
   CannotPerformActionError,
   CouldNotDetermineCurrentPlayerError,
@@ -22,24 +22,26 @@ import {
   UserNotInGameError,
 } from '../../errors/game.errors.js';
 import {
-  validateAllPlayersReady ,
-  validateGameHasPlayers ,
-  validateGameHasStarted ,
-  validateGameId ,
-  validateGameIsActive ,
-  validateGameIsWaiting ,
-  validateGameNotFull ,
-  validateGameNotStarted ,
-  validateIsCreator ,
-  validateMinimumPlayers ,
-  validateUserInGame ,
-  validateUserNotInGame ,
-  validatePlayerHasCard , validateIsCurrentPlayer
-} from "../../domain/game/game.validators.js";
+  validateAllPlayersReady,
+  validateGameHasPlayers,
+  validateGameHasStarted,
+  validateGameId,
+  validateGameIsActive,
+  validateGameIsWaiting,
+  validateGameNotFull,
+  validateGameNotStarted,
+  validateIsCreator,
+  validateMinimumPlayers,
+  validateUserInGame,
+  validateUserNotInGame,
+  validatePlayerHasCard,
+  validateIsCurrentPlayer,
+} from '../../domain/game/game.validators.js';
 import {
   abandonGame as abandonGameLogic,
   addPlayer,
   advanceTurn as advanceTurnLogic,
+  applyCardPlayEffects,
   buildAbandonGameSuccessResponse,
   buildAdvanceTurnSuccessResponse,
   buildGetDiscardTopResponse,
@@ -48,6 +50,7 @@ import {
   buildPlayerDetails,
   buildJoinGameSuccessResponse,
   buildSetPlayerReadySuccessResponse,
+  checkWinConditionAndGetOutcome,
   createEndGamePayload,
   createInitialGame,
   getCurrentPlayer as getCurrentPlayerFromGame,
@@ -67,6 +70,7 @@ import {
 } from '../../utils/service.utils.js';
 
 import { PostAbandonmentActionExecutor } from './executors/PostAbandonmentActionExecutor.js';
+import { PostPlayOutcomeExecutor } from './executors/PostPlayOutcomeExecutor.js';
 
 /**
  * Service class for handling game-related business logic.
@@ -83,6 +87,7 @@ class GameService {
     this.postAbandonmentActionExecutor = new PostAbandonmentActionExecutor(
       this,
     );
+    this.postPlayOutcomeExecutor = new PostPlayOutcomeExecutor(this);
   }
 
   /**
@@ -783,7 +788,8 @@ class GameService {
     return new ResultAsync(validateGameId(gameId))
       .chain((trimmedId) =>
         fetchWithCustomQuery({
-          queryFn: () => this.gameRepository.findRecentDiscards(trimmedId, limit),
+          queryFn: () =>
+            this.gameRepository.findRecentDiscards(trimmedId, limit),
           logger,
           logMessage: `Attempting to retrieve recent discards for game ID: ${trimmedId} with limit: ${limit}`,
           notFoundError: new GameNotFoundError(),
@@ -822,7 +828,7 @@ class GameService {
    * @returns {Promise<Object>} The result of the action.
    */
   async playCard(gameId, playerId, cardId, chosenColor = null) {
-    return new ResultAsync(validateGameId(gameId))
+    return new ResultAsync(validateGameId(gameId)) // Initial ID validation
       .tap((trimmedGameId) =>
         logger.info(
           `Player ${playerId} attempting to play card ${cardId} in game ${trimmedGameId}.`,
@@ -855,21 +861,19 @@ class GameService {
 
         strategy.execute(gameContext);
 
-        currentPlayer.hand.splice(cardIndex, 1);
-        game.discardPile.push(cardToPlay);
+        applyCardPlayEffects(game, currentPlayer, cardIndex, cardToPlay);
 
-        if (currentPlayer.hand.length === 0) {
-          await this._endGame(gameId, playerId);
-          await this.gameRepository.save(game);
-          logger.info(`Player ${playerId} has won game ${gameId}!`);
-          return Result.success({
-            success: true,
-            message: 'You played your last card and won!',
-          });
-        }
+        const { action, winnerId } = checkWinConditionAndGetOutcome(game, currentPlayer);
 
-        await this.gameRepository.save(game);
-        return Result.success({ success: true, message: `Card played successfully.` });
+        await this.postPlayOutcomeExecutor.execute(action, { game, gameId, winnerId });
+
+        return Result.success({
+          success: true,
+          message:
+            action === PostPlayAction.END_GAME_WITH_WINNER
+              ? 'You played your last card and won!'
+              : 'Card played successfully.',
+        });
       })
       .tapError((error) => {
         if (error instanceof GameNotFoundError) {
