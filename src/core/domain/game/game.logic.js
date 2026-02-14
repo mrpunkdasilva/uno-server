@@ -265,3 +265,32 @@ export const buildDiscardTopSimpleResponse = (discardTopResponse) => {
     top_cards: [cardName],
   };
 };
+
+/**
+ * Builds the response object for the getGamePlayers operation.
+ * @param {object} game - The game object.
+ * @param {Array<object>} playersWithDetails - An array of player objects with enriched details.
+ * @returns {object} The response object containing game info and player list.
+ */
+export const buildGamePlayersResponse = (game, playersWithDetails) => ({
+  gameId: game._id.toString(),
+  gameTitle: game.title,
+  gameStatus: game.status,
+  totalPlayers: playersWithDetails.length,
+  maxPlayers: game.maxPlayers,
+  players: playersWithDetails,
+});
+
+/**
+ * Builds the detailed player object for responses.
+ * @param {object} player - The player object from the game's player list.
+ * @param {object|null} playerDetails - The detailed player object from the player repository, or null if not found.
+ * @returns {object} The enriched player object.
+ */
+export const buildPlayerDetails = (player, playerDetails) => ({
+  id: player._id.toString(),
+  username: playerDetails?.username || 'Unknown',
+  email: playerDetails?.email || 'unknown@example.com',
+  ready: player.ready,
+  position: player.position,
+});

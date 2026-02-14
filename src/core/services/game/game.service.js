@@ -43,6 +43,8 @@ import {
   buildAdvanceTurnSuccessResponse,
   buildGetDiscardTopResponse,
   buildDiscardTopSimpleResponse,
+  buildGamePlayersResponse,
+  buildPlayerDetails,
   buildJoinGameSuccessResponse,
   buildSetPlayerReadySuccessResponse,
   createEndGamePayload,
@@ -700,73 +702,39 @@ class GameService {
    * @throws {Error} When game is not found or ID is invalid
    */
   async getGamePlayers(gameId) {
-    const trimmedId = gameId.trim();
-
-    return new ResultAsync(
-      Result.fromAsync(async () => {
-        logger.info(`Attempting to get players for game ID: ${gameId}`);
-        if (!gameId || typeof gameId !== 'string' || trimmedId === '') {
-          throw new InvalidGameIdError();
-        }
-
-        const game = await this.gameRepository.findById(trimmedId);
-
-        if (!game) {
-          throw new GameNotFoundError();
-        }
-        return game;
-      }),
-    )
+    return new ResultAsync(validateGameId(gameId))
+      .tap((trimmedId) =>
+        logger.info(`Attempting to get players for game ID: ${trimmedId}`),
+      )
+      .chain((trimmedId) =>
+        fetchById(
+          this.gameRepository,
+          trimmedId,
+          logger,
+          'game',
+          new GameNotFoundError(),
+        ),
+      )
       .chain(async (game) => {
-        const playersWithDetails = await Promise.all(
-          game.players.map(async (player) => {
-            try {
-              const playerDetails = await this.playerRepository.findById(
-                player._id.toString(),
-              );
-              return {
-                id: player._id.toString(),
-                username: playerDetails?.username || 'Unknown',
-                email: playerDetails?.email || 'unknown@example.com',
-                ready: player.ready,
-                position: player.position,
-              };
-            } catch (error) {
-              logger.warn(
-                `Failed to fetch details for player ${player._id}: ${error.message}`,
-              );
-              return {
-                id: player._id.toString(),
-                username: 'Unknown',
-                email: 'unknown@example.com',
-                ready: player.ready,
-                position: player.position,
-              };
-            }
-          }),
-        );
+        const playersWithDetails = await this._getPlayersWithDetails(game);
 
         logger.info(
-          `Successfully retrieved ${playersWithDetails.length} players for game ID ${trimmedId}.`,
+          `Successfully retrieved ${playersWithDetails.length} players for game ID ${game._id}.`,
         );
 
-        return Result.success({
-          gameId: trimmedId,
-          gameTitle: game.title,
-          gameStatus: game.status,
-          totalPlayers: playersWithDetails.length,
-          maxPlayers: game.maxPlayers,
-          players: playersWithDetails,
-        });
+        return Result.success(
+          buildGamePlayersResponse(game, playersWithDetails),
+        );
       })
       .tapError((error) => {
-        if (error.message === 'Invalid game ID') {
+        if (error instanceof InvalidGameIdError) {
           logger.warn(
             `Get game players failed: Invalid game ID provided - "${gameId}".`,
           );
-        } else if (error.message === 'Game not found') {
+        } else if (error instanceof GameNotFoundError) {
+          const idToLog = gameId ? gameId.trim() : gameId;
           logger.warn(
-            `Get game players failed: Game with ID ${trimmedId} not found.`,
+            `Get game players failed: Game with ID ${idToLog} not found.`,
           );
         } else {
           logger.error(
@@ -775,6 +743,30 @@ class GameService {
         }
       })
       .getOrThrow();
+  }
+
+  /**
+   * Fetches detailed information for each player in the game.
+   * @param {object} game - The game object containing player IDs.
+   * @returns {Promise<Array<object>>} An array of player objects with enriched details.
+   * @private
+   */
+  async _getPlayersWithDetails(game) {
+    return Promise.all(
+      game.players.map(async (player) => {
+        let playerDetails = null;
+        try {
+          playerDetails = await this.playerRepository.findById(
+            player._id.toString(),
+          );
+        } catch (error) {
+          logger.warn(
+            `Failed to fetch details for player ${player._id}: ${error.message}`,
+          );
+        }
+        return buildPlayerDetails(player, playerDetails);
+      }),
+    );
   }
 
   /**
