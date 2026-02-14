@@ -22,19 +22,20 @@ import {
   UserNotInGameError,
 } from '../../errors/game.errors.js';
 import {
-  validateAllPlayersReady,
-  validateGameHasPlayers,
-  validateGameHasStarted,
-  validateGameId,
-  validateGameIsActive,
-  validateGameIsWaiting,
-  validateGameNotFull,
-  validateGameNotStarted,
-  validateIsCreator,
-  validateMinimumPlayers,
-  validateUserInGame,
-  validateUserNotInGame,
-} from '../../domain/game/game.validators.js';
+  validateAllPlayersReady ,
+  validateGameHasPlayers ,
+  validateGameHasStarted ,
+  validateGameId ,
+  validateGameIsActive ,
+  validateGameIsWaiting ,
+  validateGameNotFull ,
+  validateGameNotStarted ,
+  validateIsCreator ,
+  validateMinimumPlayers ,
+  validateUserInGame ,
+  validateUserNotInGame ,
+  validatePlayerHasCard , validateIsCurrentPlayer
+} from "../../domain/game/game.validators.js";
 import {
   abandonGame as abandonGameLogic,
   addPlayer,
@@ -779,7 +780,7 @@ class GameService {
    * @throws {Error} If the game is not found or ID is invalid.
    */
   async getRecentDiscards(gameId, limit) {
-    return new ResultAsync(validateGameId(gameId)) // Validate first
+    return new ResultAsync(validateGameId(gameId))
       .chain((trimmedId) =>
         fetchWithCustomQuery({
           queryFn: () => this.gameRepository.findRecentDiscards(trimmedId, limit),
@@ -821,59 +822,79 @@ class GameService {
    * @returns {Promise<Object>} The result of the action.
    */
   async playCard(gameId, playerId, cardId, chosenColor = null) {
-    return new ResultAsync(
-      Result.fromAsync(async () => {
+    return new ResultAsync(validateGameId(gameId))
+      .tap((trimmedGameId) =>
         logger.info(
-          `Player ${playerId} attempting to play card ${cardId} in game ${gameId}.`,
-        );
-
-        const _game = await this.gameRepository.findById(gameId);
-        if (!_game) throw new GameNotFoundError();
-        if (_game.status !== 'Active') throw new GameNotActiveError();
-
-        const currentPlayer = _game.players[_game.currentPlayerIndex];
-        if (currentPlayer._id.toString() !== playerId) {
-          throw new CannotPerformActionError('It is not your turn.');
-        }
-
-        const cardIndex = currentPlayer.hand.findIndex(
-          (c) => c.cardId === cardId,
-        );
-        if (cardIndex === -1) {
-          throw new CannotPerformActionError('Card not in your hand.');
-        }
-
-        const cardToPlay = currentPlayer.hand[cardIndex];
-
+          `Player ${playerId} attempting to play card ${cardId} in game ${trimmedGameId}.`,
+        ),
+      )
+      .chain((trimmedGameId) =>
+        fetchById(
+          this.gameRepository,
+          trimmedGameId,
+          logger,
+          'game',
+          new GameNotFoundError(),
+        ),
+      )
+      .chain(validateGameIsActive)
+      .chain(validateIsCurrentPlayer(playerId))
+      .chain(validatePlayerHasCard(playerId, cardId))
+      .chain(async ({ game, currentPlayer, cardIndex, cardToPlay }) => {
         const StrategyClass = getStrategyForCard(cardToPlay);
         const strategy = new StrategyClass();
-        const gameContext = { game: _game, card: cardToPlay, chosenColor };
+        const gameContext = { game, card: cardToPlay, chosenColor };
 
         if (!strategy.canExecute(gameContext)) {
-          throw new CannotPerformActionError(
-            'Invalid action for this card (e.g., missing color for Wild).',
+          return Result.failure(
+            new CannotPerformActionError(
+              'Invalid action for this card (e.g., missing color for Wild).',
+            ),
           );
         }
 
         strategy.execute(gameContext);
 
         currentPlayer.hand.splice(cardIndex, 1);
-        _game.discardPile.push(cardToPlay);
+        game.discardPile.push(cardToPlay);
 
         if (currentPlayer.hand.length === 0) {
           await this._endGame(gameId, playerId);
-          await this.gameRepository.save(_game);
+          await this.gameRepository.save(game);
           logger.info(`Player ${playerId} has won game ${gameId}!`);
-          return {
+          return Result.success({
             success: true,
             message: 'You played your last card and won!',
-          };
+          });
         }
 
-        await this.gameRepository.save(_game);
-        return { success: true, message: `Card played successfully.` };
-      }),
-    ).getOrThrow();
+        await this.gameRepository.save(game);
+        return Result.success({ success: true, message: `Card played successfully.` });
+      })
+      .tapError((error) => {
+        if (error instanceof GameNotFoundError) {
+          logger.warn(
+            `Play card failed: Game ${gameId} not found.`,
+          );
+        } else if (error instanceof InvalidGameIdError) {
+          logger.warn(
+            `Play card failed: Invalid game ID provided - "${gameId}".`,
+          );
+        } else if (error instanceof GameNotActiveError) {
+          logger.warn(
+            `Play card failed: Game ${gameId} is not active.`,
+          );
+        } else if (error instanceof CannotPerformActionError) {
+          logger.warn(
+            `Play card failed for player ${playerId} in game ${gameId}: ${error.message}`,
+          );
+        } else {
+          logger.error(
+            `Failed for player ${playerId} to play card in game ${gameId}: ${error.message}`,
+          );
+        }
+      })
+      .getOrThrow();
   }
 }
 
