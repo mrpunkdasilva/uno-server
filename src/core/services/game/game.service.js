@@ -6,56 +6,63 @@ import createGameDtoSchema from '../../../presentation/dtos/game/create-game.dto
 import logger from '../../../config/logger.js';
 import { colorMap, valueMap } from '../../enums/card.enum.js';
 import {
-  GameNotFoundError,
-  InvalidGameIdError,
-  GameNotActiveError,
-  GameHasNotStartedError,
-  UserNotInGameError,
   CannotPerformActionError,
   CouldNotDetermineCurrentPlayerError,
-  GameNotAcceptingPlayersError,
-  GameFullError,
-  UserAlreadyInGameError,
-  NotGameCreatorError,
   GameAlreadyStartedError,
+  GameFullError,
+  GameHasNotStartedError,
+  GameNotAcceptingPlayersError,
+  GameNotActiveError,
+  GameNotFoundError,
+  InvalidGameIdError,
   MinimumPlayersRequiredError,
   NotAllPlayersReadyError,
+  NotGameCreatorError,
+  UserAlreadyInGameError,
+  UserNotInGameError,
 } from '../../errors/game.errors.js';
 import {
+  validateAllPlayersReady,
+  validateGameHasPlayers,
+  validateGameHasStarted,
+  validateGameId,
+  validateGameIsActive,
   validateGameIsWaiting,
   validateGameNotFull,
-  validateUserNotInGame,
-  validateIsCreator,
   validateGameNotStarted,
+  validateIsCreator,
   validateMinimumPlayers,
-  validateAllPlayersReady,
-  validateGameIsActive,
   validateUserInGame,
-  validateGameHasPlayers,
+  validateUserNotInGame,
 } from '../../domain/game/game.validators.js';
 import {
+  abandonGame as abandonGameLogic,
   addPlayer,
-  markPlayerAsReady,
-  startGame as startGameLogic,
-  createInitialGame,
-  createEndGamePayload,
-  hasPlayerWon,
+  advanceTurn as advanceTurnLogic,
+  buildAbandonGameSuccessResponse,
+  buildAdvanceTurnSuccessResponse,
+  buildGetDiscardTopResponse,
+  buildDiscardTopSimpleResponse,
   buildJoinGameSuccessResponse,
   buildSetPlayerReadySuccessResponse,
+  createEndGamePayload,
+  createInitialGame,
   getCurrentPlayer as getCurrentPlayerFromGame,
-  advanceTurn as advanceTurnLogic,
-  buildAdvanceTurnSuccessResponse,
-  removePlayerFromGame,
+  hasPlayerWon,
+  markPlayerAsReady,
+  startGame as startGameLogic,
 } from '../../domain/game/game.logic.js';
 import {
-  fetchAllAndMapToDto,
-  fetchByIdAndMapToDto,
-  updateAndMapToDto,
   deleteByIdAndReturn,
+  fetchAllAndMapToDto,
   fetchById,
-  saveEntityAndReturnCustomResponse,
+  fetchByIdAndMapToDto,
   saveAndMapToDto,
+  saveEntityAndReturnCustomResponse,
+  updateAndMapToDto,
 } from '../../utils/service.utils.js';
+
+import { PostAbandonmentActionExecutor } from './executors/PostAbandonmentActionExecutor.js';
 
 /**
  * Service class for handling game-related business logic.
@@ -69,6 +76,9 @@ class GameService {
   constructor(gameRepository, playerRepository) {
     this.gameRepository = gameRepository;
     this.playerRepository = playerRepository;
+    this.postAbandonmentActionExecutor = new PostAbandonmentActionExecutor(
+      this,
+    );
   }
 
   /**
@@ -513,22 +523,16 @@ class GameService {
     )
       .chain(validateUserInGame(userId))
       .chain(validateGameIsActive)
-      .map((game) => removePlayerFromGame(game, userId))
       .chain(async (game) => {
-        const remainingPlayers = game.players.length;
-        if (remainingPlayers === 1) {
-          const winnerId = game.players[0]._id;
-          await this._endGame(gameId, winnerId);
-          logger.info(
-            `Game ${gameId} ended due to last player (${winnerId}) remaining after abandonment.`,
-          );
-        } else if (remainingPlayers === 0) {
-          await this._endGame(gameId);
-          logger.info(`Game ${gameId} ended as all players abandoned.`);
-        } else {
-          await this.gameRepository.save(game);
-        }
-        return Result.success({ success: true, message: 'You left the game' });
+        const { action, winnerId } = abandonGameLogic(game, userId);
+
+        await this.postAbandonmentActionExecutor.execute(action, {
+          game,
+          gameId,
+          winnerId,
+        });
+
+        return Result.success(buildAbandonGameSuccessResponse());
       })
       .tap(() =>
         logger.info(`User ${userId} successfully abandoned game ${gameId}.`),
@@ -563,37 +567,31 @@ class GameService {
    * @throws {Error} If the game ID is invalid or the game is not found.
    */
   async getGameStatus(id) {
-    return new ResultAsync(
-      Result.fromAsync(async () => {
-        logger.info(`Attempting to retrieve status for game ID: ${id}`);
-        if (!id || typeof id !== 'string' || id.trim() === '') {
-          throw new InvalidGameIdError();
-        }
-
-        const trimmedId = id.trim();
+    return new ResultAsync(validateGameId(id))
+      .tap((trimmedId) =>
+        logger.info(`Attempting to retrieve status for game ID: ${trimmedId}`),
+      )
+      .chain(async (trimmedId) => {
         const game = await this.gameRepository.findGameStatus(trimmedId);
-        if (!game) {
-          throw new GameNotFoundError();
-        }
-        return game;
-      }),
-    )
+        return game
+          ? Result.success(game)
+          : Result.failure(new GameNotFoundError());
+      })
       .tap((game) =>
         logger.info(
-          `Successfully retrieved status for game ID ${id.trim()}: ${
-            game.status
-          }`,
+          `Successfully retrieved status for game ID ${game._id}: ${game.status}`,
         ),
       )
       .map((game) => game.status)
       .tapError((error) => {
-        if (error.message === 'Invalid game ID') {
+        if (error instanceof InvalidGameIdError) {
           logger.warn(
             `Get game status failed: Invalid game ID provided - "${id}".`,
           );
-        } else if (error.message === 'Game not found') {
+        } else if (error instanceof GameNotFoundError) {
+          const gameId = id ? id.trim() : id;
           logger.warn(
-            `Get game status failed: Game with ID ${id.trim()} not found.`,
+            `Get game status failed: Game with ID ${gameId} not found.`,
           );
         } else {
           logger.error(
@@ -611,83 +609,30 @@ class GameService {
    * @throws {Error} When game is not found or ID is invalid
    */
   async getDiscardTop(gameId) {
-    const trimmedId = gameId.trim();
-
-    return new ResultAsync(
-      Result.fromAsync(async () => {
+    return new ResultAsync(validateGameId(gameId))
+      .tap((trimmedId) =>
         logger.info(
-          `Attempting to get top discard card for game ID: ${gameId}`,
-        );
-        if (!gameId || typeof gameId !== 'string' || trimmedId === '') {
-          throw new InvalidGameIdError();
-        }
-
+          `Attempting to get top discard card for game ID: ${trimmedId}`,
+        ),
+      )
+      .chain(async (trimmedId) => {
         const game = await this.gameRepository.findDiscardTop(trimmedId);
-
-        if (!game) {
-          throw new GameNotFoundError();
-        }
-
-        if (game.status === 'Waiting') {
-          logger.warn(
-            `Get discard top for game ${trimmedId}: Game has not started yet.`,
-          );
-          throw new GameHasNotStartedError();
-        }
-
-        if (!game.discardPile || game.discardPile.length === 0) {
+        return game
+          ? Result.success(game)
+          : Result.failure(new GameNotFoundError());
+      })
+      .chain(validateGameHasStarted)
+      .map(buildGetDiscardTopResponse)
+      .tap((response) => {
+        if (response.top_card === null) {
           logger.info(
-            `Get discard top for game ${trimmedId}: Discard pile is empty.`,
+            `Get discard top for game ${response.game_id}: Discard pile is empty.`,
           );
-
-          return {
-            game_id: trimmedId,
-            top_card: null,
-            message: 'Discard pile is empty - no cards have been played yet',
-            discard_pile_size: 0,
-            initial_card: game.initialCard || {
-              color: 'blue',
-              value: '0',
-              type: 'number',
-            },
-          };
+        } else {
+          logger.info(
+            `Successfully retrieved top discard card for game ID ${response.game_id}.`,
+          );
         }
-        return game;
-      }),
-    )
-      .map((gameOrSpecialResult) => {
-        if (gameOrSpecialResult.top_card === null) {
-          return gameOrSpecialResult;
-        }
-
-        const game = gameOrSpecialResult;
-        const topCard = game.discardPile[game.discardPile.length - 1];
-        logger.info(
-          `Successfully retrieved top discard card for game ID ${trimmedId}.`,
-        );
-
-        const recentCards = game.discardPile.slice(-5).reverse();
-
-        return {
-          game_id: trimmedId,
-          current_top_card: {
-            card_id: topCard.cardId,
-            color: topCard.color,
-            value: topCard.value,
-            type: topCard.type,
-            played_by: topCard.playedBy?.toString() || 'system',
-            played_at: topCard.playedAt,
-            order: topCard.order,
-          },
-          recent_cards: recentCards.map((card) => ({
-            color: card.color,
-            value: card.value,
-            type: card.type,
-            played_by: card.playedBy?.toString() || 'system',
-            order: card.order,
-          })),
-          discard_pile_size: game.discardPile.length,
-        };
       })
       .tapError((error) => {
         if (error instanceof InvalidGameIdError) {
@@ -695,12 +640,14 @@ class GameService {
             `Get discard top failed: Invalid game ID provided - "${gameId}".`,
           );
         } else if (error instanceof GameNotFoundError) {
+          const idToLog = gameId ? gameId.trim() : gameId;
           logger.warn(
-            `Get discard top failed: Game with ID ${trimmedId} not found.`,
+            `Get discard top failed: Game with ID ${idToLog} not found.`,
           );
         } else if (error instanceof GameHasNotStartedError) {
+          const idToLog = gameId ? gameId.trim() : gameId;
           logger.warn(
-            `Get discard top failed: Game ${trimmedId} has not started yet.`,
+            `Get discard top failed: Game ${idToLog} has not started yet.`,
           );
         } else {
           logger.error(
@@ -723,33 +670,20 @@ class GameService {
           `Attempting to get simple top discard card for game ID: ${gameId}`,
         );
 
-        const gameResult = await this.getDiscardTop(gameId);
-        return gameResult;
+        return await this.getDiscardTop(gameId);
       }),
     )
-      .map((gameOrSpecialResult) => {
-        if (gameOrSpecialResult.top_card === null) {
+      .map(buildDiscardTopSimpleResponse)
+      .tap((response) => {
+        if (response.top_cards.length === 0) {
           logger.info(
-            `Simple discard top for game ${gameId}: Discard pile is empty.`,
+            `Simple discard top for game ${response.game_ids[0]}: Discard pile is empty.`,
           );
-          return {
-            game_ids: [gameOrSpecialResult.game_id],
-            top_cards: [],
-          };
+        } else {
+          logger.info(
+            `Successfully retrieved simple top discard card for game ID ${response.game_ids[0]}.`,
+          );
         }
-
-        const card = gameOrSpecialResult.current_top_card;
-        const color = colorMap[card.color] || card.color;
-        const value = valueMap[card.value] || card.value;
-        const cardName = `${color} ${value}`;
-
-        logger.info(
-          `Successfully retrieved simple top discard card for game ID ${gameId}.`,
-        );
-        return {
-          game_ids: [gameOrSpecialResult.game_id],
-          top_cards: [cardName],
-        };
       })
       .tapError((error) =>
         logger.error(

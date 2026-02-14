@@ -12,8 +12,21 @@ import {
   CannotPerformActionError,
   GameHasNotStartedError,
   CouldNotDetermineCurrentPlayerError,
+  InvalidGameIdError,
 } from '../../errors/game.errors.js';
 import { GameStatus } from '../../enums/game.enum.js';
+
+/**
+ * Validates if the game ID is a non-empty string.
+ * @param {string} gameId - The game ID to validate.
+ * @returns {Result<string, InvalidGameIdError>} A Result containing the trimmed ID or an InvalidGameIdError.
+ */
+export const validateGameId = (gameId) => {
+  if (!gameId || typeof gameId !== 'string' || gameId.trim() === '') {
+    return Result.failure(new InvalidGameIdError());
+  }
+  return Result.success(gameId.trim());
+};
 
 /**
  * Validates if the game is in 'Waiting' status.

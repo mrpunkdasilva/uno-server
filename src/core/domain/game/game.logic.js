@@ -1,6 +1,7 @@
-import { GameStatus } from '../../enums/game.enum.js';
+import { GameStatus, PostAbandonmentAction } from '../../enums/game.enum.js';
 import { CouldNotDetermineCurrentPlayerError } from '../../errors/game.errors.js';
 import { Result } from '../../utils/Result.js';
+import { colorMap, valueMap } from '../../enums/card.enum.js';
 
 /**
  * Adds a player to the game.
@@ -138,6 +139,19 @@ export const advanceTurn = (game) => {
 };
 
 /**
+ * Handles the logic for a player abandoning a game. It removes the player
+ * from the game and determines the subsequent action to be taken.
+ * Note: This function mutates the provided game object.
+ * @param {object} game - The game object.
+ * @param {string} userId - The ID of the player abandoning the game.
+ * @returns {{action: string, winnerId?: string | null}} - The action to take next.
+ */
+export const abandonGame = (game, userId) => {
+  removePlayerFromGame(game, userId);
+  return determinePostAbandonmentAction(game);
+};
+
+/**
  * Removes a player from the game and updates player positions.
  * Mutates the game object.
  * @param {object} game - The game object.
@@ -150,4 +164,104 @@ export const removePlayerFromGame = (game, userId) => {
     p.position = index + 1;
   });
   return game;
+};
+
+/**
+ * Determines the outcome of a game after a player abandons.
+ * @param {object} game - The game object after a player has abandoned.
+ * @returns {{action: string, winnerId?: string | null}} - An object indicating the action to take.
+ */
+export const determinePostAbandonmentAction = (game) => {
+  const remainingPlayers = game.players.length;
+  if (remainingPlayers === 1) {
+    return {
+      action: PostAbandonmentAction.END_GAME_WITH_WINNER,
+      winnerId: game.players[0]._id.toString(),
+    };
+  } else if (remainingPlayers === 0) {
+    return {
+      action: PostAbandonmentAction.END_GAME_NO_WINNER,
+      winnerId: null,
+    };
+  } else {
+    return { action: PostAbandonmentAction.SAVE_GAME };
+  }
+};
+
+/**
+ * Builds the success response for the abandonGame operation.
+ * @returns {object} The success response object.
+ */
+export const buildAbandonGameSuccessResponse = () => ({
+  success: true,
+  message: 'You left the game',
+});
+
+/**
+ * Builds the success response for the getDiscardTop operation.
+ * @param {object} game - The game object, which includes the discard pile.
+ * @returns {object} The success response object.
+ */
+export const buildGetDiscardTopResponse = (game) => {
+  if (!game.discardPile || game.discardPile.length === 0) {
+    return {
+      game_id: game._id.toString(),
+      top_card: null,
+      message: 'Discard pile is empty - no cards have been played yet',
+      discard_pile_size: 0,
+      initial_card: game.initialCard || {
+        color: 'blue',
+        value: '0',
+        type: 'number',
+      },
+    };
+  }
+
+  const topCard = game.discardPile[game.discardPile.length - 1];
+  const recentCards = game.discardPile.slice(-5).reverse();
+
+  return {
+    game_id: game._id.toString(),
+    current_top_card: {
+      card_id: topCard.cardId,
+      color: topCard.color,
+      value: topCard.value,
+      type: topCard.type,
+      played_by: topCard.playedBy?.toString() || 'system',
+      played_at: topCard.playedAt,
+      order: topCard.order,
+    },
+    recent_cards: recentCards.map((card) => ({
+      color: card.color,
+      value: card.value,
+      type: card.type,
+      played_by: card.playedBy?.toString() || 'system',
+      order: card.order,
+    })),
+    discard_pile_size: game.discardPile.length,
+  };
+};
+
+/**
+ * Builds the simple success response for the getDiscardTopSimple operation (legacy).
+ * @param {object} discardTopResponse - The rich response object from the getDiscardTop operation.
+ * @returns {object} The simplified legacy response object.
+ */
+export const buildDiscardTopSimpleResponse = (discardTopResponse) => {
+  if (discardTopResponse.top_card === null) {
+    return {
+      game_ids: [discardTopResponse.game_id],
+      top_cards: [],
+    };
+  }
+
+  const card = discardTopResponse.current_top_card;
+  const color = colorMap[card.color] || card.color;
+  const value = valueMap[card.value] || card.value;
+  const cardName = `${color} ${value}`;
+
+  return {
+    game_ids: [discardTopResponse.game_id],
+    top_cards: [cardName],
+  };
 };
