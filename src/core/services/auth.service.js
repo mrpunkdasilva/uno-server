@@ -135,7 +135,7 @@ class AuthService {
    * Refreshes an access token using a valid refresh token
    * @param {string} refreshToken - The refresh token to validate and use for generating new access token
    * @returns {Promise<Object>} Object containing success status and new access token
-   * @throws {Error} When refresh token is invalid, expired, or revoked
+   * @throws {AppError} When refresh token is invalid, expired, or revoked
    */
   async refreshToken(refreshToken) {
     try {
@@ -144,17 +144,44 @@ class AuthService {
         throw new AppError('Refresh token is required', 400);
       }
 
-      // NOTE: Previously used jwt.verify directly
-      const decoded = verifyToken(refreshToken, process.env.JWT_REFRESH_SECRET);
+      let decoded;
+      try {
+        // NOTE: Previously used jwt.verify directly
+        decoded = verifyToken(refreshToken, process.env.JWT_REFRESH_SECRET);
+      } catch (error) {
+        // NOTE: Handle specific JWT errors with appropriate messages
+        if (error.name === 'TokenExpiredError') {
+          logger.warn(`Expired refresh token detected: ${error.message}`);
+          throw new AppError('Refresh token has expired', 401);
+        }
+        if (error.name === 'JsonWebTokenError') {
+          logger.warn(`Invalid refresh token detected: ${error.message}`);
+          throw new AppError('Invalid refresh token', 401);
+        }
+        // Re-throw unexpected errors
+        logger.error(
+          `Unexpected error during token verification: ${error.message}`,
+        );
+        throw error;
+      }
+
+      // NOTE: Ensure decoded token has id field
+      if (!decoded || !decoded.id) {
+        logger.warn('Invalid refresh token payload: missing id');
+        throw new AppError('Invalid refresh token', 401);
+      }
 
       logger.info(`Refresh token received for user ID: ${decoded.id}`);
 
       const storedToken = await redisClient.get(`session:${decoded.id}`);
 
-      if (!storedToken || storedToken !== refreshToken) {
-        logger.warn(
-          `Refresh token invalid or revoked for user ID: ${decoded.id}`,
-        );
+      if (!storedToken) {
+        logger.warn(`No session found for user ID: ${decoded.id}`);
+        throw new AppError('Refresh token invalid or revoked', 401);
+      }
+
+      if (storedToken !== refreshToken) {
+        logger.warn(`Token mismatch for user ID: ${decoded.id}`);
         throw new AppError('Refresh token invalid or revoked', 401);
       }
 
@@ -171,7 +198,8 @@ class AuthService {
         token: newToken,
       };
     } catch (error) {
-      logger.error(`Token refresh failed with error: ${error.message}`);
+      // NOTE: Log error but don't expose internal details
+      logger.error(`Token refresh failed: ${error.message}`);
       throw error;
     }
   }
