@@ -4,6 +4,7 @@
 class ScoreController {
   /**
    * Initializes the ScoreController with a ScoreService instance.
+   * @param scoreService
    */
   constructor(scoreService) {
     this.scoreService = scoreService;

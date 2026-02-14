@@ -18,6 +18,8 @@ class AuthController {
 
   /**
    * Registers a new player with email, password, and username
+   * @param req
+   * @param res
    */
   async register(req, res) {
     const { email, password, username } = req.body;
@@ -38,6 +40,8 @@ class AuthController {
 
   /**
    * Authenticates a player with email and password credentials
+   * @param req
+   * @param res
    */
   async login(req, res) {
     const { email, password } = req.body;
@@ -53,6 +57,8 @@ class AuthController {
 
   /**
    * Logs out an authenticated player
+   * @param req
+   * @param res
    */
   async logout(req, res) {
     const authHeader = req.headers.authorization;
@@ -77,6 +83,8 @@ class AuthController {
 
   /**
    * Refreshes an access token using a valid refresh token
+   * @param req
+   * @param res
    */
   async refreshToken(req, res) {
     const { refreshToken } = req.body;
@@ -92,6 +100,8 @@ class AuthController {
 
   /**
    * Retrieves the authenticated player's profile information
+   * @param req
+   * @param res
    */
   async getAuthenticatedPlayerProfile(req, res) {
     const userId = req.user.id;
