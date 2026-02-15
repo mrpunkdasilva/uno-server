@@ -1,11 +1,10 @@
-import { DrawTwoStrategy } from './DrawTwoStrategy.js';
-import { NumberCardStrategy } from './NumberCardStrategy.js';
-import { ReverseStrategy } from './ReverseStrategy.js';
-import { SkipStrategy } from './SkipStrategy.js';
-import { WildStrategy } from './WildStrategy.js';
-import { WildDrawFourStrategy } from './WildDrawFourStrategy.js';
+import { DrawTwoStrategy } from './draw-two-strategy.js';
+import { NumberCardStrategy } from './number-card-strategy.js';
+import { ReverseStrategy } from './reverse-strategy.js';
+import { SkipStrategy } from './skip-strategy.js';
+import { WildStrategy } from './wild-strategy.js';
+import { WildDrawFourStrategy } from './wild-draw-four-strategy.js';
 
-// The map now uses the 'value' property of a card (e.g., 'skip', 'reverse') as the key.
 const strategyMap = {
   skip: SkipStrategy,
   reverse: ReverseStrategy,
@@ -20,8 +19,6 @@ const strategyMap = {
  * @returns {typeof CardActionStrategy} A reference to the strategy class constructor.
  */
 const getStrategyForCard = (card) => {
-  // Return the specific strategy based on the card's value,
-  // or the default NumberCardStrategy if no match is found.
   return strategyMap[card.value] || NumberCardStrategy;
 };
 

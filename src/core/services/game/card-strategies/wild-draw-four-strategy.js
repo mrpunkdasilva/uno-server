@@ -1,4 +1,4 @@
-import { CardActionStrategy } from './CardActionStrategy.js';
+import { CardActionStrategy } from './card-action-strategy.js';
 import { CardColor } from '../../../enums/card.enum.js';
 
 /**

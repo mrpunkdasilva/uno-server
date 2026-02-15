@@ -1,4 +1,4 @@
-import { CardActionStrategy } from './CardActionStrategy.js';
+import { CardActionStrategy } from './card-action-strategy.js';
 
 /**
  * @class NumberCardStrategy
@@ -13,7 +13,6 @@ class NumberCardStrategy extends CardActionStrategy {
    * @param _gameContext
    */
   execute() {
-    // Renomeado para _gameContext
     // No special action to perform.
   }
 }

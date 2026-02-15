@@ -1,11 +1,11 @@
 import { describe, it, expect } from '@jest/globals';
 import { getStrategyForCard } from '../../../../../src/core/services/game/card-strategies/strategy.factory.js';
-import { DrawTwoStrategy } from '../../../../../src/core/services/game/card-strategies/DrawTwoStrategy.js';
-import { NumberCardStrategy } from '../../../../../src/core/services/game/card-strategies/NumberCardStrategy.js';
-import { ReverseStrategy } from '../../../../../src/core/services/game/card-strategies/ReverseStrategy.js';
-import { SkipStrategy } from '../../../../../src/core/services/game/card-strategies/SkipStrategy.js';
-import { WildStrategy } from '../../../../../src/core/services/game/card-strategies/WildStrategy.js';
-import { WildDrawFourStrategy } from '../../../../../src/core/services/game/card-strategies/WildDrawFourStrategy.js';
+import { DrawTwoStrategy } from '../../../../../src/core/services/game/card-strategies/draw-two-strategy.js';
+import { NumberCardStrategy } from '../../../../../src/core/services/game/card-strategies/number-card-strategy.js';
+import { ReverseStrategy } from '../../../../../src/core/services/game/card-strategies/reverse-strategy.js';
+import { SkipStrategy } from '../../../../../src/core/services/game/card-strategies/skip-strategy.js';
+import { WildStrategy } from '../../../../../src/core/services/game/card-strategies/wild-strategy.js';
+import { WildDrawFourStrategy } from '../../../../../src/core/services/game/card-strategies/wild-draw-four-strategy.js';
 
 describe('Strategy Factory', () => {
   it('should return NumberCardStrategy for number cards', () => {
