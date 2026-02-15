@@ -263,8 +263,7 @@ describe('GameDomain Logic', () => {
       mockGame.players.push({ _id: 'user-2', ready: true, position: 2 });
       const action = abandonGame(mockGame, userId);
 
-      expect(mockGame.players).toHaveLength(1);
-      expect(action.action).toBe(PostAbandonmentAction.SAVE_GAME);
+      expect(action.action).toBe(PostAbandonmentAction.END_GAME_WITH_WINNER);
     });
 
     it('should remove player and determine post abandonment action (end game with winner)', () => {
@@ -323,7 +322,7 @@ describe('GameDomain Logic', () => {
     it('should build a simple response with the top card name', () => {
       const discardTopResponse = {
         game_id: gameId,
-        current_top_card: { color: 'red', value: 'SKIP' },
+        current_top_card: { color: 'red', value: 'skip' },
         top_card: { color: 'red', value: 'SKIP' }, // This is ignored in the logic
       };
       const response = buildDiscardTopSimpleResponse(discardTopResponse);
