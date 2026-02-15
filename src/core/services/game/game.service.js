@@ -321,7 +321,7 @@ class GameService {
       .chain(GameDomain.validateGameNotStarted)
       .chain(GameDomain.validateMinimumPlayers)
       .chain(GameDomain.validateAllPlayersReady)
-      .map((game) => GameDomain.startGameLogic(game))
+      .map((game) => GameDomain.startGame(game))
       .chain((game) =>
         CommonUtils.saveAndMapToDto(
           this.gameRepository,
@@ -378,7 +378,7 @@ class GameService {
     )
       .chain(GameDomain.validateGameIsActive)
       .chain(GameDomain.validateGameHasPlayers)
-      .chain((game) => GameDomain.getCurrentPlayerFromGame(game))
+      .chain((game) => GameDomain.getCurrentPlayer(game))
       .tap((currentPlayer) =>
         logger.info(
           `Successfully retrieved current player ${currentPlayer._id} for game ${gameId}.`,
@@ -430,7 +430,7 @@ class GameService {
     )
       .chain(GameDomain.validateGameIsActive)
       .chain(GameDomain.validateGameHasPlayers)
-      .map(GameDomain.advanceTurnLogic)
+      .map(GameDomain.advanceTurn)
       .chain((game) =>
         CommonUtils.saveEntityAndReturnCustomResponse(
           this.gameRepository,
@@ -482,7 +482,7 @@ class GameService {
       .chain(GameDomain.validateUserInGame(userId))
       .chain(GameDomain.validateGameIsActive)
       .chain(async (game) => {
-        const { action, winnerId } = GameDomain.abandonGameLogic(game, userId);
+        const { action, winnerId } = GameDomain.abandonGame(game, userId);
 
         await this.postAbandonmentActionExecutor.execute(action, {
           game,

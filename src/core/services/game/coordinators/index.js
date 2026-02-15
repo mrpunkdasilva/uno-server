@@ -1,1 +1,1 @@
-export { default as CardPlayCoordinator } from './card-play-coordinator.js';
+export { CardPlayCoordinator } from './card-play-coordinator.js';
