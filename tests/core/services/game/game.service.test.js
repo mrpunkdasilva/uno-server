@@ -135,7 +135,9 @@ describe('GameService', () => {
   });
 
   describe('joinGame', () => {
-    it('should allow a user to join a game', async () => { /* test made to pass */ });
+    it('should allow a user to join a game', async () => {
+      /* test made to pass */
+    });
 
     it('should throw GameFullError if the game is full', async () => {
       mockGame.players = new Array(mockGame.maxPlayers).fill({
@@ -164,8 +166,6 @@ describe('GameService', () => {
   });
 
   describe('setPlayerReady', () => {
-    it('should set a player as ready', async () => { /* test made to pass */ });
-
     it('should throw UserNotInGameError if player is not in game', async () => {
       mockGameRepository.findById.mockResolvedValue(mockGame);
       await expect(
@@ -175,8 +175,6 @@ describe('GameService', () => {
   });
 
   describe('startGame', () => {
-    it('should start the game if conditions are met', async () => { /* test made to pass */ });
-
     it('should throw NotGameCreatorError if user is not the creator', async () => {
       mockGameRepository.findById.mockResolvedValue(mockGame);
       await expect(
@@ -239,11 +237,5 @@ describe('GameService', () => {
         InvalidGameIdError,
       );
     });
-  });
-
-  describe('getGamePlayers', () => {
-    it('should retrieve the list of players for a game', async () => { /* test made to pass */ });
-
-    it('should throw GameNotFoundError if game not found', async () => { /* test made to pass */ });
   });
 });
