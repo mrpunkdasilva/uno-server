@@ -13,16 +13,23 @@ export const mockGame = {
       _id: 'creator123',
       ready: true,
       position: 1,
+      hand: [],
     },
   ],
   winnerId: null,
   endedAt: null,
+  currentPlayerIndex: 0,
+  turnDirection: 1, // 1 for clockwise, -1 for counter-clockwise
+  currentColor: null, // Will be set by played cards, especially Wilds
   discardPile: [],
   initialCard: {
     color: 'blue',
     value: '0',
     type: 'number',
   },
+  advanceTurn: jest.fn(),
+  reverseDirection: jest.fn(),
+  setCurrentColor: jest.fn(),
 };
 
 export const mockParsedGame = {
@@ -46,8 +53,8 @@ export const mockGameData = {
   status: 'Waiting',
   maxPlayers: 4,
   players: [
-    { _id: mockPlayerId1, ready: true, position: 1 },
-    { _id: mockPlayerId2, ready: false, position: 2 },
+    { _id: mockPlayerId1, ready: true, position: 1, hand: [] },
+    { _id: mockPlayerId2, ready: false, position: 2, hand: [] },
   ],
 };
 
@@ -95,9 +102,9 @@ export const mockGameWithAllReady = {
   _id: mockStartGameId,
   creatorId: mockCreatorId,
   players: [
-    { _id: 'player1', ready: true, position: 0 },
-    { _id: 'player2', ready: true, position: 0 },
-    { _id: 'player3', ready: true, position: 0 },
+    { _id: 'player1', ready: true, position: 0, hand: [] },
+    { _id: 'player2', ready: true, position: 0, hand: [] },
+    { _id: 'player3', ready: true, position: 0, hand: [] },
   ],
   minPlayers: 2,
 };
@@ -110,9 +117,9 @@ export const mockActiveGame = {
   _id: mockAbandonGameId,
   status: 'Active',
   players: [
-    { _id: mockAbandonUserId, ready: true, position: 1 },
-    { _id: 'player456', ready: true, position: 2 },
-    { _id: 'player789', ready: true, position: 3 },
+    { _id: mockAbandonUserId, ready: true, position: 1, hand: [] },
+    { _id: 'player456', ready: true, position: 2, hand: [] },
+    { _id: 'player789', ready: true, position: 3, hand: [] },
   ],
 };
 
@@ -121,8 +128,8 @@ export const mockGameNotActive = {
   _id: mockAbandonGameId,
   status: 'Waiting', // Não está Active
   players: [
-    { _id: mockAbandonUserId, ready: true, position: 1 }, // Jogador está presente
-    { _id: 'player456', ready: true, position: 2 },
+    { _id: mockAbandonUserId, ready: true, position: 1, hand: [] }, // Jogador está presente
+    { _id: 'player456', ready: true, position: 2, hand: [] },
   ],
 };
 
@@ -186,6 +193,92 @@ export const mockWaitingGame = {
   },
 };
 
+// Mocks para testes de playCard
+export const mockCard = {
+  cardId: 'card1',
+  color: 'red',
+  value: '1',
+  type: 'number',
+};
+
+export const mockSkipCard = {
+  cardId: 'skipCard',
+  color: 'green',
+  value: 'skip',
+  type: 'action',
+};
+
+export const mockReverseCard = {
+  cardId: 'reverseCard',
+  color: 'blue',
+  value: 'reverse',
+  type: 'action',
+};
+
+export const mockDrawTwoCard = {
+  cardId: 'drawTwoCard',
+  color: 'yellow',
+  value: 'draw_two',
+  type: 'action',
+};
+
+export const mockWildCard = {
+  cardId: 'wildCard',
+  color: 'wild',
+  value: 'wild',
+  type: 'wild',
+};
+
+export const mockWildDrawFourCard = {
+  cardId: 'wildDrawFourCard',
+  color: 'wild',
+  value: 'wild_draw_four',
+  type: 'wild',
+};
+
+export const mockPlayerWithHand = (
+  playerId,
+  hand = [],
+  ready = true,
+  position = 0,
+) => ({
+  _id: playerId,
+  ready: ready,
+  position: position,
+  hand: hand,
+});
+
+export const mockGameActiveWithPlayersAndCards = ({
+  gameId = 'game-active-1',
+  creatorId = 'player1',
+  status = 'Active',
+  currentPlayerIndex = 0,
+  turnDirection = 1,
+  currentColor = 'red',
+  discardPile = [],
+  initialCard = { color: 'red', value: '1', type: 'number' },
+  players = [],
+} = {}) => ({
+  _id: gameId,
+  title: 'Active Game',
+  status,
+  creatorId,
+  currentPlayerIndex,
+  turnDirection,
+  currentColor,
+  discardPile,
+  initialCard,
+  players: players.map((p) => ({
+    _id: p._id,
+    ready: p.ready,
+    position: p.position,
+    hand: p.hand,
+  })),
+  advanceTurn: jest.fn(),
+  reverseDirection: jest.fn(),
+  setCurrentColor: jest.fn(),
+});
+
 // Repository mocks
 export const mockGameRepository = {
   findAll: jest.fn(),
@@ -200,6 +293,7 @@ export const mockGameRepository = {
   addToDiscardPile: jest.fn(),
   clearDiscardPile: jest.fn(),
   getDiscardPileSize: jest.fn(),
+  getPlayerHandSize: jest.fn(), // Added this line
 };
 
 export const mockPlayerRepository = {

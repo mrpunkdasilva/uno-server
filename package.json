@@ -11,7 +11,7 @@
     "test": "jest --coverage",
     "lint": "eslint \"{src,apps,libs,test}/**/*.js\"",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.js\" --fix",
-    "format": "prettier --write \"{src,apps,libs,test}/**/*.js\"",
+    "format": "prettier --write \"{src,apps,libs,tests}/**/*.js\"",
     "prepare": "husky",
     "lint-commit": "git-commit-msg-linter"
   },

@@ -1,5 +1,18 @@
-import GameService from '../../core/services/game.service.js';
 import getDiscardTopCardDtoSchema from '../dtos/card/get-discard-top-card.dto.js';
+import {
+  GameNotFoundError,
+  InvalidGameIdError,
+  GameHasNotStartedError,
+  GameAlreadyStartedError,
+  NotGameCreatorError,
+  MinimumPlayersRequiredError,
+  NotAllPlayersReadyError,
+  GameFullError,
+  UserAlreadyInGameError,
+  UserNotInGameError,
+  CannotPerformActionError,
+  GameNotAcceptingPlayersError,
+} from '../../core/errors/game.errors.js';
 
 /**
  * Controller class for handling game-related HTTP requests.
@@ -9,9 +22,10 @@ import getDiscardTopCardDtoSchema from '../dtos/card/get-discard-top-card.dto.js
 class GameController {
   /**
    * Initializes the GameController with a GameService instance.
+   * @param gameService
    */
-  constructor() {
-    this.gameService = new GameService();
+  constructor(gameService) {
+    this.gameService = gameService;
   }
 
   /**
@@ -70,7 +84,13 @@ class GameController {
         data: game,
       });
     } catch (error) {
-      res.status(404).json({
+      if (error instanceof GameNotFoundError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      res.status(500).json({
         success: false,
         message: error.message,
       });
@@ -94,7 +114,24 @@ class GameController {
         data: updatedGame,
       });
     } catch (error) {
-      res.status(400).json({
+      if (error instanceof GameNotFoundError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error instanceof InvalidGameIdError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error.name === 'ZodError') {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          details: error.errors,
+        });
+      }
+      res.status(500).json({
         success: false,
         message: error.message,
       });
@@ -115,7 +152,13 @@ class GameController {
         message: 'Game deleted successfully',
       });
     } catch (error) {
-      res.status(404).json({
+      if (error instanceof GameNotFoundError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      res.status(500).json({
         success: false,
         message: error.message,
       });
@@ -138,10 +181,28 @@ class GameController {
         data: result,
       });
     } catch (error) {
-      let status = 400;
-      if (error.message === 'Game not found') status = 404;
-      if (error.message === 'User is already in this game') status = 409;
-      res.status(status).json({
+      if (error instanceof GameNotFoundError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error instanceof GameNotAcceptingPlayersError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error instanceof GameFullError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error instanceof UserAlreadyInGameError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      res.status(500).json({
         success: false,
         message: error.message,
       });
@@ -165,20 +226,26 @@ class GameController {
         data: result,
       });
     } catch (error) {
-      let status = 500;
-      if (error.message === 'Game not found') {
-        status = 404;
-      } else if (error.message === 'Only the game creator can start the game') {
-        status = 403;
-      } else if (error.message === 'Game has already started') {
-        status = 409;
-      } else if (
-        error.message.includes('players required to start') ||
-        error.message === 'Not all players are ready'
+      if (
+        error instanceof GameNotFoundError ||
+        error instanceof UserNotInGameError
       ) {
-        status = 400;
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (
+        error instanceof NotGameCreatorError ||
+        error instanceof GameAlreadyStartedError ||
+        error instanceof MinimumPlayersRequiredError ||
+        error instanceof NotAllPlayersReadyError
+      ) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
       }
-      return res.status(status).json({
+      return res.status(500).json({
         success: false,
         message: error.message,
       });
@@ -192,25 +259,34 @@ class GameController {
    * @returns {Promise<void>} JSON response with success status or error message.
    */
   async abandonGame(req, res) {
-    const gameId = req.params.id;
-    const userId = req.user.id;
-
-    const result = await this.gameService.abandonGame(userId, gameId);
-
-    return result.fold(
-      (error) => {
-        return res.status(error.status).json({
+    try {
+      const gameId = req.params.id;
+      const userId = req.user.id;
+      await this.gameService.abandonGame(userId, gameId);
+      return res.status(200).json({
+        success: true,
+        message: 'You left the game',
+      });
+    } catch (error) {
+      if (
+        error instanceof GameNotFoundError ||
+        error instanceof UserNotInGameError
+      ) {
+        return res.status(error.statusCode).json({
           success: false,
           message: error.message,
         });
-      },
-      (message) => {
-        return res.status(200).json({
-          success: true,
-          message,
+      } else if (error instanceof CannotPerformActionError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
         });
-      },
-    );
+      }
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
   }
 
   /**
@@ -230,11 +306,21 @@ class GameController {
         data: result,
       });
     } catch (error) {
-      let status = 500;
-      if (error.message === 'Game not found') status = 404;
-      if (error.message === 'You are not in this game') status = 404;
-      if (error.message === 'Cannot ready now') status = 400;
-      return res.status(status).json({
+      if (
+        error instanceof GameNotFoundError ||
+        error instanceof UserNotInGameError
+      ) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error instanceof CannotPerformActionError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      return res.status(500).json({
         success: false,
         message: error.message,
       });
@@ -258,18 +344,18 @@ class GameController {
         },
       });
     } catch (error) {
-      let statusCode = 500;
-      let message = error.message;
-      if (error.message === 'Invalid game ID') {
-        statusCode = 400;
-        message = 'Invalid game ID';
-      } else if (error.message === 'Game not found') {
-        statusCode = 404;
-        message = 'Game not found';
+      if (
+        error instanceof InvalidGameIdError ||
+        error instanceof GameNotFoundError
+      ) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
       }
-      res.status(statusCode).json({
+      res.status(500).json({
         success: false,
-        message: message,
+        message: error.message,
       });
     }
   }
@@ -288,23 +374,7 @@ class GameController {
       });
       const gameId = validatedData.game_id;
       const result = await this.gameService.getDiscardTop(gameId);
-      if (result.error) {
-        if (result.error === 'Game not found') {
-          return res.status(404).json({
-            error: 'Game not found',
-          });
-        }
-        if (result.error === 'Game has not started yet') {
-          return res.status(412).json({
-            error: 'Game has not started yet',
-            game_state: result.game_state || 'waiting',
-            initial_card: result.initial_card,
-          });
-        }
-        return res.status(400).json({
-          error: result.error,
-        });
-      }
+
       return res.status(200).json(result);
     } catch (error) {
       if (error.name === 'ZodError') {
@@ -312,15 +382,18 @@ class GameController {
           error: 'Invalid game ID',
           details: error.errors,
         });
-      }
-      if (error.message === 'Invalid game ID') {
-        return res.status(400).json({
-          error: 'Invalid game ID',
+      } else if (
+        error instanceof InvalidGameIdError ||
+        error instanceof GameNotFoundError
+      ) {
+        return res.status(error.statusCode).json({
+          error: error.message,
         });
-      }
-      if (error.message === 'Game not found') {
-        return res.status(404).json({
-          error: 'Game not found',
+      } else if (error instanceof GameHasNotStartedError) {
+        return res.status(error.statusCode).json({
+          error: error.message,
+          game_state: 'waiting',
+          initial_card: error.initial_card,
         });
       }
       return next(error);
@@ -341,23 +414,7 @@ class GameController {
       });
       const gameId = validatedData.game_id;
       const result = await this.gameService.getDiscardTopSimple(gameId);
-      if (result.error) {
-        if (result.error === 'Game not found') {
-          return res.status(404).json({
-            error: 'Game not found',
-          });
-        }
-        if (result.error === 'Game has not started yet') {
-          return res.status(412).json({
-            error: 'Game has not started yet',
-            game_state: result.game_state || 'waiting',
-            initial_card: result.initial_card,
-          });
-        }
-        return res.status(400).json({
-          error: result.error,
-        });
-      }
+
       return res.status(200).json(result);
     } catch (error) {
       if (error.name === 'ZodError') {
@@ -365,15 +422,18 @@ class GameController {
           error: 'Invalid game ID',
           details: error.errors,
         });
-      }
-      if (error.message === 'Invalid game ID') {
-        return res.status(400).json({
-          error: 'Invalid game ID',
+      } else if (
+        error instanceof InvalidGameIdError ||
+        error instanceof GameNotFoundError
+      ) {
+        return res.status(error.statusCode).json({
+          error: error.message,
         });
-      }
-      if (error.message === 'Game not found') {
-        return res.status(404).json({
-          error: 'Game not found',
+      } else if (error instanceof GameHasNotStartedError) {
+        return res.status(error.statusCode).json({
+          error: error.message,
+          game_state: 'waiting',
+          initial_card: error.initial_card,
         });
       }
       return next(error);
@@ -394,15 +454,7 @@ class GameController {
       });
       const gameId = validatedData.game_id;
       const limit = parseInt(req.query.limit) || 10;
-      const game = await this.gameService.gameRepository.findRecentDiscards(
-        gameId,
-        limit,
-      );
-      if (!game) {
-        return res.status(404).json({
-          error: 'Game not found',
-        });
-      }
+      const game = await this.gameService.getRecentDiscards(gameId, limit);
 
       if (game.status === 'Waiting') {
         return res.status(412).json({
@@ -444,18 +496,20 @@ class GameController {
           error: 'Invalid game ID',
           details: error.errors,
         });
-      }
-      if (error.message === 'Invalid game ID') {
-        return res.status(400).json({
-          error: 'Invalid game ID',
+      } else if (
+        error instanceof InvalidGameIdError ||
+        error instanceof GameNotFoundError
+      ) {
+        return res.status(error.statusCode).json({
+          error: error.message,
+        });
+      } else if (error instanceof GameHasNotStartedError) {
+        return res.status(error.statusCode).json({
+          error: error.message,
+          game_state: 'waiting',
+          initial_card: error.initial_card,
         });
       }
-      if (error.message === 'Game not found') {
-        return res.status(404).json({
-          error: 'Game not found',
-        });
-      }
-
       return next(error);
     }
   }
@@ -478,17 +532,28 @@ class GameController {
         data: result,
       });
     } catch (error) {
-      let status = 500; // Erro padrão
-
-      // Mapeamento conforme US 20
-      if (error.message === 'Game not found') status = 404;
-      if (error.message === 'Only the game creator can end the game')
-        status = 403;
-      if (error.message === 'Game has already ended') status = 409;
-      if (error.message === 'Game must be in progress to be ended')
-        status = 412;
-
-      res.status(status).json({
+      if (error instanceof GameNotFoundError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error instanceof NotGameCreatorError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error instanceof GameAlreadyStartedError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error instanceof CannotPerformActionError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      res.status(500).json({
         success: false,
         message: error.message,
       });

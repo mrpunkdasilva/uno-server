@@ -40,6 +40,10 @@ const gameSchema = mongoose.Schema(
           type: Number,
           default: 0,
         },
+        hand: {
+          type: [mongoose.Schema.Types.Mixed], // Array of card objects
+          default: [],
+        },
       },
     ],
     winnerId: {
@@ -60,7 +64,10 @@ const gameSchema = mongoose.Schema(
       enum: [1, -1],
       default: 1, // 1 for clockwise, -1 for counter-clockwise
     },
-    // NOVO: Pilha de descarte
+    currentColor: {
+      type: String,
+      default: null, // Will be set by played cards, especially Wilds
+    },
     discardPile: [
       {
         cardId: {
@@ -113,10 +120,10 @@ const gameSchema = mongoose.Schema(
     },
     deck: [
       {
-        cardId: String,
-        color: String,
-        value: String,
-        type: String,
+        cardId: { type: String, required: true },
+        color: { type: String, required: true },
+        value: { type: String, required: true },
+        type: { type: String, required: true },
       },
     ],
   },
@@ -124,6 +131,45 @@ const gameSchema = mongoose.Schema(
     timestamps: true,
   },
 );
+
+// --- Instance Methods ---
+
+/**
+ * Advances the turn to the next player based on the game's turn direction.
+ */
+gameSchema.methods.advanceTurn = function () {
+  const numPlayers = this.players.length;
+  if (numPlayers === 0) return;
+  this.currentPlayerIndex =
+    (this.currentPlayerIndex + this.turnDirection + numPlayers) % numPlayers;
+};
+
+/**
+ * Reverses the direction of play.
+ */
+gameSchema.methods.reverseDirection = function () {
+  this.turnDirection *= -1;
+};
+
+/**
+ * Gets the next player in turn order without advancing the turn.
+ * @returns {object|null} The next player object or null if no players.
+ */
+gameSchema.methods.getNextPlayer = function () {
+  const numPlayers = this.players.length;
+  if (numPlayers === 0) return null;
+  const nextPlayerIndex =
+    (this.currentPlayerIndex + this.turnDirection + numPlayers) % numPlayers;
+  return this.players[nextPlayerIndex];
+};
+
+/**
+ * Sets the current color of the game, used after a Wild card is played.
+ * @param {string} color - The color to set.
+ */
+gameSchema.methods.setCurrentColor = function (color) {
+  this.currentColor = color;
+};
 
 const Game = mongoose.model('Game', gameSchema);
 
