@@ -3,9 +3,9 @@ POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
 
 {
-  "email": "register_user@example.com",
+  "email": "register2_user@example.com",
   "password": "register_password",
-  "username": "register_user"
+  "username": "register2_user"
 }
 
 ### Authenticate a user and get JWT tokens
