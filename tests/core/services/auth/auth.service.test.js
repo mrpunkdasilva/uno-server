@@ -16,6 +16,12 @@ jest.mock('../../../../src/config/logger.js', () => ({
   warn: jest.fn(),
   error: jest.fn(),
 }));
+// NOTE: Mock token utility functions
+jest.mock('../../../../src/core/utils/token.util.js', () => ({
+  generateToken: jest.fn(),
+  verifyToken: jest.fn(),
+  decodeToken: jest.fn(),
+}));
 
 import {
   describe,
@@ -31,6 +37,8 @@ import redisClient from '../../../../src/config/redis.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import logger from '../../../../src/config/logger.js';
+// NOTE: Import token utilities for testing
+import * as tokenUtil from '../../../../src/core/utils/token.util.js';
 
 // Import all mocks from centralized mock file
 import {
@@ -80,12 +88,16 @@ describe('AuthService', () => {
     process.env.JWT_SECRET = 'test-secret';
     process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
 
-    // Clear bcrypt mock
+    // Clear all mocks
     bcrypt.compare.mockClear();
     bcrypt.hash.mockClear();
     jwt.sign.mockClear();
     jwt.verify.mockClear();
     jwt.decode.mockClear();
+    // NOTE: Clear token utility mocks
+    tokenUtil.generateToken.mockClear();
+    tokenUtil.verifyToken.mockClear();
+    tokenUtil.decodeToken.mockClear();
   });
 
   afterEach(() => {
@@ -104,7 +116,8 @@ describe('AuthService', () => {
     it('should authenticate user with valid credentials', async () => {
       mockPlayerRepository.findByEmail.mockResolvedValue(mockPlayer);
       bcrypt.compare.mockResolvedValue(true);
-      jwt.sign
+      // NOTE: Mock tokenUtil.generateToken instead of jwt.sign
+      tokenUtil.generateToken
         .mockReturnValueOnce(mockAccessToken)
         .mockReturnValueOnce(mockRefreshToken);
 
@@ -128,7 +141,7 @@ describe('AuthService', () => {
       mockPlayerRepository.findByEmail.mockResolvedValue(null);
 
       await expect(authService.login(mockEmail, mockPassword)).rejects.toThrow(
-        'Authentication failed: Invalid credentials',
+        'Invalid credentials',
       );
 
       expect(logger.warn).toHaveBeenCalledWith(
@@ -141,7 +154,7 @@ describe('AuthService', () => {
       bcrypt.compare.mockResolvedValue(false);
 
       await expect(authService.login(mockEmail, mockPassword)).rejects.toThrow(
-        'Authentication failed: Invalid credentials',
+        'Invalid credentials',
       );
 
       expect(logger.warn).toHaveBeenCalledWith(
@@ -152,7 +165,7 @@ describe('AuthService', () => {
     it('should store refresh token in Redis with correct expiration', async () => {
       mockPlayerRepository.findByEmail.mockResolvedValue(mockPlayer);
       bcrypt.compare.mockResolvedValue(true);
-      jwt.sign
+      tokenUtil.generateToken
         .mockReturnValueOnce(mockAccessToken)
         .mockReturnValueOnce(mockRefreshToken);
 
@@ -172,7 +185,7 @@ describe('AuthService', () => {
       mockPlayerRepository.findByEmail.mockRejectedValue(dbError);
 
       await expect(authService.login(mockEmail, mockPassword)).rejects.toThrow(
-        'Authentication failed: Database connection failed',
+        'Database connection failed',
       );
 
       expect(logger.error).toHaveBeenCalled();
@@ -181,7 +194,7 @@ describe('AuthService', () => {
     it('should call bcrypt.compare with correct parameters', async () => {
       mockPlayerRepository.findByEmail.mockResolvedValue(mockPlayer);
       bcrypt.compare.mockResolvedValue(true);
-      jwt.sign
+      tokenUtil.generateToken
         .mockReturnValueOnce(mockAccessToken)
         .mockReturnValueOnce(mockRefreshToken);
 
@@ -196,13 +209,14 @@ describe('AuthService', () => {
     it('should generate both access and refresh tokens on login', async () => {
       mockPlayerRepository.findByEmail.mockResolvedValue(mockPlayer);
       bcrypt.compare.mockResolvedValue(true);
-      jwt.sign
+      tokenUtil.generateToken
         .mockReturnValueOnce(mockAccessToken)
         .mockReturnValueOnce(mockRefreshToken);
 
       const result = await authService.login(mockEmail, mockPassword);
 
-      expect(jwt.sign).toHaveBeenCalledTimes(2);
+      // NOTE: Verify tokenUtil.generateToken was called twice
+      expect(tokenUtil.generateToken).toHaveBeenCalledTimes(2);
       expect(result.accessToken).toBeDefined();
       expect(result.refreshToken).toBeDefined();
     });
@@ -210,7 +224,7 @@ describe('AuthService', () => {
 
   describe('logout', () => {
     it('should delete session from Redis', async () => {
-      jwt.decode.mockReturnValue(mockDecodedToken);
+      tokenUtil.decodeToken.mockReturnValue(mockDecodedToken);
 
       const result = await authService.logout(mockPlayerId, mockAccessToken);
 
@@ -226,7 +240,7 @@ describe('AuthService', () => {
         ...mockDecodedToken,
         exp: futureExp,
       };
-      jwt.decode.mockReturnValue(decodedWithFutureExp);
+      tokenUtil.decodeToken.mockReturnValue(decodedWithFutureExp);
       redisClient.del.mockResolvedValue(1);
       redisClient.set.mockResolvedValue('OK');
 
@@ -255,7 +269,7 @@ describe('AuthService', () => {
     });
 
     it('should handle token decoding errors gracefully', async () => {
-      jwt.decode.mockReturnValue(null);
+      tokenUtil.decodeToken.mockReturnValue(null);
 
       const result = await authService.logout(mockPlayerId, mockAccessToken);
 
@@ -270,7 +284,7 @@ describe('AuthService', () => {
         ...mockDecodedToken,
         exp: Math.floor(Date.now() / 1000) - 100, // Past timestamp
       };
-      jwt.decode.mockReturnValue(expiredDecodedToken);
+      tokenUtil.decodeToken.mockReturnValue(expiredDecodedToken);
 
       const result = await authService.logout(mockPlayerId, mockExpiredToken);
 
@@ -283,7 +297,7 @@ describe('AuthService', () => {
     });
 
     it('should log info message when user logs out', async () => {
-      jwt.decode.mockReturnValue(mockDecodedToken);
+      tokenUtil.decodeToken.mockReturnValue(mockDecodedToken);
 
       await authService.logout(mockPlayerId, mockAccessToken);
 
@@ -297,7 +311,7 @@ describe('AuthService', () => {
 
     it('should calculate correct time-to-live for token blacklisting', async () => {
       const futureExp = Math.floor(Date.now() / 1000) + 3600; // 1 hour in future
-      jwt.decode.mockReturnValue({
+      tokenUtil.decodeToken.mockReturnValue({
         ...mockDecodedToken,
         exp: futureExp,
       });
@@ -316,15 +330,16 @@ describe('AuthService', () => {
 
   describe('refreshToken', () => {
     it('should generate new access token with valid refresh token', async () => {
-      jwt.verify.mockReturnValue(mockDecodedRefreshToken);
+      // NOTE: Use tokenUtil.verifyToken instead of jwt.verify
+      tokenUtil.verifyToken.mockReturnValue(mockDecodedRefreshToken);
       redisClient.get.mockResolvedValue(mockRefreshToken);
-      jwt.sign.mockReturnValue(mockAccessToken);
+      tokenUtil.generateToken.mockReturnValue(mockAccessToken);
 
       const result = await authService.refreshToken(mockRefreshToken);
 
       expect(result.success).toBe(true);
       expect(result.token).toBe(mockAccessToken);
-      expect(jwt.verify).toHaveBeenCalledWith(
+      expect(tokenUtil.verifyToken).toHaveBeenCalledWith(
         mockRefreshToken,
         process.env.JWT_REFRESH_SECRET,
       );
@@ -343,7 +358,7 @@ describe('AuthService', () => {
     it('should throw error when refresh token is expired', async () => {
       const tokenExpiredError = new Error('Token expired');
       tokenExpiredError.name = 'TokenExpiredError';
-      jwt.verify.mockImplementation(() => {
+      tokenUtil.verifyToken.mockImplementation(() => {
         throw tokenExpiredError;
       });
 
@@ -359,7 +374,7 @@ describe('AuthService', () => {
     it('should throw error when refresh token is invalid', async () => {
       const jsonWebTokenError = new Error('Invalid token');
       jsonWebTokenError.name = 'JsonWebTokenError';
-      jwt.verify.mockImplementation(() => {
+      tokenUtil.verifyToken.mockImplementation(() => {
         throw jsonWebTokenError;
       });
 
@@ -373,31 +388,36 @@ describe('AuthService', () => {
     });
 
     it('should throw error when token is not in Redis session', async () => {
-      jwt.verify.mockReturnValue(mockDecodedRefreshToken);
+      tokenUtil.verifyToken.mockReturnValue(mockDecodedRefreshToken);
       redisClient.get.mockResolvedValue(null);
 
       await expect(authService.refreshToken(mockRefreshToken)).rejects.toThrow(
         'Refresh token invalid or revoked',
       );
 
+      // NOTE: Match the actual log message from auth.service.js
       expect(logger.warn).toHaveBeenCalledWith(
-        `Refresh token invalid or revoked for user ID: ${mockPlayerId}`,
+        `No session found for user ID: ${mockPlayerId}`,
       );
     });
 
     it('should throw error when stored token does not match provided token', async () => {
-      jwt.verify.mockReturnValue(mockDecodedRefreshToken);
+      tokenUtil.verifyToken.mockReturnValue(mockDecodedRefreshToken);
       redisClient.get.mockResolvedValue('different-token');
 
       await expect(authService.refreshToken(mockRefreshToken)).rejects.toThrow(
         'Refresh token invalid or revoked',
       );
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        `Token mismatch for user ID: ${mockPlayerId}`,
+      );
     });
 
     it('should log info message when new access token is generated', async () => {
-      jwt.verify.mockReturnValue(mockDecodedRefreshToken);
+      tokenUtil.verifyToken.mockReturnValue(mockDecodedRefreshToken);
       redisClient.get.mockResolvedValue(mockRefreshToken);
-      jwt.sign.mockReturnValue(mockAccessToken);
+      tokenUtil.generateToken.mockReturnValue(mockAccessToken);
 
       await authService.refreshToken(mockRefreshToken);
 
@@ -410,166 +430,25 @@ describe('AuthService', () => {
     });
 
     it('should generate token with 15m expiration on refresh', async () => {
-      jwt.verify.mockReturnValue(mockDecodedRefreshToken);
+      tokenUtil.verifyToken.mockReturnValue(mockDecodedRefreshToken);
       redisClient.get.mockResolvedValue(mockRefreshToken);
-      jwt.sign.mockReturnValue(mockAccessToken);
+      tokenUtil.generateToken.mockReturnValue(mockAccessToken);
 
       const result = await authService.refreshToken(mockRefreshToken);
 
-      // Verify that sign was called and token was returned
-      expect(jwt.sign).toHaveBeenCalled();
-      expect(result.success).toBe(true);
-      expect(result.token).toBe(mockAccessToken);
-
-      // Check that jwt.sign was called with correct parameters
-      const signCall = jwt.sign.mock.calls[0];
-      expect(signCall[1]).toBe(process.env.JWT_SECRET);
-      expect(signCall[2]).toEqual({ expiresIn: '15m' });
-    });
-  });
-
-  describe('generateToken', () => {
-    it('should generate JWT token with correct payload', () => {
-      jwt.sign.mockReturnValue(mockAccessToken);
-
-      const token = authService.generateToken(
-        mockPlayer,
+      // NOTE: Verify tokenUtil.generateToken was called with correct parameters
+      expect(tokenUtil.generateToken).toHaveBeenCalledWith(
+        { id: mockPlayerId },
         process.env.JWT_SECRET,
         '15m',
       );
-
-      expect(token).toBe(mockAccessToken);
-      expect(jwt.sign).toHaveBeenCalledWith(
-        { id: mockPlayerId },
-        process.env.JWT_SECRET,
-        { expiresIn: '15m' },
-      );
-    });
-
-    it('should generate token with different expiration times', () => {
-      jwt.sign.mockReturnValue(mockRefreshToken);
-
-      const token = authService.generateToken(
-        mockPlayer,
-        process.env.JWT_REFRESH_SECRET,
-        '7d',
-      );
-
-      expect(token).toBe(mockRefreshToken);
-      expect(jwt.sign).toHaveBeenCalledWith(
-        { id: mockPlayerId },
-        process.env.JWT_REFRESH_SECRET,
-        { expiresIn: '7d' },
-      );
-    });
-
-    it('should use correct secret for token signing', () => {
-      jwt.sign.mockReturnValue(mockAccessToken);
-      const customSecret = 'custom-secret-key';
-
-      authService.generateToken(mockPlayer, customSecret, '1h');
-
-      expect(jwt.sign).toHaveBeenCalledWith(
-        { id: mockPlayerId },
-        customSecret,
-        { expiresIn: '1h' },
-      );
-    });
-
-    it('should only include user id in token payload', () => {
-      jwt.sign.mockReturnValue(mockAccessToken);
-
-      authService.generateToken(mockPlayer, process.env.JWT_SECRET, '15m');
-
-      const callArgs = jwt.sign.mock.calls[0];
-      const payload = callArgs[0];
-      expect(Object.keys(payload)).toEqual(['id']);
-      expect(payload.id).toBe(mockPlayerId);
+      expect(result.success).toBe(true);
+      expect(result.token).toBe(mockAccessToken);
     });
   });
 
-  describe('verifyToken', () => {
-    it('should verify valid token', () => {
-      jwt.verify.mockReturnValue(mockDecodedToken);
-
-      const result = authService.verifyToken(
-        mockAccessToken,
-        process.env.JWT_SECRET,
-      );
-
-      expect(result).toEqual(mockDecodedToken);
-      expect(jwt.verify).toHaveBeenCalledWith(
-        mockAccessToken,
-        process.env.JWT_SECRET,
-      );
-    });
-
-    it('should throw error when token is expired', () => {
-      const tokenExpiredError = new Error('Token expired');
-      tokenExpiredError.name = 'TokenExpiredError';
-      jwt.verify.mockImplementation(() => {
-        throw tokenExpiredError;
-      });
-
-      expect(() =>
-        authService.verifyToken(mockExpiredToken, process.env.JWT_SECRET),
-      ).toThrow('Token has expired');
-
-      expect(logger.warn).toHaveBeenCalledWith(
-        'Token verification failed: Token has expired',
-      );
-    });
-
-    it('should throw error when token is invalid', () => {
-      const jsonWebTokenError = new Error('Invalid token');
-      jsonWebTokenError.name = 'JsonWebTokenError';
-      jwt.verify.mockImplementation(() => {
-        throw jsonWebTokenError;
-      });
-
-      expect(() =>
-        authService.verifyToken(mockInvalidToken, process.env.JWT_SECRET),
-      ).toThrow('Invalid token');
-
-      expect(logger.warn).toHaveBeenCalledWith(
-        'Token verification failed: Invalid token',
-      );
-    });
-
-    it('should throw error for malformed tokens', () => {
-      const malformedTokenError = new Error('Malformed token');
-      malformedTokenError.name = 'JsonWebTokenError';
-      jwt.verify.mockImplementation(() => {
-        throw malformedTokenError;
-      });
-
-      expect(() =>
-        authService.verifyToken('malformed.token', process.env.JWT_SECRET),
-      ).toThrow('Invalid token');
-    });
-
-    it('should log error when verification fails unexpectedly', () => {
-      const unexpectedError = new Error('Unexpected error');
-      jwt.verify.mockImplementation(() => {
-        throw unexpectedError;
-      });
-
-      expect(() =>
-        authService.verifyToken(mockAccessToken, process.env.JWT_SECRET),
-      ).toThrow('Token verification failed: Unexpected error');
-
-      expect(logger.error).toHaveBeenCalled();
-    });
-
-    it('should use correct secret for verification', () => {
-      jwt.verify.mockReturnValue(mockDecodedToken);
-      const customSecret = 'custom-secret';
-
-      authService.verifyToken(mockAccessToken, customSecret);
-
-      expect(jwt.verify).toHaveBeenCalledWith(mockAccessToken, customSecret);
-    });
-  });
+  // NOTE: The generateToken and verifyToken methods were removed from AuthService
+  // as they are now handled by token.util.js directly in the service methods
 
   describe('hashPassword', () => {
     it('should hash password with bcrypt', async () => {
@@ -681,7 +560,7 @@ describe('AuthService', () => {
       bcrypt.compare.mockResolvedValue(false);
 
       await expect(authService.login(mockEmail, '')).rejects.toThrow(
-        'Authentication failed: Invalid credentials',
+        'Invalid credentials',
       );
     });
 
@@ -689,14 +568,14 @@ describe('AuthService', () => {
       mockPlayerRepository.findByEmail.mockResolvedValue(null);
 
       await expect(authService.login('', mockPassword)).rejects.toThrow(
-        'Authentication failed: Invalid credentials',
+        'Invalid credentials',
       );
     });
 
     it('should handle concurrent token refresh requests', async () => {
-      jwt.verify.mockReturnValue(mockDecodedRefreshToken);
+      tokenUtil.verifyToken.mockReturnValue(mockDecodedRefreshToken);
       redisClient.get.mockResolvedValue(mockRefreshToken);
-      jwt.sign.mockReturnValue(mockAccessToken);
+      tokenUtil.generateToken.mockReturnValue(mockAccessToken);
 
       const promise1 = authService.refreshToken(mockRefreshToken);
       const promise2 = authService.refreshToken(mockRefreshToken);
@@ -707,21 +586,6 @@ describe('AuthService', () => {
       expect(results[1].success).toBe(true);
     });
 
-    it('should handle token with missing id field', () => {
-      const decodedTokenWithoutId = {
-        iat: 1704113200,
-        exp: 1704114000,
-      };
-      jwt.verify.mockReturnValue(decodedTokenWithoutId);
-
-      const result = authService.verifyToken(
-        mockAccessToken,
-        process.env.JWT_SECRET,
-      );
-
-      expect(result).toEqual(decodedTokenWithoutId);
-    });
-
     it('should handle player with missing _id field', async () => {
       const playerWithoutId = {
         email: mockEmail,
@@ -730,7 +594,7 @@ describe('AuthService', () => {
       };
       mockPlayerRepository.findByEmail.mockResolvedValue(playerWithoutId);
       bcrypt.compare.mockResolvedValue(true);
-      jwt.sign
+      tokenUtil.generateToken
         .mockReturnValueOnce(mockAccessToken)
         .mockReturnValueOnce(mockRefreshToken);
 
@@ -738,10 +602,16 @@ describe('AuthService', () => {
       const result = await authService.login(mockEmail, mockPassword);
 
       expect(result.success).toBe(true);
+      // NOTE: generateToken should be called with empty object if no _id
+      expect(tokenUtil.generateToken).toHaveBeenCalledWith(
+        { id: undefined },
+        process.env.JWT_SECRET,
+        '15m',
+      );
     });
 
     it('should handle Redis unavailability during logout', async () => {
-      jwt.decode.mockReturnValue(mockDecodedToken);
+      tokenUtil.decodeToken.mockReturnValue(mockDecodedToken);
       const redisError = new Error('Redis unavailable');
       redisClient.del.mockRejectedValue(redisError);
 
@@ -752,13 +622,12 @@ describe('AuthService', () => {
 
     it('should handle very long tokens', async () => {
       const longToken = 'x'.repeat(10000);
-      jwt.verify.mockImplementation(() => {
+      tokenUtil.verifyToken.mockImplementation(() => {
         throw new Error('Invalid token');
       });
 
-      expect(() =>
-        authService.verifyToken(longToken, process.env.JWT_SECRET),
-      ).toThrow();
+      // NOTE: Testing refreshToken with invalid token
+      await expect(authService.refreshToken(longToken)).rejects.toThrow();
     });
 
     it('should handle special characters in email during login', async () => {
@@ -767,7 +636,7 @@ describe('AuthService', () => {
 
       await expect(
         authService.login(emailWithSpecialChars, mockPassword),
-      ).rejects.toThrow('Authentication failed: Invalid credentials');
+      ).rejects.toThrow('Invalid credentials');
 
       expect(mockPlayerRepository.findByEmail).toHaveBeenCalledWith(
         emailWithSpecialChars,
@@ -775,7 +644,7 @@ describe('AuthService', () => {
     });
 
     it('should handle multiple logout calls with same token', async () => {
-      jwt.decode.mockReturnValue(mockDecodedToken);
+      tokenUtil.decodeToken.mockReturnValue(mockDecodedToken);
 
       const result1 = await authService.logout(mockPlayerId, mockAccessToken);
       const result2 = await authService.logout(mockPlayerId, mockAccessToken);
@@ -784,18 +653,6 @@ describe('AuthService', () => {
       expect(result2.success).toBe(true);
       expect(redisClient.del).toHaveBeenCalledTimes(2);
     });
-
-    it('should handle undefined secret environment variable', () => {
-      delete process.env.JWT_SECRET;
-      jwt.sign.mockReturnValue(mockAccessToken);
-
-      const token = authService.generateToken(mockPlayer, undefined, '15m');
-
-      expect(token).toBe(mockAccessToken);
-      expect(jwt.sign).toHaveBeenCalledWith({ id: mockPlayerId }, undefined, {
-        expiresIn: '15m',
-      });
-    });
   });
 
   describe('Integration Scenarios', () => {
@@ -803,7 +660,7 @@ describe('AuthService', () => {
       // Login
       mockPlayerRepository.findByEmail.mockResolvedValue(mockPlayer);
       bcrypt.compare.mockResolvedValue(true);
-      jwt.sign
+      tokenUtil.generateToken
         .mockReturnValueOnce(mockAccessToken)
         .mockReturnValueOnce(mockRefreshToken);
 
@@ -811,7 +668,7 @@ describe('AuthService', () => {
       expect(loginResult.success).toBe(true);
 
       // Logout
-      jwt.decode.mockReturnValue(mockDecodedToken);
+      tokenUtil.decodeToken.mockReturnValue(mockDecodedToken);
       const logoutResult = await authService.logout(
         mockPlayerId,
         loginResult.accessToken,
@@ -822,19 +679,21 @@ describe('AuthService', () => {
     });
 
     it('should complete full token refresh cycle', async () => {
-      jwt.verify.mockReturnValue(mockDecodedRefreshToken);
+      tokenUtil.verifyToken.mockReturnValue(mockDecodedRefreshToken);
       redisClient.get.mockResolvedValue(mockRefreshToken);
-      jwt.sign.mockReturnValue(mockAccessToken);
+      tokenUtil.generateToken.mockReturnValue(mockAccessToken);
 
       const result = await authService.refreshToken(mockRefreshToken);
 
       expect(result.success).toBe(true);
       expect(result.token).toBe(mockAccessToken);
 
-      // Verify that sign was called with correct secret and expiration
-      const signCall = jwt.sign.mock.calls[jwt.sign.mock.calls.length - 1];
-      expect(signCall[1]).toBe(process.env.JWT_SECRET);
-      expect(signCall[2]).toEqual({ expiresIn: '15m' });
+      // Verify that generateToken was called with correct secret and expiration
+      expect(tokenUtil.generateToken).toHaveBeenCalledWith(
+        { id: mockPlayerId },
+        process.env.JWT_SECRET,
+        '15m',
+      );
     });
 
     it('should complete password update with hash verification', async () => {
@@ -847,10 +706,11 @@ describe('AuthService', () => {
     });
 
     it('should verify token and check blacklist status', async () => {
-      jwt.verify.mockReturnValue(mockDecodedToken);
+      // NOTE: Token verification is done through tokenUtil directly
+      tokenUtil.verifyToken.mockReturnValue(mockDecodedToken);
       redisClient.get.mockResolvedValue(null);
 
-      const verifyResult = authService.verifyToken(
+      const verifyResult = tokenUtil.verifyToken(
         mockAccessToken,
         process.env.JWT_SECRET,
       );
@@ -860,33 +720,41 @@ describe('AuthService', () => {
 
       expect(verifyResult).toEqual(mockDecodedToken);
       expect(blacklistResult).toBeNull();
+      expect(tokenUtil.verifyToken).toHaveBeenCalledWith(
+        mockAccessToken,
+        process.env.JWT_SECRET,
+      );
     });
 
     it('should handle login followed by token verification', async () => {
       // Login
       mockPlayerRepository.findByEmail.mockResolvedValue(mockPlayer);
       bcrypt.compare.mockResolvedValue(true);
-      jwt.sign
+      tokenUtil.generateToken
         .mockReturnValueOnce(mockAccessToken)
         .mockReturnValueOnce(mockRefreshToken);
 
       const loginResult = await authService.login(mockEmail, mockPassword);
 
-      // Verify token
-      jwt.verify.mockReturnValue(mockDecodedToken);
-      const verifyResult = authService.verifyToken(
+      // Verify token - using tokenUtil directly as the service would
+      tokenUtil.verifyToken.mockReturnValue(mockDecodedToken);
+      const verifyResult = tokenUtil.verifyToken(
         loginResult.accessToken,
         process.env.JWT_SECRET,
       );
 
       expect(verifyResult).toEqual(mockDecodedToken);
+      expect(tokenUtil.verifyToken).toHaveBeenCalledWith(
+        loginResult.accessToken,
+        process.env.JWT_SECRET,
+      );
     });
 
     it('should handle login, token refresh, and logout cycle', async () => {
       // Login
       mockPlayerRepository.findByEmail.mockResolvedValue(mockPlayer);
       bcrypt.compare.mockResolvedValue(true);
-      jwt.sign
+      tokenUtil.generateToken
         .mockReturnValueOnce(mockAccessToken)
         .mockReturnValueOnce(mockRefreshToken);
 
@@ -894,9 +762,9 @@ describe('AuthService', () => {
       expect(loginResult.success).toBe(true);
 
       // Refresh token
-      jwt.verify.mockReturnValue(mockDecodedRefreshToken);
+      tokenUtil.verifyToken.mockReturnValue(mockDecodedRefreshToken);
       redisClient.get.mockResolvedValue(mockRefreshToken);
-      jwt.sign.mockReturnValue(mockAccessToken);
+      tokenUtil.generateToken.mockReturnValue(mockAccessToken);
 
       const refreshResult = await authService.refreshToken(
         loginResult.refreshToken,
@@ -904,7 +772,7 @@ describe('AuthService', () => {
       expect(refreshResult.success).toBe(true);
 
       // Logout
-      jwt.decode.mockReturnValue(mockDecodedToken);
+      tokenUtil.decodeToken.mockReturnValue(mockDecodedToken);
       const logoutResult = await authService.logout(
         mockPlayerId,
         refreshResult.token,

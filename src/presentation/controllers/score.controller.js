@@ -1,14 +1,13 @@
-import ScoreService from '../../core/services/score.service.js';
-
 /**
  * Controller to handle score HTTP requests.
  */
 class ScoreController {
   /**
    * Initializes the ScoreController with a ScoreService instance.
+   * @param scoreService
    */
-  constructor() {
-    this.scoreService = new ScoreService();
+  constructor(scoreService) {
+    this.scoreService = scoreService;
   }
 
   /**
