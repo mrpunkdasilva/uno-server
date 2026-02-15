@@ -85,7 +85,7 @@ class GameService {
       this,
     );
     this.postPlayOutcomeExecutor = new PostPlayOutcomeExecutor(this);
-    this.cardPlayCoordinator = new CardPlayCoordinator(this);
+    this.cardPlayCoordinator = new CardPlayCoordinator(this, logger);
   }
 
   /**
@@ -844,11 +844,12 @@ class GameService {
       .chain(validateGameIsActive)
       .chain(validateIsCurrentPlayer(playerId))
       .chain(validatePlayerHasCard(playerId, cardId))
-      .chain(async ({ game, cardIndex, cardToPlay }) => {
+      .chain(async ({ game, currentPlayer, cardIndex, cardToPlay }) => {
         return await this.cardPlayCoordinator.execute(
           game,
           gameId,
           playerId,
+          currentPlayer,
           cardIndex,
           cardToPlay,
           chosenColor,

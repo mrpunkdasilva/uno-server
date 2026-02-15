@@ -1,3 +1,4 @@
+import logger from '../../../../config/logger.js';
 import { getStrategyForCard } from '../card-strategies/strategy.factory.js';
 import {
   applyCardPlayEffects,
@@ -14,11 +15,19 @@ import { Result } from '../../../utils/Result.js';
  */
 export class CardPlayCoordinator {
   /**
-   * Initializes the CardPlayCoordinator.
+   * Initializes the CardPlayer ${playerId} playing card ${cardToPlay.id} in game ${gameId}.`                                                                                                                              │
+│ 49 +   );                                                                                                                                                                                                                        │
+│ 50     const StrategyClass = getStrategyForCard(cardToPlay);                                                                                                                                                                     │
+│ 51     const strategy = new StrategyClass();                                                                                                                                                                                     │
+│ 52     const gameContext = { game, card: cardToPlay, chosenColor };                                                                                                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ CardPlayCoordinator.js atualizado. Em gaCoordinator.
    * @param {object} gameService - The GameService instance, providing access to necessary dependencies.
+   * @param {object} logger - The logger instance.
    */
-  constructor(gameService) {
+  constructor(gameService, logger) {
     this.gameService = gameService;
+    this.logger = logger;
   }
 
   /**
@@ -41,6 +50,9 @@ export class CardPlayCoordinator {
     cardToPlay,
     chosenColor,
   ) {
+    this.logger.info(
+      `CardPlayCoordinator: Player ${playerId} playing card ${cardToPlay.id} in game ${gameId}.`
+    );
     const StrategyClass = getStrategyForCard(cardToPlay);
     const strategy = new StrategyClass();
     const gameContext = { game, card: cardToPlay, chosenColor };
