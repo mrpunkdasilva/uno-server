@@ -1,73 +1,19 @@
-import { Result, ResultAsync } from '../../utils/Result.js';
-import gameResponseDtoSchema from '../../../presentation/dtos/game/game-response.dto.js';
-import updateGameDtoSchema from '../../../presentation/dtos/game/update-game.dto.js';
-import createGameDtoSchema from '../../../presentation/dtos/game/create-game.dto.js';
-import logger from '../../../config/logger.js';
-import {
-  CannotPerformActionError,
-  CouldNotDetermineCurrentPlayerError,
-  GameAlreadyStartedError,
-  GameFullError,
-  GameHasNotStartedError,
-  GameNotAcceptingPlayersError,
-  GameNotActiveError,
-  GameNotFoundError,
-  InvalidGameIdError,
-  MinimumPlayersRequiredError,
-  NotAllPlayersReadyError,
-  NotGameCreatorError,
-  UserAlreadyInGameError,
-  UserNotInGameError,
-} from '../../errors/game.errors.js';
-import {
-  validateAllPlayersReady,
-  validateGameHasPlayers,
-  validateGameHasStarted,
-  validateGameId,
-  validateGameIsActive,
-  validateGameIsWaiting,
-  validateGameNotFull,
-  validateGameNotStarted,
-  validateIsCreator,
-  validateMinimumPlayers,
-  validateUserInGame,
-  validateUserNotInGame,
-  validatePlayerHasCard,
-  validateIsCurrentPlayer,
-} from '../../domain/game/game.validators.js';
-import {
-  abandonGame as abandonGameLogic,
-  addPlayer,
-  advanceTurn as advanceTurnLogic,
-  buildAbandonGameSuccessResponse,
-  buildAdvanceTurnSuccessResponse,
-  buildGetDiscardTopResponse,
-  buildDiscardTopSimpleResponse,
-  buildGamePlayersResponse,
-  buildPlayerDetails,
-  buildJoinGameSuccessResponse,
-  buildSetPlayerReadySuccessResponse,
-  createEndGamePayload,
-  createInitialGame,
-  getCurrentPlayer as getCurrentPlayerFromGame,
-  hasPlayerWon,
-  markPlayerAsReady,
-  startGame as startGameLogic,
-} from '../../domain/game/game.logic.js';
-import {
-  deleteByIdAndReturn,
-  fetchAllAndMapToDto,
-  fetchById,
-  fetchByIdAndMapToDto,
-  fetchWithCustomQuery,
-  saveAndMapToDto,
-  saveEntityAndReturnCustomResponse,
-  updateAndMapToDto,
-} from '../../utils/service.utils.js';
+import * as CommonUtils from '../../utils/index.js';
 
-import { PostAbandonmentActionExecutor } from './executors/PostAbandonmentActionExecutor.js';
-import { PostPlayOutcomeExecutor } from './executors/PostPlayOutcomeExecutor.js';
-import { CardPlayCoordinator } from './coordinators/CardPlayCoordinator.js';
+import * as GameDtos from '../../../presentation/dtos/game/index.js';
+
+import logger from '../../../config/logger.js';
+
+import * as GameErrors from '../../errors/index.js';
+
+import * as GameDomain from '../../domain/game/index.js';
+
+import {
+  PostAbandonmentActionExecutor,
+  PostPlayOutcomeExecutor,
+} from './executors/index.js';
+
+import { CardPlayCoordinator } from './coordinators/index.js';
 
 /**
  * Service class for handling game-related business logic.
@@ -94,9 +40,9 @@ class GameService {
    * @throws {Error} When database operation fails.
    */
   async getAllGames() {
-    return fetchAllAndMapToDto(
+    return CommonUtils.fetchAllAndMapToDto(
       this.gameRepository,
-      gameResponseDtoSchema,
+      GameDtos.gameResponseDtoSchema,
       logger,
       'game',
     ).getOrThrow();
@@ -109,13 +55,13 @@ class GameService {
    * @throws {Error} When game is not found
    */
   async getGameById(id) {
-    return fetchByIdAndMapToDto(
+    return CommonUtils.fetchByIdAndMapToDto(
       this.gameRepository,
       id,
-      gameResponseDtoSchema,
+      GameDtos.gameResponseDtoSchema,
       logger,
       'game',
-      new GameNotFoundError(),
+      new GameErrors.GameNotFoundError(),
     ).getOrThrow();
   }
 
@@ -126,18 +72,21 @@ class GameService {
    * @returns {Promise<Object>} The created game object formatted as response DTO.
    */
   async createGame(gameData, userId) {
-    return new ResultAsync(
-      Result.fromAsync(async () => {
+    return new CommonUtils.ResultAsync(
+      CommonUtils.Result.fromAsync(async () => {
         logger.info(`Attempting to create a new game by user ID: ${userId}`);
-        const validatedGameData = createGameDtoSchema.parse(gameData);
-        const initialGame = createInitialGame(validatedGameData, userId);
+        const validatedGameData = GameDtos.createGameDtoSchema.parse(gameData);
+        const initialGame = GameDomain.createInitialGame(
+          validatedGameData,
+          userId,
+        );
         return await this.gameRepository.createGame(initialGame);
       }),
     )
       .tap((game) =>
         logger.info(`Game ${game._id} created successfully by user ${userId}.`),
       )
-      .map((game) => gameResponseDtoSchema.parse(game))
+      .map((game) => GameDtos.gameResponseDtoSchema.parse(game))
       .tapError((error) =>
         logger.error(
           `Failed to create game by user ${userId}: ${error.message}`,
@@ -154,15 +103,15 @@ class GameService {
    * @throws {Error} When game is not found or validation fails
    */
   async updateGame(id, updateData) {
-    return updateAndMapToDto(
+    return CommonUtils.updateAndMapToDto(
       this.gameRepository,
       id,
       updateData,
-      updateGameDtoSchema,
-      gameResponseDtoSchema,
+      GameDtos.updateGameDtoSchema,
+      GameDtos.gameResponseDtoSchema,
       logger,
       'game',
-      new GameNotFoundError(),
+      new GameErrors.GameNotFoundError(),
     ).getOrThrow();
   }
 
@@ -173,12 +122,12 @@ class GameService {
    * @throws {Error} When game is not found
    */
   async deleteGame(id) {
-    return deleteByIdAndReturn(
+    return CommonUtils.deleteByIdAndReturn(
       this.gameRepository,
       id,
       logger,
       'game',
-      new GameNotFoundError(),
+      new GameErrors.GameNotFoundError(),
     ).getOrThrow();
   }
 
@@ -190,12 +139,12 @@ class GameService {
    * @private
    */
   async _endGame(gameId, winnerId = null) {
-    return new ResultAsync(
-      Result.fromAsync(async () => {
+    return new CommonUtils.ResultAsync(
+      CommonUtils.Result.fromAsync(async () => {
         logger.info(
           `Attempting to end game ${gameId} with winner ${winnerId}.`,
         );
-        const updatePayload = createEndGamePayload(winnerId);
+        const updatePayload = GameDomain.createEndGamePayload(winnerId);
         return await this.gameRepository.update(gameId, updatePayload);
       }),
     )
@@ -223,22 +172,22 @@ class GameService {
       `Checking if player ${playerId} has won game ${gameId} by emptying hand.`,
     );
 
-    const handSizeResult = new ResultAsync(
-      Result.fromAsync(() =>
+    const handSizeResult = new CommonUtils.ResultAsync(
+      CommonUtils.Result.fromAsync(() =>
         this.gameRepository.getPlayerHandSize(gameId, playerId),
       ),
     );
 
     return handSizeResult
       .chain(async (handSize) => {
-        if (hasPlayerWon(handSize)) {
+        if (GameDomain.hasPlayerWon(handSize)) {
           logger.info(
             `Player ${playerId} has won game ${gameId}. Ending game.`,
           );
           await this._endGame(gameId, playerId);
-          return Result.success(true);
+          return CommonUtils.Result.success(true);
         }
-        return Result.success(false);
+        return CommonUtils.Result.success(false);
       })
       .tapError((error) =>
         logger.error(
@@ -260,41 +209,41 @@ class GameService {
    * @throws {Error} If the user is already a participant in the game (409).
    */
   async joinGame(userId, gameId) {
-    return fetchById(
+    return CommonUtils.fetchById(
       this.gameRepository,
       gameId,
       logger,
       'game',
-      new GameNotFoundError(),
+      new GameErrors.GameNotFoundError(),
     )
-      .chain(validateGameIsWaiting)
-      .chain(validateGameNotFull)
-      .chain(validateUserNotInGame(userId))
-      .map((game) => addPlayer(game, userId))
+      .chain(GameDomain.validateGameIsWaiting)
+      .chain(GameDomain.validateGameNotFull)
+      .chain(GameDomain.validateUserNotInGame(userId))
+      .map((game) => GameDomain.addPlayer(game, userId))
       .chain((game) =>
-        saveEntityAndReturnCustomResponse(
+        CommonUtils.saveEntityAndReturnCustomResponse(
           this.gameRepository,
           game,
-          buildJoinGameSuccessResponse,
+          GameDomain.buildJoinGameSuccessResponse,
         ),
       )
       .tap(() =>
         logger.info(`User ${userId} successfully joined game ${gameId}.`),
       )
       .tapError((error) => {
-        if (error instanceof GameNotFoundError) {
+        if (error instanceof GameErrors.GameNotFoundError) {
           logger.warn(
             `Join game failed for user ${userId}: Game ${gameId} not found.`,
           );
-        } else if (error instanceof GameNotAcceptingPlayersError) {
+        } else if (error instanceof GameErrors.GameNotAcceptingPlayersError) {
           logger.warn(
             `Join game failed for user ${userId} in game ${gameId}: Game not in 'Waiting' status.`,
           );
-        } else if (error instanceof GameFullError) {
+        } else if (error instanceof GameErrors.GameFullError) {
           logger.warn(
             `Join game failed for user ${userId} in game ${gameId}: Game is full.`,
           );
-        } else if (error instanceof UserAlreadyInGameError) {
+        } else if (error instanceof GameErrors.UserAlreadyInGameError) {
           logger.warn(
             `Join game failed for user ${userId} in game ${gameId}: User already in this game.`,
           );
@@ -315,33 +264,33 @@ class GameService {
    * @returns {Promise<Object>} Object with success message and counts.
    */
   async setPlayerReady(userId, gameId) {
-    return fetchById(
+    return CommonUtils.fetchById(
       this.gameRepository,
       gameId,
       logger,
       'game',
-      new GameNotFoundError(),
+      new GameErrors.GameNotFoundError(),
     )
-      .chain(validateGameIsWaiting)
-      .chain(validateUserInGame(userId))
-      .map((game) => markPlayerAsReady(game, userId))
+      .chain(GameDomain.validateGameIsWaiting)
+      .chain(GameDomain.validateUserInGame(userId))
+      .map((game) => GameDomain.markPlayerAsReady(game, userId))
       .chain((game) =>
-        saveEntityAndReturnCustomResponse(
+        CommonUtils.saveEntityAndReturnCustomResponse(
           this.gameRepository,
           game,
-          buildSetPlayerReadySuccessResponse,
+          GameDomain.buildSetPlayerReadySuccessResponse,
         ),
       )
       .tapError((error) => {
-        if (error instanceof GameNotFoundError) {
+        if (error instanceof GameErrors.GameNotFoundError) {
           logger.warn(
             `Set player ready failed for user ${userId}: Game ${gameId} not found.`,
           );
-        } else if (error instanceof GameNotAcceptingPlayersError) {
+        } else if (error instanceof GameErrors.GameNotAcceptingPlayersError) {
           logger.warn(
             `Set player ready failed for user ${userId} in game ${gameId}: Game not in 'Waiting' status.`,
           );
-        } else if (error instanceof UserNotInGameError) {
+        } else if (error instanceof GameErrors.UserNotInGameError) {
           logger.warn(
             `Set player ready failed for user ${userId} in game ${gameId}: User not in this game.`,
           );
@@ -361,45 +310,45 @@ class GameService {
    * @returns {Promise<Object>} The started game object.
    */
   async startGame(userId, gameId) {
-    return fetchById(
+    return CommonUtils.fetchById(
       this.gameRepository,
       gameId,
       logger,
       'game',
-      new GameNotFoundError(),
+      new GameErrors.GameNotFoundError(),
     )
-      .chain(validateIsCreator(userId))
-      .chain(validateGameNotStarted)
-      .chain(validateMinimumPlayers)
-      .chain(validateAllPlayersReady)
-      .map((game) => startGameLogic(game))
+      .chain(GameDomain.validateIsCreator(userId))
+      .chain(GameDomain.validateGameNotStarted)
+      .chain(GameDomain.validateMinimumPlayers)
+      .chain(GameDomain.validateAllPlayersReady)
+      .map((game) => GameDomain.startGameLogic(game))
       .chain((game) =>
-        saveAndMapToDto(
+        CommonUtils.saveAndMapToDto(
           this.gameRepository,
           game,
-          gameResponseDtoSchema,
+          GameDtos.gameResponseDtoSchema,
           logger,
           `Game ${gameId} successfully started by user ${userId}.`,
         ),
       )
       .tapError((error) => {
-        if (error instanceof GameNotFoundError) {
+        if (error instanceof GameErrors.GameNotFoundError) {
           logger.warn(
             `Game start failed for user ${userId}: Game ${gameId} not found.`,
           );
-        } else if (error instanceof NotGameCreatorError) {
+        } else if (error instanceof GameErrors.NotGameCreatorError) {
           logger.warn(
             `Game start failed for user ${userId} in game ${gameId}: ${error.message}`,
           );
-        } else if (error instanceof GameAlreadyStartedError) {
+        } else if (error instanceof GameErrors.GameAlreadyStartedError) {
           logger.warn(
             `Game start failed for user ${userId} in game ${gameId}: Game already started.`,
           );
-        } else if (error instanceof MinimumPlayersRequiredError) {
+        } else if (error instanceof GameErrors.MinimumPlayersRequiredError) {
           logger.warn(
             `Game start failed for user ${userId} in game ${gameId}: ${error.message}`,
           );
-        } else if (error instanceof NotAllPlayersReadyError) {
+        } else if (error instanceof GameErrors.NotAllPlayersReadyError) {
           logger.warn(
             `Game start failed for user ${userId} in game ${gameId}: Not all players are ready.`,
           );
@@ -420,16 +369,16 @@ class GameService {
    * @throws {Error} If the game is not found, not active, or no players are in the game.
    */
   async getCurrentPlayer(gameId) {
-    return fetchById(
+    return CommonUtils.fetchById(
       this.gameRepository,
       gameId,
       logger,
       'game',
-      new GameNotFoundError(),
+      new GameErrors.GameNotFoundError(),
     )
-      .chain(validateGameIsActive)
-      .chain(validateGameHasPlayers)
-      .chain((game) => getCurrentPlayerFromGame(game))
+      .chain(GameDomain.validateGameIsActive)
+      .chain(GameDomain.validateGameHasPlayers)
+      .chain((game) => GameDomain.getCurrentPlayerFromGame(game))
       .tap((currentPlayer) =>
         logger.info(
           `Successfully retrieved current player ${currentPlayer._id} for game ${gameId}.`,
@@ -437,19 +386,21 @@ class GameService {
       )
       .map((currentPlayer) => currentPlayer._id.toString())
       .tapError((error) => {
-        if (error instanceof GameNotFoundError) {
+        if (error instanceof GameErrors.GameNotFoundError) {
           logger.warn(
             `Current player retrieval failed: Game ${gameId} not found.`,
           );
-        } else if (error instanceof GameNotActiveError) {
+        } else if (error instanceof GameErrors.GameNotActiveError) {
           logger.warn(
             `Current player retrieval failed for game ${gameId}: Game is not active.`,
           );
-        } else if (error instanceof CannotPerformActionError) {
+        } else if (error instanceof GameErrors.CannotPerformActionError) {
           logger.warn(
             `Current player retrieval failed for game ${gameId}: No players in the game.`,
           );
-        } else if (error instanceof CouldNotDetermineCurrentPlayerError) {
+        } else if (
+          error instanceof GameErrors.CouldNotDetermineCurrentPlayerError
+        ) {
           logger.error(
             `Current player retrieval failed for game ${gameId}: Invalid currentPlayerIndex.`,
           );
@@ -470,21 +421,21 @@ class GameService {
    * @throws {Error} If the game is not found, not active, or no players are in the game.
    */
   async advanceTurn(gameId) {
-    return fetchById(
+    return CommonUtils.fetchById(
       this.gameRepository,
       gameId,
       logger,
       'game',
-      new GameNotFoundError(),
+      new GameErrors.GameNotFoundError(),
     )
-      .chain(validateGameIsActive)
-      .chain(validateGameHasPlayers)
-      .map(advanceTurnLogic)
+      .chain(GameDomain.validateGameIsActive)
+      .chain(GameDomain.validateGameHasPlayers)
+      .map(GameDomain.advanceTurnLogic)
       .chain((game) =>
-        saveEntityAndReturnCustomResponse(
+        CommonUtils.saveEntityAndReturnCustomResponse(
           this.gameRepository,
           game,
-          buildAdvanceTurnSuccessResponse,
+          GameDomain.buildAdvanceTurnSuccessResponse,
         ),
       )
       .tap((nextPlayerId) =>
@@ -493,13 +444,13 @@ class GameService {
         ),
       )
       .tapError((error) => {
-        if (error instanceof GameNotFoundError) {
+        if (error instanceof GameErrors.GameNotFoundError) {
           logger.warn(`Advance turn failed: Game ${gameId} not found.`);
-        } else if (error instanceof GameNotActiveError) {
+        } else if (error instanceof GameErrors.GameNotActiveError) {
           logger.warn(
             `Advance turn failed for game ${gameId}: Game is not active.`,
           );
-        } else if (error instanceof CannotPerformActionError) {
+        } else if (error instanceof GameErrors.CannotPerformActionError) {
           logger.warn(
             `Advance turn failed for game ${gameId}: No players in the game.`,
           );
@@ -521,17 +472,17 @@ class GameService {
    * @throws {Error} If the game is not found, user is not in the game, or game cannot be abandoned.
    */
   async abandonGame(userId, gameId) {
-    return fetchById(
+    return CommonUtils.fetchById(
       this.gameRepository,
       gameId,
       logger,
       'game',
-      new GameNotFoundError(),
+      new GameErrors.GameNotFoundError(),
     )
-      .chain(validateUserInGame(userId))
-      .chain(validateGameIsActive)
+      .chain(GameDomain.validateUserInGame(userId))
+      .chain(GameDomain.validateGameIsActive)
       .chain(async (game) => {
-        const { action, winnerId } = abandonGameLogic(game, userId);
+        const { action, winnerId } = GameDomain.abandonGameLogic(game, userId);
 
         await this.postAbandonmentActionExecutor.execute(action, {
           game,
@@ -539,21 +490,23 @@ class GameService {
           winnerId,
         });
 
-        return Result.success(buildAbandonGameSuccessResponse());
+        return CommonUtils.Result.success(
+          GameDomain.buildAbandonGameSuccessResponse(),
+        );
       })
       .tap(() =>
         logger.info(`User ${userId} successfully abandoned game ${gameId}.`),
       )
       .tapError((error) => {
-        if (error instanceof GameNotFoundError) {
+        if (error instanceof GameErrors.GameNotFoundError) {
           logger.warn(
             `Abandon game failed for user ${userId}: Game ${gameId} not found.`,
           );
-        } else if (error instanceof UserNotInGameError) {
+        } else if (error instanceof GameErrors.UserNotInGameError) {
           logger.warn(
             `Abandon game failed for user ${userId} in game ${gameId}: User not in this game.`,
           );
-        } else if (error instanceof GameNotActiveError) {
+        } else if (error instanceof GameErrors.GameNotActiveError) {
           logger.warn(
             `Abandon game failed for user ${userId} in game ${gameId}: Game not in 'Active' status.`,
           );
@@ -574,15 +527,15 @@ class GameService {
    * @throws {Error} If the game ID is invalid or the game is not found.
    */
   async getGameStatus(id) {
-    return new ResultAsync(validateGameId(id))
+    return new CommonUtils.ResultAsync(GameDomain.validateGameId(id))
       .tap((trimmedId) =>
         logger.info(`Attempting to retrieve status for game ID: ${trimmedId}`),
       )
       .chain(async (trimmedId) => {
         const game = await this.gameRepository.findGameStatus(trimmedId);
         return game
-          ? Result.success(game)
-          : Result.failure(new GameNotFoundError());
+          ? CommonUtils.Result.success(game)
+          : CommonUtils.Result.failure(new GameErrors.GameNotFoundError());
       })
       .tap((game) =>
         logger.info(
@@ -591,11 +544,11 @@ class GameService {
       )
       .map((game) => game.status)
       .tapError((error) => {
-        if (error instanceof InvalidGameIdError) {
+        if (error instanceof GameErrors.InvalidGameIdError) {
           logger.warn(
             `Get game status failed: Invalid game ID provided - "${id}".`,
           );
-        } else if (error instanceof GameNotFoundError) {
+        } else if (error instanceof GameErrors.GameNotFoundError) {
           const gameId = id ? id.trim() : id;
           logger.warn(
             `Get game status failed: Game with ID ${gameId} not found.`,
@@ -616,7 +569,7 @@ class GameService {
    * @throws {Error} When game is not found or ID is invalid
    */
   async getDiscardTop(gameId) {
-    return new ResultAsync(validateGameId(gameId))
+    return new CommonUtils.ResultAsync(GameDomain.validateGameId(gameId))
       .tap((trimmedId) =>
         logger.info(
           `Attempting to get top discard card for game ID: ${trimmedId}`,
@@ -625,11 +578,11 @@ class GameService {
       .chain(async (trimmedId) => {
         const game = await this.gameRepository.findDiscardTop(trimmedId);
         return game
-          ? Result.success(game)
-          : Result.failure(new GameNotFoundError());
+          ? CommonUtils.Result.success(game)
+          : CommonUtils.Result.failure(new GameErrors.GameNotFoundError());
       })
-      .chain(validateGameHasStarted)
-      .map(buildGetDiscardTopResponse)
+      .chain(GameDomain.validateGameHasStarted)
+      .map(GameDomain.buildGetDiscardTopResponse)
       .tap((response) => {
         if (response.top_card === null) {
           logger.info(
@@ -642,16 +595,16 @@ class GameService {
         }
       })
       .tapError((error) => {
-        if (error instanceof InvalidGameIdError) {
+        if (error instanceof GameErrors.InvalidGameIdError) {
           logger.warn(
             `Get discard top failed: Invalid game ID provided - "${gameId}".`,
           );
-        } else if (error instanceof GameNotFoundError) {
+        } else if (error instanceof GameErrors.GameNotFoundError) {
           const idToLog = gameId ? gameId.trim() : gameId;
           logger.warn(
             `Get discard top failed: Game with ID ${idToLog} not found.`,
           );
-        } else if (error instanceof GameHasNotStartedError) {
+        } else if (error instanceof GameErrors.GameHasNotStartedError) {
           const idToLog = gameId ? gameId.trim() : gameId;
           logger.warn(
             `Get discard top failed: Game ${idToLog} has not started yet.`,
@@ -671,8 +624,8 @@ class GameService {
    * @returns {Promise<Object>} Simple top card response
    */
   async getDiscardTopSimple(gameId) {
-    return new ResultAsync(
-      Result.fromAsync(async () => {
+    return new CommonUtils.ResultAsync(
+      CommonUtils.Result.fromAsync(async () => {
         logger.info(
           `Attempting to get simple top discard card for game ID: ${gameId}`,
         );
@@ -680,7 +633,7 @@ class GameService {
         return await this.getDiscardTop(gameId);
       }),
     )
-      .map(buildDiscardTopSimpleResponse)
+      .map(GameDomain.buildDiscardTopSimpleResponse)
       .tap((response) => {
         if (response.top_cards.length === 0) {
           logger.info(
@@ -707,17 +660,17 @@ class GameService {
    * @throws {Error} When game is not found or ID is invalid
    */
   async getGamePlayers(gameId) {
-    return new ResultAsync(validateGameId(gameId))
+    return new CommonUtils.ResultAsync(GameDomain.validateGameId(gameId))
       .tap((trimmedId) =>
         logger.info(`Attempting to get players for game ID: ${trimmedId}`),
       )
       .chain((trimmedId) =>
-        fetchById(
+        CommonUtils.fetchById(
           this.gameRepository,
           trimmedId,
           logger,
           'game',
-          new GameNotFoundError(),
+          new GameErrors.GameNotFoundError(),
         ),
       )
       .chain(async (game) => {
@@ -727,16 +680,16 @@ class GameService {
           `Successfully retrieved ${playersWithDetails.length} players for game ID ${game._id}.`,
         );
 
-        return Result.success(
-          buildGamePlayersResponse(game, playersWithDetails),
+        return CommonUtils.Result.success(
+          GameDomain.buildGamePlayersResponse(game, playersWithDetails),
         );
       })
       .tapError((error) => {
-        if (error instanceof InvalidGameIdError) {
+        if (error instanceof GameErrors.InvalidGameIdError) {
           logger.warn(
             `Get game players failed: Invalid game ID provided - "${gameId}".`,
           );
-        } else if (error instanceof GameNotFoundError) {
+        } else if (error instanceof GameErrors.GameNotFoundError) {
           const idToLog = gameId ? gameId.trim() : gameId;
           logger.warn(
             `Get game players failed: Game with ID ${idToLog} not found.`,
@@ -769,7 +722,7 @@ class GameService {
             `Failed to fetch details for player ${player._id}: ${error.message}`,
           );
         }
-        return buildPlayerDetails(player, playerDetails);
+        return GameDomain.buildPlayerDetails(player, playerDetails);
       }),
     );
   }
@@ -783,14 +736,14 @@ class GameService {
    * @throws {Error} If the game is not found or ID is invalid.
    */
   async getRecentDiscards(gameId, limit) {
-    return new ResultAsync(validateGameId(gameId))
+    return new CommonUtils.ResultAsync(GameDomain.validateGameId(gameId))
       .chain((trimmedId) =>
-        fetchWithCustomQuery({
+        CommonUtils.fetchWithCustomQuery({
           queryFn: () =>
             this.gameRepository.findRecentDiscards(trimmedId, limit),
           logger,
           logMessage: `Attempting to retrieve recent discards for game ID: ${trimmedId} with limit: ${limit}`,
-          notFoundError: new GameNotFoundError(),
+          notFoundError: new GameErrors.GameNotFoundError(),
         }),
       )
       .tap((game) =>
@@ -799,11 +752,11 @@ class GameService {
         ),
       )
       .tapError((error) => {
-        if (error instanceof InvalidGameIdError) {
+        if (error instanceof GameErrors.InvalidGameIdError) {
           logger.warn(
             `Get recent discards failed: Invalid game ID provided - "${gameId}".`,
           );
-        } else if (error instanceof GameNotFoundError) {
+        } else if (error instanceof GameErrors.GameNotFoundError) {
           const idToLog = gameId ? gameId.trim() : gameId;
           logger.warn(
             `Get recent discards failed: Game with ID ${idToLog} not found.`,
@@ -826,24 +779,24 @@ class GameService {
    * @returns {Promise<Object>} The result of the action.
    */
   async playCard(gameId, playerId, cardId, chosenColor = null) {
-    return new ResultAsync(validateGameId(gameId))
+    return new CommonUtils.ResultAsync(GameDomain.validateGameId(gameId))
       .tap((trimmedGameId) =>
         logger.info(
           `Player ${playerId} attempting to play card ${cardId} in game ${trimmedGameId}.`,
         ),
       )
       .chain((trimmedGameId) =>
-        fetchById(
+        CommonUtils.fetchById(
           this.gameRepository,
           trimmedGameId,
           logger,
           'game',
-          new GameNotFoundError(),
+          new GameErrors.GameNotFoundError(),
         ),
       )
-      .chain(validateGameIsActive)
-      .chain(validateIsCurrentPlayer(playerId))
-      .chain(validatePlayerHasCard(playerId, cardId))
+      .chain(GameDomain.validateGameIsActive)
+      .chain(GameDomain.validateIsCurrentPlayer(playerId))
+      .chain(GameDomain.validatePlayerHasCard(playerId, cardId))
       .chain(async ({ game, currentPlayer, cardIndex, cardToPlay }) => {
         return await this.cardPlayCoordinator.execute(
           game,
@@ -856,15 +809,15 @@ class GameService {
         );
       })
       .tapError((error) => {
-        if (error instanceof GameNotFoundError) {
+        if (error instanceof GameErrors.GameNotFoundError) {
           logger.warn(`Play card failed: Game ${gameId} not found.`);
-        } else if (error instanceof InvalidGameIdError) {
+        } else if (error instanceof GameErrors.InvalidGameIdError) {
           logger.warn(
             `Play card failed: Invalid game ID provided - "${gameId}".`,
           );
-        } else if (error instanceof GameNotActiveError) {
+        } else if (error instanceof GameErrors.GameNotActiveError) {
           logger.warn(`Play card failed: Game ${gameId} is not active.`);
-        } else if (error instanceof CannotPerformActionError) {
+        } else if (error instanceof GameErrors.CannotPerformActionError) {
           logger.warn(
             `Play card failed for player ${playerId} in game ${gameId}: ${error.message}`,
           );

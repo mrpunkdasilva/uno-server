@@ -1,7 +1,14 @@
 import { PostPlayAction } from '../../../enums/game.enum.js';
 import logger from '../../../../config/logger.js';
 
+/**
+ *
+ */
 export class PostPlayOutcomeExecutor {
+  /**
+   *
+   * @param gameService
+   */
   constructor(gameService) {
     this.gameService = gameService;
 
@@ -11,6 +18,11 @@ export class PostPlayOutcomeExecutor {
     };
   }
 
+  /**
+   *
+   * @param action
+   * @param context
+   */
   async execute(action, context) {
     const strategy = this.strategies[action];
     if (strategy) {
@@ -21,11 +33,22 @@ export class PostPlayOutcomeExecutor {
     }
   }
 
+  /**
+   *
+   * @param root0
+   * @param root0.gameId
+   * @param root0.winnerId
+   */
   async _endGameWithWinner({ gameId, winnerId }) {
     await this.gameService._endGame(gameId, winnerId);
     logger.info(`Player ${winnerId} has won game ${gameId}!`);
   }
 
+  /**
+   *
+   * @param root0
+   * @param root0.game
+   */
   async _continueGame({ game }) {
     await this.gameService.gameRepository.save(game);
   }
