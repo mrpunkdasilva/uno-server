@@ -80,3 +80,44 @@ Cada item tem um timestamp de expiração, utilizando `maxAge`. Para renovação
 2. Se válido, renova o timestamp
 3. Move para o final (mais recente)
 4. Retorna o valor
+
+## Possíveis problemas
+
+### Cache com dados desatualizados
+
+**Problema:** Retorna dados antigos após atualização
+Podemos implementar algumas abordagens de soluções, como:
+
+1. Reduzir maxAge:
+   ```javascript
+   maxAge: 10000 // 10s
+   ```
+
+2. Invalidar cache manualmente:
+   ```javascript
+   app.post('/api/update', (req, res) => {
+     // ... atualizar dados
+     cache.clear(); // Limpar cache
+   });
+   ```
+
+3. Excluir rotas que mudam frequentemente:
+   ```javascript
+   excludePaths: ['/api/dynamic/*']
+   ```
+
+
+## Example
+````js
+const gameCache = memoizationMiddleware({
+  max: 100,
+  maxAge: 120000,
+  methods: ['GET'],
+  excludePaths: [],
+});
+
+app.get('/api/games', gameCache, async (req, res) => {
+  const games = await gameService.getAll();
+  res.json(games);
+});
+````
