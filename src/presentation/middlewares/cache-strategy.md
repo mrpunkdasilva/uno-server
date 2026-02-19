@@ -60,6 +60,19 @@ Utilizamos LRU para manter os itens mais acessados recentemente, removendo os ma
 2. Itens mais acessados = maior prioridade
 3. Acessos renovam a posição no cache
 
+````js
+// Cache com max: 3
+cache.set('A', dataA);  // [A]
+cache.set('B', dataB);  // [A, B]
+cache.set('C', dataC);  // [A, B, C] - Cache cheio
+
+// Acessar A move para o final (mais recente)
+cache.get('A');         // [B, C, A]
+
+// Adicionar D remove B (mais antigo)
+cache.set('D', dataD);  // [C, A, D]
+````
+
 ## Expiração e renovação
 
 Cada item tem um timestamp de expiração, utilizando `maxAge`. Para renovação automática, quando um item é acessado:
