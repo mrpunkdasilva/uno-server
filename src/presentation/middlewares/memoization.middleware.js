@@ -1,4 +1,4 @@
-import LRUCache from '../../infra/cache/LRUCache.js';
+import LRUCache from '../../infra/cache/lru-cache.js';
 
 /**
  * Memoization Middleware with LRU Cache

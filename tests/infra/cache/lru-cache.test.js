@@ -1,4 +1,4 @@
-import LRUCache from '../../../src/infra/cache/LRUCache.js';
+import LRUCache from '../../../src/infra/cache/lru-cache.js';
 
 describe('LRUCache', () => {
   let cache;
