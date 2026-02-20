@@ -34,7 +34,8 @@ export const markPlayerAsReady = (game, userId) => {
 };
 
 /**
- * Starts the game by updating its status and player positions.
+ * Starts the game by updating its status, player positions
+ * and dealing initial cards.
  * @param {object} game The game object.
  * @returns {object} The mutated game object.
  */
@@ -42,9 +43,15 @@ export const startGame = (game) => {
   game.status = GameStatus.ACTIVE;
   game.currentPlayerIndex = 0;
   game.turnDirection = 1;
+
   game.players.forEach((player, index) => {
     player.position = index + 1;
   });
+
+  if (game.deck && game.deck.length > 0) {
+    dealCardsSimple(game, 7);
+  }
+
   return game;
 };
 
@@ -344,4 +351,52 @@ export const buildPlayCardSuccessMessage = (action) => {
   return action === PostPlayAction.END_GAME_WITH_WINNER
     ? 'You played your last card and won!'
     : 'Card played successfully.';
+};
+
+/**
+ * Distributes cards equally to players.
+ * Mutates the game object.
+ * @param {object} game - The game object (must contain deck and players).
+ * @param {number} cardsPerPlayer - Number of cards per player.
+ * @returns {object} The mutated game object.
+ */
+export const dealCardsSimple = (game, cardsPerPlayer) => {
+  if (!game.deck || game.deck.length === 0) return game;
+
+  for (let i = 0; i < cardsPerPlayer; i++) {
+    game.players.forEach((player) => {
+      if (!player.hand) {
+        player.hand = [];
+      }
+
+      if (game.deck.length > 0) {
+        player.hand.push(game.deck.shift());
+      }
+    });
+  }
+
+  return game;
+};
+
+/**
+ * Validates if a card can be played according to the top discard card.
+ * @param {object|null} topCard - The card on top of the discard pile.
+ * @param {object} cardToPlay - The card the player wants to play.
+ * @returns {boolean} True if valid, false otherwise.
+ */
+export const isValidCardPlay = (topCard, cardToPlay) => {
+  if (!topCard) return true;
+
+  // Wild cards (by value or type)
+  if (
+    cardToPlay.value?.toLowerCase() === 'wild' ||
+    cardToPlay.value?.toLowerCase() === 'wild_draw_four' ||
+    cardToPlay.type?.toLowerCase() === 'wild'
+  ) {
+    return true;
+  }
+
+  return (
+    cardToPlay.color === topCard.color || cardToPlay.value === topCard.value
+  );
 };

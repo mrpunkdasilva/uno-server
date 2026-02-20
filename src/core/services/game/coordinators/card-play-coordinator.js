@@ -2,6 +2,7 @@ import { getStrategyForCard } from '../card-strategies/strategy.factory.js';
 import * as GameDomain from '../../../domain/game/index.js';
 import * as GameErrors from '../../../errors/index.js';
 import * as CommonUtils from '../../../utils/index.js';
+import { isValidCardPlay } from '../../../domain/game/game.logic.js';
 
 /**
  * Coordinates the complex process of playing a card, including strategy execution,
@@ -55,6 +56,17 @@ export class CardPlayCoordinator {
     }
 
     strategy.execute(gameContext);
+
+    // ADDED VALIDATION
+    const topCard = game.discardPile[game.discardPile.length - 1];
+
+    if (!isValidCardPlay(topCard, cardToPlay)) {
+      return CommonUtils.Result.failure(
+        new GameErrors.CannotPerformActionError(
+          'Invalid card. You must match color, value or type.',
+        ),
+      );
+    }
 
     GameDomain.applyCardPlayEffects(game, currentPlayer, cardIndex, cardToPlay);
 

@@ -25,6 +25,7 @@ import {
 import { GameStatus, PostAbandonmentAction, PostPlayAction } from '../../../../src/core/enums/game.enum.js';
 import { CouldNotDetermineCurrentPlayerError } from '../../../../src/core/errors/game.errors.js';
 import { Result } from '../../../../src/core/utils/Result.js';
+import { isValidCardPlay } from '../../../../src/core/domain/game/game.logic.js';
 
 describe('GameDomain Logic', () => {
   let mockGame;
@@ -427,5 +428,24 @@ describe('GameDomain Logic', () => {
       const message = buildPlayCardSuccessMessage(PostPlayAction.CONTINUE_GAME);
       expect(message).toBe('Card played successfully.');
     });
+  });
+});
+
+describe('isValidCardPlay', () => {
+  const topCard = { color: 'red', value: '5', type: 'number' };
+
+  it('should return false if the card does not match color or value', () => {
+    const invalidCard = { color: 'blue', value: '7', type: 'number' };
+    expect(isValidCardPlay(invalidCard, topCard)).toBe(false);
+  });
+
+  it('should return true if the card matches color', () => {
+    const colorMatchCard = { color: 'red', value: '9', type: 'number' };
+    expect(isValidCardPlay(colorMatchCard, topCard)).toBe(true);
+  });
+
+  it('should return true if the card matches value', () => {
+    const valueMatchCard = { color: 'green', value: '5', type: 'number' };
+    expect(isValidCardPlay(valueMatchCard, topCard)).toBe(true);
   });
 });
