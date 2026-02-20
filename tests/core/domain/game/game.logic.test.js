@@ -22,9 +22,12 @@ import {
   checkWinConditionAndGetOutcome,
   buildPlayCardSuccessMessage,
 } from '../../../../src/core/domain/game/game.logic.js';
-import { GameStatus, PostAbandonmentAction, PostPlayAction } from '../../../../src/core/enums/game.enum.js';
+import {
+  GameStatus,
+  PostAbandonmentAction,
+  PostPlayAction,
+} from '../../../../src/core/enums/game.enum.js';
 import { CouldNotDetermineCurrentPlayerError } from '../../../../src/core/errors/game.errors.js';
-import { Result } from '../../../../src/core/utils/Result.js';
 import { isValidCardPlay } from '../../../../src/core/domain/game/game.logic.js';
 
 describe('GameDomain Logic', () => {
@@ -69,10 +72,16 @@ describe('GameDomain Logic', () => {
   describe('markPlayerAsReady', () => {
     it('should mark an existing player as ready', () => {
       const playerToMarkReady = 'user-2';
-      mockGame.players.push({ _id: playerToMarkReady, ready: false, position: 2 });
+      mockGame.players.push({
+        _id: playerToMarkReady,
+        ready: false,
+        position: 2,
+      });
       const updatedGame = markPlayerAsReady(mockGame, playerToMarkReady);
 
-      const player = updatedGame.players.find(p => p._id === playerToMarkReady);
+      const player = updatedGame.players.find(
+        (p) => p._id === playerToMarkReady,
+      );
       expect(player.ready).toBe(true);
     });
 
@@ -109,7 +118,11 @@ describe('GameDomain Logic', () => {
       expect(initialGame.title).toBe(gameData.name);
       expect(initialGame.creatorId).toBe(userId);
       expect(initialGame.players).toHaveLength(1);
-      expect(initialGame.players[0]).toEqual({ _id: userId, ready: true, position: 1 });
+      expect(initialGame.players[0]).toEqual({
+        _id: userId,
+        ready: true,
+        position: 1,
+      });
     });
   });
 
@@ -207,7 +220,10 @@ describe('GameDomain Logic', () => {
     });
 
     it('should handle reverse turn direction', () => {
-      mockGame.players.push({ _id: 'user-2', ready: true, position: 2 }, { _id: 'user-3', ready: true, position: 3 });
+      mockGame.players.push(
+        { _id: 'user-2', ready: true, position: 2 },
+        { _id: 'user-3', ready: true, position: 3 },
+      );
       mockGame.currentPlayerIndex = 1; // user-2
       mockGame.turnDirection = -1;
       const updatedGame = advanceTurn(mockGame);
@@ -285,8 +301,19 @@ describe('GameDomain Logic', () => {
 
   describe('buildGetDiscardTopResponse', () => {
     it('should return top card details if discard pile is not empty', () => {
-      const topCard = { cardId: 'c1', color: 'red', value: '1', type: 'number', playedBy: 'p1', playedAt: new Date(), order: 1 };
-      mockGame.discardPile = [{ color: 'blue', value: '0', type: 'number' }, topCard];
+      const topCard = {
+        cardId: 'c1',
+        color: 'red',
+        value: '1',
+        type: 'number',
+        playedBy: 'p1',
+        playedAt: new Date(),
+        order: 1,
+      };
+      mockGame.discardPile = [
+        { color: 'blue', value: '0', type: 'number' },
+        topCard,
+      ];
       mockGame.initialCard = { color: 'green', value: 'wild', type: 'wild' };
 
       const response = buildGetDiscardTopResponse(mockGame);
@@ -305,7 +332,11 @@ describe('GameDomain Logic', () => {
       expect(response.game_id).toBe(gameId);
       expect(response.top_card).toBeNull();
       expect(response.discard_pile_size).toBe(0);
-      expect(response.initial_card).toEqual({ color: 'blue', value: '0', type: 'number' }); // Default initial card
+      expect(response.initial_card).toEqual({
+        color: 'blue',
+        value: '0',
+        type: 'number',
+      }); // Default initial card
     });
 
     it('should use provided initial card if discard pile is empty and initial card is present', () => {
@@ -420,7 +451,9 @@ describe('GameDomain Logic', () => {
 
   describe('buildPlayCardSuccessMessage', () => {
     it('should return win message if action is END_GAME_WITH_WINNER', () => {
-      const message = buildPlayCardSuccessMessage(PostPlayAction.END_GAME_WITH_WINNER);
+      const message = buildPlayCardSuccessMessage(
+        PostPlayAction.END_GAME_WITH_WINNER,
+      );
       expect(message).toBe('You played your last card and won!');
     });
 
