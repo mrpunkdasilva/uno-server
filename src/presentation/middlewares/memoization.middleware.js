@@ -5,26 +5,11 @@ import LRUCache from '../../infra/cache/LRUCache.js';
  *
  * This middleware intercepts HTTP requests and stores responses in cache
  * to improve performance on repeated requests.
- *
- * Features:
  * - LRU (Least Recently Used) Cache
  * - Configurable expiration time (maxAge)
  * - Configurable maximum size (max)
  * - Automatic TTL renewal on subsequent accesses
  * - Cache key based on HTTP method, URL and query params
- *
- * @example
- * // Basic usage with default configuration
- * app.use(memoizationMiddleware());
- *
- * @example
- * // Usage with custom configuration
- * app.use(memoizationMiddleware({
- *   max: 200,           // maximum 200 items in cache
- *   maxAge: 60000,      // items expire in 60 seconds
- *   methods: ['GET'],   // cache only GET requests
- *   excludePaths: ['/api/auth', '/api/logout']
- * }));
  */
 
 /**
@@ -84,6 +69,10 @@ export function createMemoizationMiddleware(config = {}) {
 
   /**
    * Express middleware
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   * @returns {void}
    */
   const middleware = (req, res, next) => {
     // If cache disabled, skip
@@ -130,8 +119,8 @@ export function createMemoizationMiddleware(config = {}) {
     const originalSend = res.send.bind(res);
 
     // Intercept res.json()
-    res.json = function (body) {
-      // Only cache successful responses (2xx)
+    res.json = (body) => {
+      // Only cache successful responses
       if (res.statusCode >= 200 && res.statusCode < 300) {
         cache.set(cacheKey, {
           statusCode: res.statusCode,
@@ -143,7 +132,7 @@ export function createMemoizationMiddleware(config = {}) {
     };
 
     // Intercept res.send()
-    res.send = function (body) {
+    res.send = (body) => {
       if (res.statusCode >= 200 && res.statusCode < 300) {
         // Try to parse JSON if possible
         let parsedBody = body;
