@@ -1,6 +1,6 @@
-/* eslint-disable no-undef */
 import Game from '../models/game.model.js';
 import mongoose from 'mongoose';
+import logger from '../../config/logger.js';
 
 /**
  * Repository class for managing game data operations in the database.
