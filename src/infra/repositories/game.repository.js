@@ -1,5 +1,6 @@
 import Game from '../models/game.model.js';
 import mongoose from 'mongoose';
+import logger from '../../config/logger.js';
 
 /**
  * Repository class for managing game data operations in the database.
@@ -177,6 +178,36 @@ class GameRepository {
       isDiscarded: false,
     });
     return handSize;
+  }
+
+  /**
+   * Finds a player's hand in a specific game
+   * @param {string} gameId - The ID of the game
+   * @param {string} playerId - The ID of the player
+   * @returns {Promise<Object|null>} The game object with player hand or null if not found
+   */
+  async findPlayerHand(gameId, playerId) {
+    try {
+      const game = await this.Game.findById(gameId)
+        .select('players.hand players._id title status')
+        .lean();
+
+      if (!game) return null;
+
+      // Find the specific player and return only their hand
+      const player = game.players.find((p) => p._id.toString() === playerId);
+
+      return {
+        gameId: game._id.toString(),
+        gameTitle: game.title,
+        gameStatus: game.status,
+        playerId: playerId,
+        hand: player ? player.hand : [],
+      };
+    } catch (error) {
+      logger.error(`Error finding player hand: ${error.message}`);
+      throw error;
+    }
   }
 }
 
