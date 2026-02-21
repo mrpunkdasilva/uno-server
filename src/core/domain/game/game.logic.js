@@ -400,3 +400,45 @@ export const isValidCardPlay = (topCard, cardToPlay) => {
     cardToPlay.color === topCard.color || cardToPlay.value === topCard.value
   );
 };
+
+/**
+ * Formats a card object into a readable string
+ * @param {Object} card - The card object
+ * @returns {string} Formatted card string (e.g., "Red 3", "Blue Skip")
+ */
+export const formatCardForDisplay = (card) => {
+  if (!card) return 'Unknown Card';
+
+  const color = colorMap[card.color] || card.color;
+  const value = valueMap[card.value] || card.value;
+
+  return `${color} ${value}`;
+};
+
+/**
+ * Builds the response for getting a player's hand
+ * @param {string} playerId - The ID of the player
+ * @param {Array} hand - The player's hand of cards
+ * @returns {Object} Formatted hand response
+ */
+export const buildPlayerHandResponse = (playerId, hand) => ({
+  player: playerId,
+  hand: hand.map((card) => formatCardForDisplay(card)),
+});
+
+/**
+ * Validates if the player exists in the game and returns their hand
+ * @param {Object} gameData - The game data containing player hand
+ * @param {string} playerId - The ID of the player
+ * @returns {Result<Object, Error>} Result containing hand data or error
+ */
+export const extractPlayerHand = (gameData, playerId) => {
+  if (!gameData || !gameData.hand) {
+    return Result.failure(new Error('No hand data available'));
+  }
+
+  return Result.success({
+    playerId: playerId,
+    hand: gameData.hand,
+  });
+};

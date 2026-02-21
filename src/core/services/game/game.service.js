@@ -829,6 +829,60 @@ class GameService {
       })
       .getOrThrow();
   }
+
+  /**
+   * Retrieves a player's hand of cards
+   * @param {string} userId - The ID of the authenticated user
+   * @param {string} gameId - The ID of the game
+   * @param {string} playerId - The ID of the player whose hand to retrieve
+   * @returns {Promise<Object>} Object containing player ID and formatted hand
+   * @throws {Error} If game not found or user not authorized
+   */
+  async getPlayerHand(userId, gameId, playerId) {
+    return new CommonUtils.ResultAsync(GameDomain.validateGameId(gameId))
+      .tap((trimmedGameId) =>
+        logger.info(
+          `User ${userId} attempting to view hand of player ${playerId} in game ${trimmedGameId}`,
+        ),
+      )
+      .chain((trimmedGameId) =>
+        CommonUtils.Result.fromAsync(() =>
+          this.gameRepository.findPlayerHand(trimmedGameId, playerId),
+        ),
+      )
+      .chain((gameData) => {
+        if (!gameData) {
+          return CommonUtils.Result.failure(new GameErrors.GameNotFoundError());
+        }
+        // Store gameData in the Result for the next chain
+        return CommonUtils.Result.success(gameData);
+      })
+      .chain(
+        (gameData) =>
+          GameDomain.validateUserMatchesPlayer(userId, playerId).map(
+            () => gameData,
+          ), // Pass gameData through after validation
+      )
+      .chain((gameData) => GameDomain.extractPlayerHand(gameData, playerId))
+      .map(({ hand }) => GameDomain.buildPlayerHandResponse(playerId, hand))
+      .tap((response) =>
+        logger.info(
+          `Successfully retrieved hand for player ${playerId} in game ${gameId} (${response.hand.length} cards)`,
+        ),
+      )
+      .tapError((error) => {
+        if (error instanceof GameErrors.GameNotFoundError) {
+          logger.warn(`Get player hand failed: Game ${gameId} not found.`);
+        } else if (error.message === 'You can only view your own cards') {
+          logger.warn(
+            `User ${userId} attempted to view cards of player ${playerId} in game ${gameId}`,
+          );
+        } else {
+          logger.error(`Failed to get player hand: ${error.message}`);
+        }
+      })
+      .getOrThrow();
+  }
 }
 
 export default GameService;

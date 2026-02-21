@@ -559,6 +559,54 @@ class GameController {
       });
     }
   }
+
+  /**
+   * Retrieves a player's hand of cards
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @returns {Promise<void>} JSON response with player's hand
+   */
+  async getPlayerHand(req, res) {
+    try {
+      const gameId = req.params.id;
+      const userId = req.user.id;
+      const { player } = req.body;
+
+      // Validate request body
+      if (!player) {
+        return res.status(400).json({
+          success: false,
+          message: 'Player ID is required in request body',
+        });
+      }
+
+      const hand = await this.gameService.getPlayerHand(userId, gameId, player);
+
+      res.status(200).json(hand);
+    } catch (error) {
+      if (error instanceof GameNotFoundError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error.message === 'You can only view your own cards') {
+        return res.status(403).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error.message === 'Player has no cards in hand') {
+        return res.status(200).json({
+          player: req.body.player,
+          hand: [],
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
 }
 
 export default GameController;

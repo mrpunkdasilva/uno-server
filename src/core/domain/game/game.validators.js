@@ -183,3 +183,28 @@ export const validatePlayerHasCard = (playerId, cardId) => (game) => {
     cardToPlay,
   });
 };
+
+/**
+ * Validates if the player has a hand of cards
+ * @param {Object} handData - The hand data object
+ * @returns {Result<Object, Error>}
+ */
+export const validatePlayerHasHand = (handData) => {
+  if (!handData.hand || handData.hand.length === 0) {
+    return Result.failure(new Error('Player has no cards in hand'));
+  }
+  return Result.success(handData);
+};
+
+/**
+ * Validates if the requesting user is the same as the player
+ * @param {string} userId - The ID of the authenticated user
+ * @param {string} playerId - The ID of the player being requested
+ * @returns {Result<Object, Error>}
+ */
+export const validateUserMatchesPlayer = (userId, playerId) => {
+  if (userId !== playerId) {
+    return Result.failure(new Error('You can only view your own cards'));
+  }
+  return Result.success(true);
+};
