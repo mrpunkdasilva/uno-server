@@ -188,7 +188,7 @@ class GameRepository {
    */
   async findPlayerHand(gameId, playerId) {
     try {
-      const game = await this.Game.findById(gameId)
+      const game = await Game.findById(gameId)
         .select('players.hand players._id title status')
         .lean();
 
