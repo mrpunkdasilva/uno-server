@@ -570,7 +570,7 @@ class GameController {
     try {
       const gameId = req.params.id;
       const userId = req.user.id;
-      const { player } = req.query;
+      const { player } = req.body;
 
       // Validate request body
       if (!player) {
