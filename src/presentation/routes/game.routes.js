@@ -44,8 +44,8 @@ router.get(
   controller.getDiscardTopSimple.bind(controller),
 );
 router.post('/discard/top', controller.getDiscardTop.bind(controller));
-// Add this route before the delete route
-router.get('/:id/hand', controller.getPlayerHand.bind(controller));
+
+router.post('/:id/hand', controller.getPlayerHand.bind(controller));
 
 router.delete('/:id', controller.deleteGame.bind(controller));
 
