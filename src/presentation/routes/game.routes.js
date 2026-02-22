@@ -10,14 +10,19 @@ import playCardDtoSchema from '../dtos/game/play-card.dto.js';
 import GameRepository from '../../infra/repositories/game.repository.js';
 import PlayerRepository from '../../infra/repositories/player.repository.js';
 import GameService from '../../core/services/game/game.service.js';
+import GameHistoryServices from '../../core/services/game/game.history.service.js';
 
 const router = Router();
 
 // Instantiate dependencies
 const gameRepository = new GameRepository();
 const playerRepository = new PlayerRepository();
+const gameHistoryService = new GameHistoryServices(
+  gameRepository,
+  playerRepository,
+);
 const gameService = new GameService(gameRepository, playerRepository);
-const controller = new GameController(gameService);
+const controller = new GameController(gameService, gameHistoryService);
 
 router.get('/', controller.getAllGames.bind(controller));
 router.get('/:id', controller.getGameById.bind(controller));
@@ -40,6 +45,7 @@ router.get('/:id/start', controller.startGame.bind(controller));
 router.get('/:id/abandon', controller.abandonGame.bind(controller));
 router.get('/:id/status', controller.getGameStatus.bind(controller));
 router.get('/:id/discard/top', controller.getDiscardTop.bind(controller));
+router.get('/:id/history', controller.getGameHistory.bind(controller));
 router.get(
   '/:id/discard/top/simple',
   controller.getDiscardTopSimple.bind(controller),
