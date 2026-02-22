@@ -796,7 +796,9 @@ class GameService {
       )
       .chain(GameDomain.validateGameIsActive)
       .chain(GameDomain.validateIsCurrentPlayer(playerId))
-      .chain(GameDomain.validatePlayerHasCard(playerId, cardId))
+      .chain(({ game }) =>
+        GameDomain.validatePlayerHasCard(playerId, cardId)(game),
+      )
       .chain(async ({ game, currentPlayer, cardIndex, cardToPlay }) => {
         return await this.cardPlayCoordinator.execute(
           game,
@@ -879,6 +881,136 @@ class GameService {
           );
         } else {
           logger.error(`Failed to get player hand: ${error.message}`);
+        }
+      })
+      .getOrThrow();
+  }
+
+  /**
+   * Draws a card from the deck for a player.
+   * Validates that the game is active, the user is the current player, and the deck has cards.
+   * @param {string} gameId - The ID of the game.
+   * @param {string} userId - The ID of the user drawing the card.
+   * @returns {Promise<object>} Result containing the drawn card.
+   * @throws {Error} When validation fails or no cards available.
+   */
+  async drawCardFromDeck(gameId, userId) {
+    return new CommonUtils.ResultAsync(GameDomain.validateGameId(gameId))
+      .tap((trimmedGameId) =>
+        logger.info(
+          `Player ${userId} attempting to draw a card in game ${trimmedGameId}.`,
+        ),
+      )
+      .chain((trimmedGameId) =>
+        CommonUtils.fetchById(
+          this.gameRepository,
+          trimmedGameId,
+          logger,
+          'game',
+          new GameErrors.GameNotFoundError(),
+        ),
+      )
+      .chain(GameDomain.validateGameIsActive)
+      .chain(GameDomain.validateIsCurrentPlayer(userId))
+      .chain(async ({ game }) => {
+        try {
+          // Validate game object exists
+          if (!game) {
+            logger.error(
+              'Game object is null or undefined in drawCardFromDeck',
+            );
+            return CommonUtils.Result.failure(
+              new GameErrors.GameNotFoundError(),
+            );
+          }
+
+          // Check if deck has cards
+          if (!game.deck || game.deck.length === 0) {
+            return CommonUtils.Result.failure(
+              new GameErrors.CannotPerformActionError(
+                'No cards available in the deck',
+              ),
+            );
+          }
+
+          // Validate currentPlayerIndex
+          if (
+            game.currentPlayerIndex === undefined ||
+            game.currentPlayerIndex === null
+          ) {
+            logger.error(`currentPlayerIndex is undefined in game ${gameId}`);
+            return CommonUtils.Result.failure(
+              new GameErrors.CannotPerformActionError(
+                'Could not determine current player',
+              ),
+            );
+          }
+
+          // Draw the first card from the deck
+          const drawnCard = game.deck.shift();
+
+          // Find the current player and add the card to their hand
+          const currentPlayer = game.players[game.currentPlayerIndex];
+
+          if (!currentPlayer) {
+            logger.error(
+              `Current player not found at index ${game.currentPlayerIndex} in game ${gameId}`,
+            );
+            return CommonUtils.Result.failure(
+              new GameErrors.CannotPerformActionError(
+                'Current player not found',
+              ),
+            );
+          }
+
+          if (!currentPlayer.hand) {
+            currentPlayer.hand = [];
+          }
+          currentPlayer.hand.push(drawnCard);
+
+          // Save the updated game
+          await game.save();
+
+          return CommonUtils.Result.success({
+            card: drawnCard,
+            message: 'Card drawn successfully',
+          });
+        } catch (err) {
+          logger.error(
+            `Exception in drawCardFromDeck for game ${gameId}: ${
+              err?.message || err
+            }`,
+          );
+          logger.error(`Stack trace: ${err?.stack}`);
+          return CommonUtils.Result.failure(
+            new GameErrors.CannotPerformActionError(
+              `Failed to draw card: ${err?.message || 'Unknown error'}`,
+            ),
+          );
+        }
+      })
+      .tap(() =>
+        logger.info(
+          `Player ${userId} successfully drew a card in game ${gameId}.`,
+        ),
+      )
+      .tapError((error) => {
+        if (error instanceof GameErrors.GameNotFoundError) {
+          logger.warn(`Draw card failed: Game ${gameId} not found.`);
+        } else if (error instanceof GameErrors.InvalidGameIdError) {
+          logger.warn(
+            `Draw card failed: Invalid game ID provided - "${gameId}".`,
+          );
+        } else if (error instanceof GameErrors.GameNotActiveError) {
+          logger.warn(`Draw card failed: Game ${gameId} is not active.`);
+        } else if (error instanceof GameErrors.CannotPerformActionError) {
+          logger.warn(
+            `Draw card failed for player ${userId} in game ${gameId}: ${error.message}`,
+          );
+        } else {
+          logger.error(
+            `Failed for player ${userId} to draw card in game ${gameId}: ${error.message}`,
+          );
         }
       })
       .getOrThrow();
