@@ -49,6 +49,10 @@ const gameSchema = mongoose.Schema(
           type: [mongoose.Schema.Types.Mixed], // Array of card objects
           default: [],
         },
+        hasDeclaredUno: {
+          type: Boolean,
+          default: false,
+        },
       },
     ],
     history: [
