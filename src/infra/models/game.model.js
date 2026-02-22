@@ -25,6 +25,11 @@ const gameSchema = mongoose.Schema(
       type: Number,
       required: true,
     },
+    minPlayers: {
+      type: Number,
+      required: true,
+      default: 2,
+    },
     players: [
       {
         _id: {
