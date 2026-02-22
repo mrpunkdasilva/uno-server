@@ -803,6 +803,91 @@ class GameController {
       throw error;
     }
   }
+
+  /**
+   * Handles the request to declare "UNO".
+   *
+   * @param {Object} req - The express request object.
+   * @param {Object} res - The express response object.
+   * @returns {Promise<void>} JSON response indicating success or error.
+   */
+  async declareUno(req, res) {
+    try {
+      const gameId = req.params.id;
+      const userId = req.user.id;
+      const result = await this.gameService.declareUno(gameId, userId);
+      
+      return res.status(200).json({
+        success: true,
+        message: result.message
+      });
+    } catch (error) {
+      if (error instanceof GameNotFoundError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      } else if (error instanceof CannotPerformActionError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /**
+   * Handles the request to challenge a player for not declaring "UNO".
+   *
+   * @param {Object} req - The express request object containing the targetPlayerId in the body.
+   * @param {Object} res - The express response object.
+   * @returns {Promise<void>} JSON response with the challenge result or error.
+   */
+  async challengeUno(req, res) {
+    try {
+      const gameId = req.params.id;
+      const challengerId = req.user.id;
+      const { targetPlayerId } = req.body;
+
+      if (!targetPlayerId) {
+        return res.status(400).json({ success: false, message: 'targetPlayerId is required in request body' });
+      }
+
+      const result = await this.gameService.challengeUno(gameId, challengerId, targetPlayerId);
+      
+      return res.status(200).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      if (error instanceof GameNotFoundError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      } else if (error instanceof CannotPerformActionError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /**
+   * Handles the request to fetch the complete and secure game state.
+   *
+   * @param {Object} req - The express request object.
+   * @param {Object} res - The express response object.
+   * @returns {Promise<void>} JSON response containing the game state snapshot.
+   */
+  async getFullGameState(req, res) {
+    try {
+      const gameId = req.params.id;
+      const userId = req.user.id;
+      const result = await this.gameService.getFullGameState(gameId, userId);
+      
+      return res.status(200).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      if (error instanceof GameNotFoundError || error instanceof UserNotInGameError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
 }
 
 export default GameController;

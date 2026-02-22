@@ -72,6 +72,11 @@ export class CardPlayCoordinator {
 
     GameDomain.applyCardPlayEffects(game, currentPlayer, cardIndex, cardToPlay);
 
+    // reset their UNO declaration status to prevent false safety.
+    if (currentPlayer.hand && currentPlayer.hand.length !== 1) {
+      currentPlayer.hasDeclaredUno = false;
+    }
+
     const { action, winnerId } = GameDomain.checkWinConditionAndGetOutcome(
       game,
       currentPlayer,
