@@ -1,4 +1,5 @@
 import getDiscardTopCardDtoSchema from '../dtos/card/get-discard-top-card.dto.js';
+import gameHistoryDtoSchema from '../dtos/game/game.history.dto.js';
 import {
   GameNotFoundError,
   InvalidGameIdError,
@@ -23,9 +24,11 @@ class GameController {
   /**
    * Initializes the GameController with a GameService instance.
    * @param gameService
+   * @param gameHistoryService
    */
-  constructor(gameService) {
+  constructor(gameService, gameHistoryService) {
     this.gameService = gameService;
+    this.gameHistoryService = gameHistoryService;
   }
 
   /**
@@ -605,6 +608,61 @@ class GameController {
         success: false,
         message: error.message,
       });
+    }
+  }
+
+  /**
+   * Retrieves the action history for a specific game.
+   *
+   * @async
+   * @param {Object} req - Express request object
+   * @param {Object} req.params - Parâmetros da rota
+   * @param {string} req.params.gameId - ID do jogo
+   * @param {Object} req.query - Query parameters
+   * @param {string} [req.query.limit] - Limit of records to return
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   * @returns {Promise<void>} Returns JSON with the game history
+   * @throws {Error} If there is an error in validation or search
+   */
+  async getGameHistory(req, res, next) {
+    try {
+      console.log('=== DEBUG GET HISTORY ===');
+      console.log('req.params:', req.params);
+      console.log('req.params.id:', req.params.id);
+      console.log('req.query:', req.query);
+
+      const gameId = req.params.id;
+      const { limit } = req.query;
+
+      console.log('gameId:', gameId);
+      console.log('limit:', limit);
+
+      // Validar entrada com Zod
+      const validated = gameHistoryDtoSchema.parse({
+        gameId: gameId,
+        limit,
+      });
+
+      console.log('validated:', validated);
+
+      const history = await this.gameHistoryService.getGameHistory(
+        validated.gameId,
+        validated.limit,
+      );
+
+      console.log('history retornado:', history);
+
+      return res.status(200).json(history);
+    } catch (error) {
+      console.error('ERRO COMPLETO:');
+      console.error('name:', error.name);
+      console.error('message:', error.message);
+      console.error('stack:', error.stack);
+      if (error.errors) {
+        console.error('Zod errors:', error.errors);
+      }
+      next(error);
     }
   }
 }

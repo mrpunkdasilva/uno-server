@@ -46,6 +46,51 @@ const gameSchema = mongoose.Schema(
         },
       },
     ],
+    history: [
+      {
+        playerId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Player',
+          required: true,
+        },
+        playerName: {
+          type: String,
+          required: true,
+        },
+        action: {
+          type: String,
+          required: true,
+        },
+        actionType: {
+          type: String,
+          enum: [
+            'PLAY_CARD',
+            'DRAW_CARD',
+            'SKIP_TURN',
+            'REVERSE',
+            'WILD_COLOR_CHANGE',
+            'JOIN_GAME',
+            'LEAVE_GAME',
+            'READY',
+            'START_GAME',
+            'END_GAME',
+          ],
+          required: true,
+        },
+        cardPlayed: {
+          color: String,
+          value: String,
+        },
+        chosenColor: {
+          type: String,
+          enum: ['red', 'blue', 'green', 'yellow'],
+        },
+        timestamp: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
     winnerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Player',
