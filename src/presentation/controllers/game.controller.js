@@ -607,6 +607,134 @@ class GameController {
       });
     }
   }
+
+  /**
+   * Handles playing a card for a player
+   * After playing, automatically advances to the next player's turn
+   * @param {Object} req - Express request object containing gameId in params, cardId and optional chosenColor in body
+   * @param {Object} res - Express response object
+   * @returns {Promise<void>} JSON response with success status and message or error
+   */
+  async playCard(req, res) {
+    try {
+      const gameId = req.params.id;
+      const userId = req.user.id;
+      const { cardId, chosenColor } = req.body;
+
+      if (!cardId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Card ID is required in request body',
+        });
+      }
+
+      // Play the card
+      const playResult = await this.gameService.playCard(
+        gameId,
+        userId,
+        cardId,
+        chosenColor,
+      );
+
+      // Check if the game ended (player won)
+      const gameStatus = await this.gameService.getGameStatus(gameId);
+      const gameEnded = gameStatus.status === 'Ended';
+
+      let nextPlayerId = null;
+
+      // Only advance turn if game didn't end
+      if (!gameEnded) {
+        nextPlayerId = await this.gameService.advanceTurn(gameId);
+      }
+
+      res.status(200).json({
+        success: true,
+        message: playResult.message,
+        turnAdvanced: !gameEnded,
+        gameEnded: gameEnded,
+        nextPlayer: nextPlayerId,
+      });
+    } catch (error) {
+      if (error instanceof GameNotFoundError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error instanceof InvalidGameIdError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error instanceof CannotPerformActionError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Handles drawing a card from the deck for a player
+   * After drawing, automatically advances to the next player's turn
+   * @param {Object} req - Express request object containing gameId in params
+   * @param {Object} res - Express response object
+   * @returns {Promise<void>} JSON response with success status and drawn card or error
+   */
+  async drawCard(req, res) {
+    try {
+      const gameId = req.params.id;
+      const userId = req.user.id;
+
+      // Draw a card - this method will handle all validations including:
+      // - Game exists and is active
+      // - User is the current player
+      // - Deck has cards available
+      const drawResult = await this.gameService.drawCardFromDeck(
+        gameId,
+        userId,
+      );
+
+      // Automatically advance turn after drawing a card
+      const nextPlayerId = await this.gameService.advanceTurn(gameId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Card drawn successfully',
+        drawnCard: drawResult.card,
+        turnAdvanced: true,
+        nextPlayer: nextPlayerId,
+      });
+    } catch (error) {
+      if (error instanceof GameNotFoundError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error instanceof InvalidGameIdError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error instanceof CannotPerformActionError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message:
+          error?.message || String(error) || 'An unexpected error occurred',
+      });
+    }
+  }
 }
 
 export default GameController;
