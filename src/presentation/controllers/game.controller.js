@@ -14,6 +14,7 @@ import {
   CannotPerformActionError,
   GameNotAcceptingPlayersError,
 } from '../../core/errors/game.errors.js';
+import logger from '../../config/logger.js';
 
 /**
  * Controller class for handling game-related HTTP requests.
@@ -753,18 +754,18 @@ class GameController {
    * @returns {Promise<void>} Returns JSON with the game history
    * @throws {Error} If there is an error in validation or search
    */
-  async getGameHistory(req, res, next) {
+  async getGameHistory(req, res) {
     try {
-      console.log('=== DEBUG GET HISTORY ===');
-      console.log('req.params:', req.params);
-      console.log('req.params.id:', req.params.id);
-      console.log('req.query:', req.query);
+      logger.debug(
+        {
+          params: req.params,
+          query: req.query,
+        },
+        'Getting game history',
+      );
 
       const gameId = req.params.id;
       const { limit } = req.query;
-
-      console.log('gameId:', gameId);
-      console.log('limit:', limit);
 
       // Validar entrada com Zod
       const validated = gameHistoryDtoSchema.parse({
@@ -772,25 +773,34 @@ class GameController {
         limit,
       });
 
-      console.log('validated:', validated);
+      logger.debug({ validated }, 'Validated history request');
 
       const history = await this.gameHistoryService.getGameHistory(
         validated.gameId,
         validated.limit,
       );
 
-      console.log('history retornado:', history);
+      logger.debug(
+        { historyCount: history?.data?.length },
+        'History retrieved successfully',
+      );
 
       return res.status(200).json(history);
     } catch (error) {
-      console.error('ERRO COMPLETO:');
-      console.error('name:', error.name);
-      console.error('message:', error.message);
-      console.error('stack:', error.stack);
-      if (error.errors) {
-        console.error('Zod errors:', error.errors);
-      }
-      next(error);
+      logger.error(
+        {
+          err: {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+            errors: error.errors,
+          },
+          gameId: req.params.id,
+        },
+        'Error getting game history',
+      );
+
+      throw error;
     }
   }
 }
