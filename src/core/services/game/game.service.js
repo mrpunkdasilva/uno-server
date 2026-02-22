@@ -15,6 +15,8 @@ import {
 
 import { CardPlayCoordinator } from './coordinators/index.js';
 
+import ScoreService from '../score.service.js';
+
 /**
  * Service class for handling game-related business logic.
  */
@@ -24,9 +26,10 @@ class GameService {
    * @param gameRepository
    * @param playerRepository
    */
-  constructor(gameRepository, playerRepository) {
+  constructor(gameRepository, playerRepository, scoreService = null) {
     this.gameRepository = gameRepository;
     this.playerRepository = playerRepository;
+    this.scoreService = scoreService || new ScoreService();
     this.postAbandonmentActionExecutor = new PostAbandonmentActionExecutor(
       this,
     );
@@ -144,6 +147,38 @@ class GameService {
         logger.info(
           `Attempting to end game ${gameId} with winner ${winnerId}.`,
         );
+
+        // Get game data before updating to calculate score
+        let finalScore = 0;
+        if (winnerId) {
+          try {
+            const game = await this.gameRepository.findById(gameId);
+            if (game) {
+              // Calculate final score based on remaining cards in other players' hands
+              finalScore = GameDomain.calculateFinalScore(game, winnerId);
+              logger.info(
+                `Winner ${winnerId} scored ${finalScore} points in game ${gameId}.`,
+              );
+
+              // Save the score to the database
+              const scoreData = GameDomain.buildScoreData(
+                winnerId,
+                gameId,
+                finalScore,
+              );
+              await this.scoreService.createScore(scoreData);
+              logger.info(
+                `Score saved successfully for player ${winnerId} in game ${gameId}.`,
+              );
+            }
+          } catch (scoreError) {
+            // Log error but don't fail the game ending
+            logger.error(
+              `Failed to calculate/save score for game ${gameId}: ${scoreError.message}`,
+            );
+          }
+        }
+
         const updatePayload = GameDomain.createEndGamePayload(winnerId);
         return await this.gameRepository.update(gameId, updatePayload);
       }),
