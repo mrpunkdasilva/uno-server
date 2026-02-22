@@ -9,11 +9,15 @@ class NumberCardStrategy extends CardActionStrategy {
   /**
    * Executes the action. For a number card, there is no special action,
    * so this method does nothing. The game loop will handle turn advancement.
+   * When a number card is played, it clears any currentColor set by a previous Wild card.
    * @param {object} gameContext - The context of the game.
-   * @param _gameContext
+   * @param {Game} gameContext.game - The current game state.
    */
-  execute() {
-    // No special action to perform.
+  execute({ game }) {
+    // Clear currentColor when a non-Wild card is played
+    if (game.currentColor) {
+      game.setCurrentColor(null);
+    }
   }
 }
 
