@@ -10,10 +10,16 @@ import { CardActionStrategy } from './card-action-strategy.js';
 class SkipStrategy extends CardActionStrategy {
   /**
    * Executes the skip action.
+   * When a skip card is played, it clears any currentColor set by a previous Wild card
+   * and advances the turn to skip the next player.
    * @param {object} gameContext - The context of the game.
    * @param {Game} gameContext.game - The current game state.
    */
   execute({ game }) {
+    // Clear currentColor when a non-Wild card is played
+    if (game.currentColor) {
+      game.setCurrentColor(null);
+    }
     game.advanceTurn();
   }
 }

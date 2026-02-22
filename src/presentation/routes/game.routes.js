@@ -4,6 +4,7 @@ import validateDto from '../middlewares/validateDto.middleware.js';
 
 import createGameDtoSchema from '../dtos/game/create-game.dto.js';
 import updateGameDtoSchema from '../dtos/game/update-game.dto.js';
+import playCardDtoSchema from '../dtos/game/play-card.dto.js';
 
 // Import repositories and service for DI
 import GameRepository from '../../infra/repositories/game.repository.js';
@@ -52,6 +53,13 @@ router.get(
 router.post('/discard/top', controller.getDiscardTop.bind(controller));
 
 router.post('/:id/hand', controller.getPlayerHand.bind(controller));
+
+router.post(
+  '/:id/play',
+  validateDto(playCardDtoSchema),
+  controller.playCard.bind(controller),
+);
+router.post('/:id/draw', controller.drawCard.bind(controller));
 
 router.delete('/:id', controller.deleteGame.bind(controller));
 

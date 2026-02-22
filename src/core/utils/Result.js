@@ -290,6 +290,11 @@ class ResultAsync {
       try {
         const newResult = fn(result.value);
 
+        // Se retornar ResultAsync, desembrulha a Promise interna
+        if (newResult instanceof ResultAsync) {
+          return newResult._promise;
+        }
+
         // Se retornar Promise, aguarda
         if (newResult instanceof Promise) {
           return newResult.catch((error) => Result.failure(error));
@@ -440,8 +445,6 @@ class ResultAsync {
   }
 
   /**
-   * getOrThrow - Extrai valor ou lança erro
-   * @returns {Promise<*>}
    * @throws {Error} Se for falha
    */
   async getOrThrow() {
