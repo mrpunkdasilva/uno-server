@@ -148,28 +148,25 @@ class GameService {
           `Attempting to end game ${gameId} with winner ${winnerId}.`,
         );
 
-        // Get game data before updating to calculate score
-        let finalScore = 0;
+        // Calculate and save score if there's a winner
         if (winnerId) {
           try {
             const game = await this.gameRepository.findById(gameId);
             if (game) {
-              // Calculate final score based on remaining cards in other players' hands
-              finalScore = GameDomain.calculateFinalScore(game, winnerId);
-              logger.info(
-                `Winner ${winnerId} scored ${finalScore} points in game ${gameId}.`,
-              );
+              // Use ScoreService to calculate and create score
+              const scoreResult =
+                await this.scoreService.calculateAndCreateScore(
+                  game,
+                  winnerId,
+                  gameId,
+                );
 
-              // Save the score to the database
-              const scoreData = GameDomain.buildScoreData(
-                winnerId,
-                gameId,
-                finalScore,
-              );
-              await this.scoreService.createScore(scoreData);
-              logger.info(
-                `Score saved successfully for player ${winnerId} in game ${gameId}.`,
-              );
+              if (scoreResult.isFailure()) {
+                // Log error but don't fail the game ending
+                logger.error(
+                  `Failed to calculate/save score for game ${gameId}: ${scoreResult.error.message}`,
+                );
+              }
             }
           } catch (scoreError) {
             // Log error but don't fail the game ending
