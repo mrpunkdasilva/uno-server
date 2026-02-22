@@ -151,7 +151,7 @@ export const validateIsCurrentPlayer = (userId) => (game) => {
     return Result.failure(new CouldNotDetermineCurrentPlayerError());
   }
   return currentPlayer._id.toString() === userId
-    ? Result.success(game)
+    ? Result.success({ game })
     : Result.failure(new CannotPerformActionError('It is not your turn.'));
 };
 
