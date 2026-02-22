@@ -1,4 +1,5 @@
 import LRUCache from '../../infra/cache/lru-cache.js';
+import logger from '../../config/logger.js';
 
 /**
  * Memoization Middleware with LRU Cache
@@ -47,7 +48,7 @@ export function createMemoizationMiddleware(config = {}) {
     cleanupInterval = setInterval(() => {
       const removed = cache.purgeExpired();
       if (removed > 0) {
-        console.log(`[Cache] Removed ${removed} expired items`);
+        logger.info({ removed }, 'Cache: Removed expired items');
       }
     }, Math.min(options.maxAge, 60000)); // Clean every maxAge or at most every 60s
   }

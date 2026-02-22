@@ -1,4 +1,5 @@
 import Card from '../models/card.model.js';
+import logger from '../../config/logger.js';
 
 /**
  * Repository class for managing card data operations in the database.
@@ -125,7 +126,7 @@ class CardRepository {
    * @returns {Promise<Array<Document>>}
    */
   async initializeGameDeck(gameId) {
-    console.log(`Initializing deck for game: ${gameId}`);
+    logger.info({ gameId }, 'Initializing deck for game');
 
     const colors = ['red', 'blue', 'green', 'yellow'];
     const numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
