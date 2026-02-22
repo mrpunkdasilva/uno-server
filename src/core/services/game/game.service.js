@@ -15,6 +15,8 @@ import {
 
 import { CardPlayCoordinator } from './coordinators/index.js';
 
+import ScoreService from '../score.service.js';
+
 /**
  * Service class for handling game-related business logic.
  */
@@ -24,9 +26,10 @@ class GameService {
    * @param gameRepository
    * @param playerRepository
    */
-  constructor(gameRepository, playerRepository) {
+  constructor(gameRepository, playerRepository, scoreService = null) {
     this.gameRepository = gameRepository;
     this.playerRepository = playerRepository;
+    this.scoreService = scoreService || new ScoreService();
     this.postAbandonmentActionExecutor = new PostAbandonmentActionExecutor(
       this,
     );
@@ -144,6 +147,35 @@ class GameService {
         logger.info(
           `Attempting to end game ${gameId} with winner ${winnerId}.`,
         );
+
+        // Calculate and save score if there's a winner
+        if (winnerId) {
+          try {
+            const game = await this.gameRepository.findById(gameId);
+            if (game) {
+              // Use ScoreService to calculate and create score
+              const scoreResult =
+                await this.scoreService.calculateAndCreateScore(
+                  game,
+                  winnerId,
+                  gameId,
+                );
+
+              if (scoreResult.isFailure()) {
+                // Log error but don't fail the game ending
+                logger.error(
+                  `Failed to calculate/save score for game ${gameId}: ${scoreResult.error.message}`,
+                );
+              }
+            }
+          } catch (scoreError) {
+            // Log error but don't fail the game ending
+            logger.error(
+              `Failed to calculate/save score for game ${gameId}: ${scoreError.message}`,
+            );
+          }
+        }
+
         const updatePayload = GameDomain.createEndGamePayload(winnerId);
         return await this.gameRepository.update(gameId, updatePayload);
       }),
