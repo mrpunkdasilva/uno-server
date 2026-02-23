@@ -15,9 +15,13 @@ export const initializeSocket = (server) => {
     socket.on('join_game', async (data) => {
       try {
         // Expected data format: { action: "join", playerName: "NewPlayer", gameId: "optional_room_id" }
-        // Default to a global room if no gameId provided for simple testing
-        const roomName = data.gameId || 'global_game_room';
-        const playerName = data.playerName;
+        const { action, playerName, gameId } = data;
+        const roomName = gameId || 'global_game_room';
+
+        if (action !== 'join') {
+          socket.emit('error', { message: 'Invalid action for this event.' });
+          return;
+        }
 
         if (!playerName) {
           socket.emit('error', { message: 'Player name is required.' });
