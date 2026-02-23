@@ -607,6 +607,58 @@ class GameController {
       });
     }
   }
+
+  /**
+   * Handles the request for a player to draw a card from the deck.
+   * @param {Object} req - Express request object.
+   * @param {Object} res - Express response object.
+   * @returns {Promise<void>} JSON response with success status and drawn card info or error message.
+   */
+  async drawCard(req, res) {
+    try {
+      const gameId = req.params.id;
+      const userId = req.user.id;
+      const { player } = req.body;
+
+      if (!player) {
+        return res.status(400).json({
+          success: false,
+          message: 'Player ID is required in request body',
+        });
+      }
+
+      const result = await this.gameService.drawCard(userId, gameId, player);
+
+      res.status(200).json(result);
+    } catch (error) {
+      if (
+        error instanceof GameNotFoundError ||
+        error instanceof UserNotInGameError
+      ) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error instanceof CannotPerformActionError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (
+        error.message === 'You can only perform actions for yourself'
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
 }
 
 export default GameController;

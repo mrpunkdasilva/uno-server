@@ -46,6 +46,7 @@ router.get(
 router.post('/discard/top', controller.getDiscardTop.bind(controller));
 
 router.post('/:id/hand', controller.getPlayerHand.bind(controller));
+router.put('/:id/draw', controller.drawCard.bind(controller));
 
 router.delete('/:id', controller.deleteGame.bind(controller));
 

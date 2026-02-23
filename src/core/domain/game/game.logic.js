@@ -442,3 +442,48 @@ export const extractPlayerHand = (gameData, playerId) => {
     hand: gameData.hand,
   });
 };
+
+/**
+ * Checks if a player has any card that can be played on top of the given card.
+ * @param {object|null} topCard - The card on top of the discard pile.
+ * @param {Array<object>} hand - The player's hand of cards.
+ * @returns {boolean} True if the player has at least one playable card, false otherwise.
+ */
+export const hasPlayableCards = (topCard, hand) => {
+  if (!hand || hand.length === 0) return false;
+  return hand.some((card) => isValidCardPlay(topCard, card));
+};
+
+/**
+ * Draws a card from the deck and adds it to the player's hand.
+ * Mutates the game object.
+ * @param {object} game - The game object.
+ * @param {string} playerId - The ID of the player drawing the card.
+ * @returns {object|null} The drawn card or null if deck is empty.
+ */
+export const drawCard = (game, playerId) => {
+  if (!game.deck || game.deck.length === 0) return null;
+
+  const card = game.deck.shift();
+  const player = game.players.find((p) => p._id.toString() === playerId);
+
+  if (player) {
+    if (!player.hand) {
+      player.hand = [];
+    }
+    player.hand.push(card);
+  }
+
+  return card;
+};
+
+/**
+ * Builds the success response for drawing a card.
+ * @param {string} playerId - The ID of the player who drew the card.
+ * @param {object} card - The card that was drawn.
+ * @returns {object} The success response object.
+ */
+export const buildDrawCardSuccessResponse = (playerId, card) => ({
+  message: `${playerId} drew a card from the deck.`,
+  cardDrawn: formatCardForDisplay(card),
+});
