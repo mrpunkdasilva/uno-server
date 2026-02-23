@@ -659,6 +659,33 @@ class GameController {
       });
     }
   }
+
+  /**
+   * Handles the request to retrieve real-time scores for all players in a game.
+   * @param {Object} req - Express request object.
+   * @param {Object} res - Express response object.
+   * @returns {Promise<void>} JSON response with scores.
+   */
+  async getGameScores(req, res) {
+    try {
+      const gameId = req.params.id;
+      const result = await this.gameService.getGameScores(gameId);
+
+      res.status(200).json(result);
+    } catch (error) {
+      if (error instanceof GameNotFoundError) {
+        return res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
 }
 
 export default GameController;

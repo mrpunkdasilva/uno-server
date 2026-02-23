@@ -32,12 +32,12 @@ class ScoreRepository {
   }
 
   /**
-   * Retrieves scores for a specific match
+   * Retrieves scores for a specific match and populates player username.
    * @param {string} matchId - Identifier of the match
-   * @returns {Promise<Array>} Array of score objects for the match
+   * @returns {Promise<Array>} Array of score objects for the match with player info
    */
   async findByMatchId(matchId) {
-    return await ScoreModel.find({ matchId });
+    return await ScoreModel.find({ matchId }).populate('playerId', 'username');
   }
 
   /**

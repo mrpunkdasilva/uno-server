@@ -487,3 +487,43 @@ export const buildDrawCardSuccessResponse = (playerId, card) => ({
   message: `${playerId} drew a card from the deck.`,
   cardDrawn: formatCardForDisplay(card),
 });
+
+/**
+ * Calculates the score of a single card.
+ * @param {object} card - The card object.
+ * @returns {number} The point value of the card.
+ */
+export const calculateCardScore = (card) => {
+  if (card.type === 'wild') return 50;
+  if (card.type === 'action') return 20;
+  if (card.type === 'number') return parseInt(card.value, 10) || 0;
+  return 0;
+};
+
+/**
+ * Calculates the total score of a hand of cards.
+ * @param {Array<object>} hand - The hand of cards.
+ * @returns {number} The total score.
+ */
+export const calculateHandScore = (hand) => {
+  if (!hand || !Array.isArray(hand)) return 0;
+  return hand.reduce((total, card) => total + calculateCardScore(card), 0);
+};
+
+/**
+ * Calculates the current scores for all players in a game.
+ * @param {object} game - The game object.
+ * @returns {object} An object with player usernames as keys and their current scores as values.
+ */
+export const calculateAllPlayerScores = (game) => {
+  const scores = {};
+  game.players.forEach((player) => {
+    // Note: player._id might be populated with player object containing username
+    // but in game object in game.repository it might just be the ID.
+    // However, if we populate it, we can get the username.
+    const username =
+      player._id.username || player.username || player._id.toString();
+    scores[username] = calculateHandScore(player.hand);
+  });
+  return scores;
+};

@@ -896,6 +896,24 @@ class GameService {
       })
       .getOrThrow();
   }
+
+  /**
+   * Retrieves current real-time scores for all players in a game.
+   * @param {string} gameId - The ID of the game.
+   * @returns {Promise<Object>} Object containing usernames and their hand scores.
+   * @throws {Error} If game not found.
+   */
+  async getGameScores(gameId) {
+    const game = await this.gameRepository.findGameWithPlayerNames(gameId);
+
+    if (!game) {
+      throw new GameErrors.GameNotFoundError();
+    }
+
+    const scores = GameDomain.calculateAllPlayerScores(game);
+
+    return { scores };
+  }
 }
 
 export default GameService;

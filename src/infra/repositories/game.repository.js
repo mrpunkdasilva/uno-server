@@ -37,6 +37,15 @@ class GameRepository {
   }
 
   /**
+   * Retrieves a game by its ID and populates player usernames.
+   * @param {string} id - The ID of the game to retrieve
+   * @returns {Promise<Object|null>} The game object with populated players
+   */
+  async findGameWithPlayerNames(id) {
+    return await Game.findById(id).populate('players._id', 'username').lean();
+  }
+
+  /**
    * Updates a game by its ID with the provided update data
    * @param {string} id - The ID of the game to update
    * @param {Object} updateData - The data to update the game with
