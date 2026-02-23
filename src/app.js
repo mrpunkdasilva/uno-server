@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
+import http from 'http';
+import { initializeSocket } from './socket.js';
 import connectDB from './config/database.js';
 import redisClient from './config/redis.js';
 
@@ -16,6 +18,8 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 const app = express();
+const server = http.createServer(app);
+const io = initializeSocket(server);
 
 app.use(pinoHttp({ logger }));
 app.use(express.json());
@@ -29,9 +33,10 @@ app.use(errorMiddleware);
 const PORT = process.env.PORT || 3000;
 
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     logger.info(`Server running on port ${PORT}`);
   });
 }
 
+export { app, server, io };
 export default app;

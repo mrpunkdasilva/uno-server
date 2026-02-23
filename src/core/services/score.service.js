@@ -343,6 +343,45 @@ class ScoreService {
       )
       .toResult();
   }
+
+  /**
+   * Retrieves and formats scores for a specific match/game.
+   * @param {string} matchId - The ID of the match.
+   * @returns {Promise<Result>} Result with dictionary of scores (username: score).
+   */
+  async getMatchScores(matchId) {
+    return Result.success(matchId)
+      .toAsync()
+      .tap(() =>
+        logger.info(
+          `Attempting to retrieve and format scores for match: ${matchId}`,
+        ),
+      )
+      .chain(async (id) => {
+        const scores = await this.scoreRepository.findByMatchId(id);
+
+        const formattedScores = scores.reduce((acc, current) => {
+          const username = current.playerId?.username || 'Unknown';
+          acc[username] = (acc[username] || 0) + current.score;
+          return acc;
+        }, {});
+
+        return Result.success({ scores: formattedScores });
+      })
+      .tap((formatted) =>
+        logger.info(
+          `Successfully formatted scores for match ${matchId}: ${JSON.stringify(
+            formatted.scores,
+          )}`,
+        ),
+      )
+      .tapError((error) =>
+        logger.error(
+          `Failed to get match scores for match ${matchId}: ${error.message}`,
+        ),
+      )
+      .toResult();
+  }
 }
 
 export default ScoreService;

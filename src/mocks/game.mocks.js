@@ -293,7 +293,8 @@ export const mockGameRepository = {
   addToDiscardPile: jest.fn(),
   clearDiscardPile: jest.fn(),
   getDiscardPileSize: jest.fn(),
-  getPlayerHandSize: jest.fn(), // Added this line
+  getPlayerHandSize: jest.fn(),
+  findGameWithPlayerNames: jest.fn(),
 };
 
 export const mockPlayerRepository = {
