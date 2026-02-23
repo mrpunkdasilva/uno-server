@@ -605,6 +605,30 @@ export const calculateHandScore = (hand) => {
 };
 
 /**
+ * Calculates the next turn in a circular fashion.
+ * @param {Array<string|object>} players - List of players.
+ * @param {number} currentIndex - The index of the current player.
+ * @param {number} direction - The direction of play (1 for clockwise, -1 for counter-clockwise).
+ * @returns {object} Object containing nextPlayerIndex and nextPlayer.
+ */
+export const calculateNextTurn = (players, currentIndex, direction = 1) => {
+  if (!players || players.length === 0) return null;
+
+  const numPlayers = players.length;
+  // Circular logic: (current + direction + total) % total
+  const nextIndex = (currentIndex + direction + numPlayers) % numPlayers;
+  const nextPlayer = players[nextIndex];
+
+  return {
+    nextPlayerIndex: nextIndex,
+    nextPlayer:
+      typeof nextPlayer === 'object'
+        ? nextPlayer.username || nextPlayer._id
+        : nextPlayer,
+  };
+};
+
+/**
  * Calculates the current scores for all players in a game.
  * @param {object} game - The game object.
  * @returns {object} An object with player usernames as keys and their current scores as values.
