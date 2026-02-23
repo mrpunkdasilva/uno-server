@@ -196,7 +196,7 @@ export const fetchById = (
  * @param {object} repository - The repository instance with a `save` method.
  * @param {object} entity - The entity to save.
  * @param {function(object): object} successResponseBuilder - A function that takes the saved entity and returns the desired success response object.
- * @returns {ResultAsync<object, Error>} A ResultAsync containing the custom success response or an error.
+ * @returns {Promise<Result<object, Error>>} A Promise of Result containing the custom success response or an error.
  */
 export const saveEntityAndReturnCustomResponse = (
   repository,
@@ -218,7 +218,7 @@ export const saveEntityAndReturnCustomResponse = (
  * @param {object} dtoSchema - The Zod schema for parsing the response DTO.
  * @param {object} logger - The logger instance.
  * @param {string} logMessage - A message to log upon successful save.
- * @returns {ResultAsync<object, Error>} A ResultAsync containing the DTO.
+ * @returns {Promise<Result<object, Error>>} A Promise of Result containing the DTO.
  */
 export const saveAndMapToDto = (
   repository,
@@ -227,15 +227,13 @@ export const saveAndMapToDto = (
   logger,
   logMessage,
 ) => {
-  return new ResultAsync(
-    Result.fromAsync(async () => {
-      await repository.save(entity);
-      if (logger && logMessage) {
-        logger.info(logMessage);
-      }
-      return dtoSchema.parse(entity);
-    }),
-  );
+  return Result.fromAsync(async () => {
+    await repository.save(entity);
+    if (logger && logMessage) {
+      logger.info(logMessage);
+    }
+    return dtoSchema.parse(entity);
+  });
 };
 
 /**

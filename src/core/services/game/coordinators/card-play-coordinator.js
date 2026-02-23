@@ -43,6 +43,19 @@ export class CardPlayCoordinator {
     this.logger.info(
       `CardPlayCoordinator: Player ${playerId} playing card ${cardToPlay.id} in game ${gameId}.`,
     );
+
+    // VALIDATE CARD PLAY FIRST (before modifying game state)
+    const topCard = game.discardPile[game.discardPile.length - 1];
+
+    if (!isValidCardPlay(topCard, cardToPlay, game.currentColor)) {
+      return CommonUtils.Result.failure(
+        new GameErrors.CannotPerformActionError(
+          'Invalid card. You must match color, value or type.',
+        ),
+      );
+    }
+
+    // Now execute the card strategy
     const StrategyClass = getStrategyForCard(cardToPlay);
     const strategy = new StrategyClass();
     const gameContext = { game, card: cardToPlay, chosenColor };
@@ -56,17 +69,6 @@ export class CardPlayCoordinator {
     }
 
     strategy.execute(gameContext);
-
-    // ADDED VALIDATION
-    const topCard = game.discardPile[game.discardPile.length - 1];
-
-    if (!isValidCardPlay(topCard, cardToPlay)) {
-      return CommonUtils.Result.failure(
-        new GameErrors.CannotPerformActionError(
-          'Invalid card. You must match color, value or type.',
-        ),
-      );
-    }
 
     GameDomain.applyCardPlayEffects(game, currentPlayer, cardIndex, cardToPlay);
 

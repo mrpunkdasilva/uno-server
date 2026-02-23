@@ -15,6 +15,8 @@ import {
 
 import { CardPlayCoordinator } from './coordinators/index.js';
 
+import ScoreService from '../score.service.js';
+
 /**
  * Service class for handling game-related business logic.
  */
@@ -23,10 +25,12 @@ class GameService {
    * Initializes the GameService with a GameRepository instance.
    * @param gameRepository
    * @param playerRepository
+   * @param scoreService
    */
-  constructor(gameRepository, playerRepository) {
+  constructor(gameRepository, playerRepository, scoreService = null) {
     this.gameRepository = gameRepository;
     this.playerRepository = playerRepository;
+    this.scoreService = scoreService || new ScoreService();
     this.postAbandonmentActionExecutor = new PostAbandonmentActionExecutor(
       this,
     );
@@ -136,7 +140,6 @@ class GameService {
    * Updates game status, sets winner, and records end time.
    * @param {string} gameId - The ID of the game to end.
    * @param {string|null} winnerId - The ID of the player who won, or null if no winner (e.g., all abandoned).
-   * @returns {Promise<Object>} The updated game object.
    * @private
    */
   async _endGame(gameId, winnerId = null) {
@@ -145,6 +148,35 @@ class GameService {
         logger.info(
           `Attempting to end game ${gameId} with winner ${winnerId}.`,
         );
+
+        // Calculate and save score if there's a winner
+        if (winnerId) {
+          try {
+            const game = await this.gameRepository.findById(gameId);
+            if (game) {
+              // Use ScoreService to calculate and create score
+              const scoreResult =
+                await this.scoreService.calculateAndCreateScore(
+                  game,
+                  winnerId,
+                  gameId,
+                );
+
+              if (scoreResult.isFailure()) {
+                // Log error but don't fail the game ending
+                logger.error(
+                  `Failed to calculate/save score for game ${gameId}: ${scoreResult.error.message}`,
+                );
+              }
+            }
+          } catch (scoreError) {
+            // Log error but don't fail the game ending
+            logger.error(
+              `Failed to calculate/save score for game ${gameId}: ${scoreError.message}`,
+            );
+          }
+        }
+
         const updatePayload = GameDomain.createEndGamePayload(winnerId);
         return await this.gameRepository.update(gameId, updatePayload);
       }),
@@ -797,7 +829,9 @@ class GameService {
       )
       .chain(GameDomain.validateGameIsActive)
       .chain(GameDomain.validateIsCurrentPlayer(playerId))
-      .chain(GameDomain.validatePlayerHasCard(playerId, cardId))
+      .chain(({ game }) =>
+        GameDomain.validatePlayerHasCard(playerId, cardId)(game),
+      )
       .chain(async ({ game, currentPlayer, cardIndex, cardToPlay }) => {
         return await this.cardPlayCoordinator.execute(
           game,
@@ -839,80 +873,180 @@ class GameService {
    * @returns {Promise<Object>} Object containing player ID and formatted hand
    * @throws {Error} If game not found or user not authorized
    */
-  /**
-   * Allows a player to draw a card from the deck if they have no playable cards.
-   * @param {string} userId - The ID of the authenticated user.
-   * @param {string} gameId - The ID of the game.
-   * @param {string} playerId - The ID of the player drawing the card.
-   * @returns {Promise<Object>} The success response with the drawn card.
-   */
-  async drawCard(userId, gameId, playerId) {
-    return CommonUtils.fetchById(
-      this.gameRepository,
-      gameId,
-      logger,
-      'game',
-      new GameErrors.GameNotFoundError(),
-    )
-      .chain(GameDomain.validateGameIsActive)
-      .chain((game) =>
-        GameDomain.validateUserMatchesPlayer(userId, playerId).map(() => game),
+  async getPlayerHand(userId, gameId, playerId) {
+    return new CommonUtils.ResultAsync(GameDomain.validateGameId(gameId))
+      .tap((trimmedGameId) =>
+        logger.info(
+          `User ${userId} attempting to view hand of player ${playerId} in game ${trimmedGameId}`,
+        ),
       )
-      .chain(GameDomain.validateIsCurrentPlayer(playerId))
-      .chain(async (game) => {
-        const topCard = game.discardPile[game.discardPile.length - 1];
-        const currentPlayer = game.players[game.currentPlayerIndex];
-
-        if (GameDomain.hasPlayableCards(topCard, currentPlayer.hand)) {
-          return CommonUtils.Result.failure(
-            new GameErrors.CannotPerformActionError(
-              'You have playable cards. You cannot draw from the deck.',
-            ),
-          );
+      .chain((trimmedGameId) =>
+        CommonUtils.Result.fromAsync(() =>
+          this.gameRepository.findPlayerHand(trimmedGameId, playerId),
+        ),
+      )
+      .chain((gameData) => {
+        if (!gameData) {
+          return CommonUtils.Result.failure(new GameErrors.GameNotFoundError());
         }
-
-        const drawnCard = GameDomain.drawCard(game, playerId);
-        if (!drawnCard) {
-          return CommonUtils.Result.failure(
-            new GameErrors.CannotPerformActionError('The deck is empty.'),
-          );
-        }
-
-        await this.gameRepository.save(game);
-
-        return CommonUtils.Result.success(
-          GameDomain.buildDrawCardSuccessResponse(playerId, drawnCard),
-        );
+        // Store gameData in the Result for the next chain
+        return CommonUtils.Result.success(gameData);
       })
+      .chain(
+        (gameData) =>
+          GameDomain.validateUserMatchesPlayer(userId, playerId).map(
+            () => gameData,
+          ), // Pass gameData through after validation
+      )
+      .chain((gameData) => GameDomain.extractPlayerHand(gameData, playerId))
+      .map(({ hand }) => GameDomain.buildPlayerHandResponse(playerId, hand))
       .tap((response) =>
         logger.info(
-          `Player ${playerId} successfully drew card ${response.cardDrawn} in game ${gameId}.`,
+          `Successfully retrieved hand for player ${playerId} in game ${gameId} (${response.hand.length} cards)`,
         ),
       )
       .tapError((error) => {
-        logger.error(
-          `Failed for player ${playerId} to draw card in game ${gameId}: ${error.message}`,
-        );
+        if (error instanceof GameErrors.GameNotFoundError) {
+          logger.warn(`Get player hand failed: Game ${gameId} not found.`);
+        } else if (error.message === 'You can only view your own cards') {
+          logger.warn(
+            `User ${userId} attempted to view cards of player ${playerId} in game ${gameId}`,
+          );
+        } else {
+          logger.error(`Failed to get player hand: ${error.message}`);
+        }
       })
       .getOrThrow();
   }
 
   /**
-   * Retrieves current real-time scores for all players in a game.
+   * Draws a card from the deck for a player.
+   * Validates that the game is active, the user is the current player, and the deck has cards.
    * @param {string} gameId - The ID of the game.
-   * @returns {Promise<Object>} Object containing usernames and their hand scores.
-   * @throws {Error} If game not found.
+   * @param {string} userId - The ID of the user drawing the card.
+   * @returns {Promise<object>} Result containing the drawn card.
+   * @throws {Error} When validation fails or no cards available.
    */
-  async getGameScores(gameId) {
-    const game = await this.gameRepository.findGameWithPlayerNames(gameId);
+  async drawCardFromDeck(gameId, userId) {
+    return new CommonUtils.ResultAsync(GameDomain.validateGameId(gameId))
+      .tap((trimmedGameId) =>
+        logger.info(
+          `Player ${userId} attempting to draw a card in game ${trimmedGameId}.`,
+        ),
+      )
+      .chain((trimmedGameId) =>
+        CommonUtils.fetchById(
+          this.gameRepository,
+          trimmedGameId,
+          logger,
+          'game',
+          new GameErrors.GameNotFoundError(),
+        ),
+      )
+      .chain(GameDomain.validateGameIsActive)
+      .chain(GameDomain.validateIsCurrentPlayer(userId))
+      .chain(async ({ game }) => {
+        try {
+          // Validate game object exists
+          if (!game) {
+            logger.error(
+              'Game object is null or undefined in drawCardFromDeck',
+            );
+            return CommonUtils.Result.failure(
+              new GameErrors.GameNotFoundError(),
+            );
+          }
 
-    if (!game) {
-      throw new GameErrors.GameNotFoundError();
-    }
+          // Check if deck has cards
+          if (!game.deck || game.deck.length === 0) {
+            return CommonUtils.Result.failure(
+              new GameErrors.CannotPerformActionError(
+                'No cards available in the deck',
+              ),
+            );
+          }
 
-    const scores = GameDomain.calculateAllPlayerScores(game);
+          // Validate currentPlayerIndex
+          if (
+            game.currentPlayerIndex === undefined ||
+            game.currentPlayerIndex === null
+          ) {
+            logger.error(`currentPlayerIndex is undefined in game ${gameId}`);
+            return CommonUtils.Result.failure(
+              new GameErrors.CannotPerformActionError(
+                'Could not determine current player',
+              ),
+            );
+          }
 
-    return { scores };
+          // Draw the first card from the deck
+          const drawnCard = game.deck.shift();
+
+          // Find the current player and add the card to their hand
+          const currentPlayer = game.players[game.currentPlayerIndex];
+
+          if (!currentPlayer) {
+            logger.error(
+              `Current player not found at index ${game.currentPlayerIndex} in game ${gameId}`,
+            );
+            return CommonUtils.Result.failure(
+              new GameErrors.CannotPerformActionError(
+                'Current player not found',
+              ),
+            );
+          }
+
+          if (!currentPlayer.hand) {
+            currentPlayer.hand = [];
+          }
+          currentPlayer.hand.push(drawnCard);
+
+          // Save the updated game
+          await game.save();
+
+          return CommonUtils.Result.success({
+            card: drawnCard,
+            message: 'Card drawn successfully',
+          });
+        } catch (err) {
+          logger.error(
+            `Exception in drawCardFromDeck for game ${gameId}: ${
+              err?.message || err
+            }`,
+          );
+          logger.error(`Stack trace: ${err?.stack}`);
+          return CommonUtils.Result.failure(
+            new GameErrors.CannotPerformActionError(
+              `Failed to draw card: ${err?.message || 'Unknown error'}`,
+            ),
+          );
+        }
+      })
+      .tap(() =>
+        logger.info(
+          `Player ${userId} successfully drew a card in game ${gameId}.`,
+        ),
+      )
+      .tapError((error) => {
+        if (error instanceof GameErrors.GameNotFoundError) {
+          logger.warn(`Draw card failed: Game ${gameId} not found.`);
+        } else if (error instanceof GameErrors.InvalidGameIdError) {
+          logger.warn(
+            `Draw card failed: Invalid game ID provided - "${gameId}".`,
+          );
+        } else if (error instanceof GameErrors.GameNotActiveError) {
+          logger.warn(`Draw card failed: Game ${gameId} is not active.`);
+        } else if (error instanceof GameErrors.CannotPerformActionError) {
+          logger.warn(
+            `Draw card failed for player ${userId} in game ${gameId}: ${error.message}`,
+          );
+        } else {
+          logger.error(
+            `Failed for player ${userId} to draw card in game ${gameId}: ${error.message}`,
+          );
+        }
+      })
+      .getOrThrow();
   }
 }
 

@@ -25,6 +25,11 @@ const gameSchema = mongoose.Schema(
       type: Number,
       required: true,
     },
+    minPlayers: {
+      type: Number,
+      required: true,
+      default: 2,
+    },
     players: [
       {
         _id: {
@@ -43,6 +48,51 @@ const gameSchema = mongoose.Schema(
         hand: {
           type: [mongoose.Schema.Types.Mixed], // Array of card objects
           default: [],
+        },
+      },
+    ],
+    history: [
+      {
+        playerId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Player',
+          required: true,
+        },
+        playerName: {
+          type: String,
+          required: true,
+        },
+        action: {
+          type: String,
+          required: true,
+        },
+        actionType: {
+          type: String,
+          enum: [
+            'PLAY_CARD',
+            'DRAW_CARD',
+            'SKIP_TURN',
+            'REVERSE',
+            'WILD_COLOR_CHANGE',
+            'JOIN_GAME',
+            'LEAVE_GAME',
+            'READY',
+            'START_GAME',
+            'END_GAME',
+          ],
+          required: true,
+        },
+        cardPlayed: {
+          color: String,
+          value: String,
+        },
+        chosenColor: {
+          type: String,
+          enum: ['red', 'blue', 'green', 'yellow'],
+        },
+        timestamp: {
+          type: Date,
+          default: Date.now,
         },
       },
     ],

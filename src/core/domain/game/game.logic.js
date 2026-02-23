@@ -48,9 +48,13 @@ export const startGame = (game) => {
     player.position = index + 1;
   });
 
-  if (game.deck && game.deck.length > 0) {
-    dealCardsSimple(game, 7);
+  // Initialize deck if it doesn't exist or is empty
+  if (!game.deck || game.deck.length === 0) {
+    game.deck = createStandardDeck();
   }
+
+  // Deal 7 cards to each player
+  dealCardsSimple(game, 7);
 
   return game;
 };
@@ -96,11 +100,17 @@ export const hasPlayerWon = (handSize) => handSize === 0;
  * @param {object} game - The game object after the player has joined.
  * @returns {object} The success response object.
  */
-export const buildJoinGameSuccessResponse = (game) => ({
-  message: 'User joined the game successfully',
-  gameId: game._id,
-  currentPlayerCount: game.players.length,
-});
+export const buildJoinGameSuccessResponse = (game) => {
+  const gameId = game._id.toString();
+
+  const response = {
+    message: 'User joined the game successfully',
+    gameId: gameId,
+    currentPlayerCount: game.players.length,
+  };
+
+  return response;
+};
 
 /**
  * Builds the success response object for a player setting ready.
@@ -354,6 +364,81 @@ export const buildPlayCardSuccessMessage = (action) => {
 };
 
 /**
+ * Creates a standard UNO deck with all cards.
+ * @returns {Array} Array of card objects representing a complete UNO deck.
+ */
+export const createStandardDeck = () => {
+  const colors = ['red', 'blue', 'green', 'yellow'];
+  const deck = [];
+  let cardId = 1;
+
+  // Number cards: 0 (one per color), 1-9 (two per color)
+  colors.forEach((color) => {
+    // One 0 card per color
+    deck.push({
+      cardId: `card-${cardId++}`,
+      color: color,
+      value: '0',
+      type: 'number',
+    });
+
+    // Two of each 1-9 per color
+    for (let num = 1; num <= 9; num++) {
+      for (let copy = 0; copy < 2; copy++) {
+        deck.push({
+          cardId: `card-${cardId++}`,
+          color: color,
+          value: String(num),
+          type: 'number',
+        });
+      }
+    }
+  });
+
+  // Action cards: Skip, Reverse, Draw Two (two per color)
+  const actions = ['skip', 'reverse', 'draw_two'];
+  colors.forEach((color) => {
+    actions.forEach((action) => {
+      for (let copy = 0; copy < 2; copy++) {
+        deck.push({
+          cardId: `card-${cardId++}`,
+          color: color,
+          value: action,
+          type: 'action',
+        });
+      }
+    });
+  });
+
+  // Wild cards: 4 Wild, 4 Wild Draw Four
+  for (let i = 0; i < 4; i++) {
+    deck.push({
+      cardId: `card-${cardId++}`,
+      color: 'wild',
+      value: 'wild',
+      type: 'wild',
+    });
+  }
+
+  for (let i = 0; i < 4; i++) {
+    deck.push({
+      cardId: `card-${cardId++}`,
+      color: 'wild',
+      value: 'wild_draw_four',
+      type: 'wild',
+    });
+  }
+
+  // Shuffle the deck using Fisher-Yates algorithm
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+
+  return deck;
+};
+
+/**
  * Distributes cards equally to players.
  * Mutates the game object.
  * @param {object} game - The game object (must contain deck and players).
@@ -382,12 +467,13 @@ export const dealCardsSimple = (game, cardsPerPlayer) => {
  * Validates if a card can be played according to the top discard card.
  * @param {object|null} topCard - The card on top of the discard pile.
  * @param {object} cardToPlay - The card the player wants to play.
+ * @param {string|null} currentColor - The current active color (set by Wild cards).
  * @returns {boolean} True if valid, false otherwise.
  */
-export const isValidCardPlay = (topCard, cardToPlay) => {
+export const isValidCardPlay = (topCard, cardToPlay, currentColor = null) => {
   if (!topCard) return true;
 
-  // Wild cards (by value or type)
+  // Wild cards can always be played
   if (
     cardToPlay.value?.toLowerCase() === 'wild' ||
     cardToPlay.value?.toLowerCase() === 'wild_draw_four' ||
@@ -396,6 +482,14 @@ export const isValidCardPlay = (topCard, cardToPlay) => {
     return true;
   }
 
+  // If a Wild card was played previously, currentColor takes precedence
+  if (currentColor && topCard.type?.toLowerCase() === 'wild') {
+    return (
+      cardToPlay.color === currentColor || cardToPlay.value === topCard.value
+    );
+  }
+
+  // Standard UNO rule: match color OR value
   return (
     cardToPlay.color === topCard.color || cardToPlay.value === topCard.value
   );
