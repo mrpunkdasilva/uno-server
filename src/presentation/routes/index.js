@@ -5,6 +5,7 @@ import gameRoutes from './game.routes.js';
 import scoreRoutes from './score.routes.js';
 import authRoutes from './auth.routes.js';
 import cardroutes from './card.routes.js';
+import apiUsageRoutes from './api-usage.routes.js';
 
 import { authenticateToken } from '../middlewares/authentication.middleware.js';
 
@@ -15,5 +16,6 @@ router.use('/api/players', authenticateToken, playerRoutes);
 router.use('/api/games', authenticateToken, gameRoutes);
 router.use('/api/scores', authenticateToken, scoreRoutes);
 router.use('/api/cards', authenticateToken, cardroutes);
+router.use('/api/stats', apiUsageRoutes);
 
 export default router;
