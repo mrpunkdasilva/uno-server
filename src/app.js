@@ -10,6 +10,7 @@ import { defaultCacheConfig } from './config/cache.js';
 import logger from './config/logger.js';
 import errorMiddleware from './presentation/middlewares/error.middleware.js';
 import memoizationMiddleware from './presentation/middlewares/memoization.middleware.js';
+import { trackApiUsage } from './presentation/middlewares/api-tracker.middleware.js';
 import Router from './presentation/routes/index.js';
 
 if (process.env.NODE_ENV !== 'test') {
@@ -26,6 +27,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(memoizationMiddleware(defaultCacheConfig));
+app.use(trackApiUsage);
 app.use(Router);
 
 app.use(errorMiddleware);
