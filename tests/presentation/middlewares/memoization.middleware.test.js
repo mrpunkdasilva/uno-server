@@ -457,4 +457,256 @@ describe('Memoization Middleware', () => {
       disabledMiddleware.destroy();
     });
   });
+
+  describe('User ID in Cache Key', () => {
+    it('should create different cache keys for different users', async () => {
+      const userApp = express();
+      let userRequestCount = 0;
+
+      // Mock user middleware BEFORE cache middleware
+      userApp.use((req, res, next) => {
+        req.user = { id: 'user1' };
+        next();
+      });
+
+      const userMiddleware = memoizationMiddleware({
+        max: 10,
+        maxAge: 1000,
+        methods: ['GET'],
+        includeUserId: true,
+        enabled: true,
+      });
+
+      userApp.use(userMiddleware);
+
+      userApp.get('/api/profile', (req, res) => {
+        userRequestCount++;
+        const userId = req.user?.id || 'anonymous';
+        res.json({ userId, count: userRequestCount });
+      });
+
+      const user1First = await request(userApp).get('/api/profile');
+      expect(user1First.headers['x-cache']).toBe('MISS');
+      expect(user1First.body.userId).toBe('user1');
+      expect(user1First.body.count).toBe(1);
+
+      // Second request from user 1 should hit cache
+      const user1Second = await request(userApp).get('/api/profile');
+      expect(user1Second.headers['x-cache']).toBe('HIT');
+      expect(user1Second.body.userId).toBe('user1');
+      expect(user1Second.body.count).toBe(1); // Same cached value
+
+      expect(userRequestCount).toBe(1); // Handler called only once
+
+      userMiddleware.destroy();
+    });
+
+    it('should not share cache between different users', async () => {
+      const isolatedApp = express();
+
+      // Mock user middleware that sets different users based on header
+      isolatedApp.use((req, res, next) => {
+        const userId = req.headers['x-user-id'] || 'anonymous';
+        req.user = { id: userId };
+        next();
+      });
+
+      const isolatedMiddleware = memoizationMiddleware({
+        max: 10,
+        maxAge: 1000,
+        includeUserId: true,
+        enabled: true,
+      });
+
+      isolatedApp.use(isolatedMiddleware);
+
+      let callCount = 0;
+      isolatedApp.get('/api/profile', (req, res) => {
+        callCount++;
+        res.json({
+          userId: req.user?.id || 'anonymous',
+          data: `user-${req.user?.id}-data`,
+          callNumber: callCount,
+        });
+      });
+
+      // User 1 first request
+      const user1Req1 = await request(isolatedApp)
+        .get('/api/profile')
+        .set('x-user-id', 'user-123');
+
+      expect(user1Req1.headers['x-cache']).toBe('MISS');
+      expect(user1Req1.body.userId).toBe('user-123');
+      expect(user1Req1.body.data).toBe('user-user-123-data');
+      expect(user1Req1.body.callNumber).toBe(1);
+
+      // User 2 first request - should NOT get user 1's cached data
+      const user2Req1 = await request(isolatedApp)
+        .get('/api/profile')
+        .set('x-user-id', 'user-456');
+
+      expect(user2Req1.headers['x-cache']).toBe('MISS');
+      expect(user2Req1.body.userId).toBe('user-456');
+      expect(user2Req1.body.data).toBe('user-user-456-data');
+      expect(user2Req1.body.callNumber).toBe(2);
+
+      // User 1 second request - should hit cache
+      const user1Req2 = await request(isolatedApp)
+        .get('/api/profile')
+        .set('x-user-id', 'user-123');
+
+      expect(user1Req2.headers['x-cache']).toBe('HIT');
+      expect(user1Req2.body.userId).toBe('user-123');
+      expect(user1Req2.body.data).toBe('user-user-123-data');
+      expect(user1Req2.body.callNumber).toBe(1); // Cached value
+
+      // User 2 second request - should hit cache
+      const user2Req2 = await request(isolatedApp)
+        .get('/api/profile')
+        .set('x-user-id', 'user-456');
+
+      expect(user2Req2.headers['x-cache']).toBe('HIT');
+      expect(user2Req2.body.userId).toBe('user-456');
+      expect(user2Req2.body.data).toBe('user-user-456-data');
+      expect(user2Req2.body.callNumber).toBe(2); // Cached value
+
+      // Total calls should be 2 (one for each user)
+      expect(callCount).toBe(2);
+
+      isolatedMiddleware.destroy();
+    });
+
+    it('should include user ID in cache key header', async () => {
+      const keyApp = express();
+
+      keyApp.use((req, res, next) => {
+        req.user = { id: 'test-user-789' };
+        next();
+      });
+
+      const keyMiddleware = memoizationMiddleware({
+        max: 10,
+        maxAge: 1000,
+        includeUserId: true,
+      });
+
+      keyApp.use(keyMiddleware);
+
+      keyApp.get('/api/data', (req, res) => {
+        res.json({ data: 'test' });
+      });
+
+      const response = await request(keyApp).get('/api/data');
+
+      expect(response.headers['x-cache-key']).toContain('@test-user-789');
+
+      keyMiddleware.destroy();
+    });
+
+    it('should work when user is not authenticated', async () => {
+      const noAuthApp = express();
+      const noAuthMiddleware = memoizationMiddleware({
+        max: 10,
+        maxAge: 1000,
+        includeUserId: true,
+      });
+
+      noAuthApp.use(noAuthMiddleware);
+
+      let noAuthCount = 0;
+      noAuthApp.get('/api/public', (req, res) => {
+        noAuthCount++;
+        res.json({ public: true, count: noAuthCount });
+      });
+
+      // First request without user
+      const first = await request(noAuthApp).get('/api/public');
+      expect(first.headers['x-cache']).toBe('MISS');
+      expect(first.body.count).toBe(1);
+
+      // Second request without user - should hit cache
+      const second = await request(noAuthApp).get('/api/public');
+      expect(second.headers['x-cache']).toBe('HIT');
+      expect(second.body.count).toBe(1);
+
+      expect(noAuthCount).toBe(1);
+
+      noAuthMiddleware.destroy();
+    });
+
+    it('should not include user ID when includeUserId is false', async () => {
+      const noUserIdApp = express();
+
+      noUserIdApp.use((req, res, next) => {
+        const userId = req.headers['x-user-id'] || 'anonymous';
+        req.user = { id: userId };
+        next();
+      });
+
+      const noUserIdMiddleware = memoizationMiddleware({
+        max: 10,
+        maxAge: 1000,
+        includeUserId: false,
+      });
+
+      noUserIdApp.use(noUserIdMiddleware);
+
+      let sharedCount = 0;
+      noUserIdApp.get('/api/shared', (req, res) => {
+        sharedCount++;
+        res.json({ userId: req.user.id, count: sharedCount });
+      });
+
+      // User 1 request
+      const user1 = await request(noUserIdApp)
+        .get('/api/shared')
+        .set('x-user-id', 'user-aaa');
+      expect(user1.headers['x-cache']).toBe('MISS');
+      expect(user1.body.count).toBe(1);
+
+      // User 2 request - should hit cache (sharing across users - BUG when includeUserId is false)
+      const user2 = await request(noUserIdApp)
+        .get('/api/shared')
+        .set('x-user-id', 'user-bbb');
+      expect(user2.headers['x-cache']).toBe('HIT');
+      expect(user2.body.count).toBe(1); // Gets user1's cached data
+      expect(user2.body.userId).toBe('user-aaa'); // Gets wrong user's data
+
+      expect(sharedCount).toBe(1);
+
+      noUserIdMiddleware.destroy();
+    });
+
+    it('should handle cache key generation with userId correctly', async () => {
+      const cacheKeyApp = express();
+
+      cacheKeyApp.use((req, res, next) => {
+        req.user = { id: 'user-xyz' };
+        next();
+      });
+
+      const cacheKeyMiddleware = memoizationMiddleware({
+        max: 10,
+        maxAge: 1000,
+        includeUserId: true,
+      });
+
+      cacheKeyApp.use(cacheKeyMiddleware);
+
+      cacheKeyApp.get('/api/test', (req, res) => {
+        res.json({ message: 'test' });
+      });
+
+      const response = await request(cacheKeyApp).get('/api/test?param=value');
+
+      // Verify cache key includes method, path, query, and userId
+      const cacheKey = response.headers['x-cache-key'];
+      expect(cacheKey).toContain('GET');
+      expect(cacheKey).toContain('/api/test');
+      expect(cacheKey).toContain('param=value');
+      expect(cacheKey).toContain('@user-xyz');
+
+      cacheKeyMiddleware.destroy();
+    });
+  });
 });
