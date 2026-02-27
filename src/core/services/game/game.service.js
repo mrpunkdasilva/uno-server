@@ -1016,15 +1016,12 @@ class GameService {
           // Save the updated game
           await game.save();
 
-          return CommonUtils.Result.success({
-            card: drawnCard,
-            message: 'Card drawn successfully',
-          });
+          return CommonUtils.Result.success(
+            GameDomain.buildDrawCardSuccessResponse(userId, drawnCard),
+          );
         } catch (err) {
           logger.error(
-            `Exception in drawCardFromDeck for game ${gameId}: ${
-              err?.message || err
-            }`,
+            `Exception in drawCard for game ${gameId}: ${err?.message || err}`,
           );
           return CommonUtils.Result.failure(
             new GameErrors.CannotPerformActionError(

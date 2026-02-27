@@ -41,7 +41,7 @@ describe('GameService - drawCard', () => {
     expect(result.cardDrawn).toBe('Green Reverse');
     expect(mockGame.players[0].hand).toHaveLength(2);
     expect(mockGame.deck).toHaveLength(0);
-    expect(mockGameRepository.save).toHaveBeenCalled();
+    expect(mockGame.save).toHaveBeenCalled();
   });
 
   it('should throw CannotPerformActionError if the player has playable cards', async () => {

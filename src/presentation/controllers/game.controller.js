@@ -699,7 +699,8 @@ class GameController {
       // - Game exists and is active
       // - User is the current player
       // - Deck has cards available
-      const drawResult = await this.gameService.drawCardFromDeck(
+      const drawResult = await this.gameService.drawCard(
+        userId,
         gameId,
         userId,
       );
