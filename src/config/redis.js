@@ -2,15 +2,16 @@ import 'dotenv/config';
 import { createClient } from 'redis';
 import logger from './logger.js';
 
-const redisConfig = {
-  host: process.env.REDIS_HOST,
-  port: process.env.REDIS_PORT,
-};
+const REDIS_URL = process.env.REDIS_URL;
+const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
+const REDIS_PORT = process.env.REDIS_PORT || 6379;
+const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
+const REDIS_DB = process.env.REDIS_DB;
 
 const redisClient = createClient({
-  url: `redis://${redisConfig.host}:${redisConfig.port}`,
-  password: redisConfig.password,
-  database: redisConfig.db,
+  url: REDIS_URL || `redis://${REDIS_HOST}:${REDIS_PORT}`,
+  password: REDIS_PASSWORD,
+  database: REDIS_DB,
 });
 
 redisClient.on('error', (err) => {

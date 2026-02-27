@@ -225,6 +225,36 @@ gameSchema.methods.setCurrentColor = function (color) {
   this.currentColor = color;
 };
 
+/**
+ * Draws a specified number of cards from the deck.
+ * @param {number} count - The number of cards to draw.
+ * @returns {Array<object>} The drawn cards.
+ */
+gameSchema.methods.drawCards = function (count) {
+  const drawn = [];
+  for (let i = 0; i < count; i++) {
+    if (this.deck && this.deck.length > 0) {
+      drawn.push(this.deck.shift());
+    }
+  }
+  return drawn;
+};
+
+/**
+ * Adds cards to a specific player's hand.
+ * @param {string} playerId - The ID of the player.
+ * @param {Array<object>} cards - The cards to add.
+ */
+gameSchema.methods.addCardsToPlayerHand = function (playerId, cards) {
+  const player = this.players.find(
+    (p) => p._id.toString() === playerId.toString(),
+  );
+  if (player) {
+    if (!player.hand) player.hand = [];
+    player.hand.push(...cards);
+  }
+};
+
 const Game = mongoose.model('Game', gameSchema);
 
 export default Game;

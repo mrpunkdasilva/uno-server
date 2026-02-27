@@ -22,7 +22,7 @@ class DrawTwoStrategy extends CardActionStrategy {
     const nextPlayer = game.getNextPlayer();
     const cardsToDraw = game.drawCards(2);
 
-    nextPlayer.addCardsToHand(cardsToDraw);
+    game.addCardsToPlayerHand(nextPlayer._id, cardsToDraw);
 
     // The turn is advanced an extra time to skip the player who just drew cards.
     game.advanceTurn();

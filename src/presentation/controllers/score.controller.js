@@ -112,6 +112,29 @@ class ScoreController {
       },
     );
   }
+
+  /**
+   * Handles the request to retrieve scores for a specific match.
+   * @param {Object} req - The express request object.
+   * @param {Object} res - The express response object.
+   * @returns {Promise<void>}
+   */
+  async getMatchScores(req, res) {
+    const { matchId } = req.params;
+    const result = await this.scoreService.getMatchScores(matchId);
+
+    result.fold(
+      (error) => {
+        res.status(500).json({
+          success: false,
+          message: error.message,
+        });
+      },
+      (scoresResponse) => {
+        res.status(200).json(scoresResponse);
+      },
+    );
+  }
 }
 
 export default ScoreController;

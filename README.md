@@ -87,6 +87,28 @@ The simplest way to set up the MongoDB database is by using Docker Compose.
 
     The server will be running on `http://localhost:3000`.
 
+### Project Execution with Docker
+
+To run the application using Docker, follow these steps:
+
+1.  **Build the Docker image:**
+
+    ```bash
+    docker build -t uno-server .
+    ```
+
+    This command builds the Docker image and tags it as `uno-server`.
+
+2.  **Run the Docker container:**
+
+    ```bash
+    docker run -p 3000:3000 uno-server
+    ```
+
+    This command starts a Docker container from the `uno-server` image, mapping port `3000` on your host machine to port `3000` inside the container. The application will then be accessible at `http://localhost:3000`.
+
+    *Note: If your application relies on a database (like MongoDB) or Redis, ensure these services are also running and accessible by the container. You might need to adjust the `MONGO_URI` in your `.env` file to point to the correct host (e.g., `mongodb://mongoadmin:mongopasswd@host.docker.internal:27017/?authSource=admin` for Docker Desktop on Mac/Windows, or the IP address of your MongoDB container).*
+
 ### Code Quality and Testing
 
 This project uses several tools to ensure code quality and maintainability:

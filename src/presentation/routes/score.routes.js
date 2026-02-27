@@ -19,6 +19,11 @@ router.post(
 
 router.get('/', scoreController.getAllScores.bind(scoreController));
 
+router.get(
+  '/match/:matchId',
+  scoreController.getMatchScores.bind(scoreController),
+);
+
 router.put(
   '/:id',
   validateDto(updateScoreDtoSchema),

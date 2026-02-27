@@ -43,7 +43,7 @@ class WildDrawFourStrategy extends CardActionStrategy {
     // 2. Make the next player draw four cards
     const nextPlayer = game.getNextPlayer();
     const cardsToDraw = game.drawCards(4);
-    nextPlayer.addCardsToHand(cardsToDraw);
+    game.addCardsToPlayerHand(nextPlayer._id, cardsToDraw);
 
     // 3. Skip the next player's turn
     game.advanceTurn();

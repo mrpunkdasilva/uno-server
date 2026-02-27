@@ -538,83 +538,86 @@ export const extractPlayerHand = (gameData, playerId) => {
 };
 
 /**
- * Calculates the point value of a single UNO card according to official rules.
- * @param {object} card - The card object containing color, value, and type.
+ * Checks if a player has any card that can be played on top of the given card.
+ * @param {object|null} topCard - The card on top of the discard pile.
+ * @param {Array<object>} hand - The player's hand of cards.
+ * @returns {boolean} True if the player has at least one playable card, false otherwise.
+ */
+export const hasPlayableCards = (topCard, hand) => {
+  if (!hand || hand.length === 0) return false;
+  return hand.some((card) => isValidCardPlay(topCard, card));
+};
+
+/**
+ * Draws a card from the deck and adds it to the player's hand.
+ * Mutates the game object.
+ * @param {object} game - The game object.
+ * @param {string} playerId - The ID of the player drawing the card.
+ * @returns {object|null} The drawn card or null if deck is empty.
+ */
+export const drawCard = (game, playerId) => {
+  if (!game.deck || game.deck.length === 0) return null;
+
+  const card = game.deck.shift();
+  const player = game.players.find((p) => p._id.toString() === playerId);
+
+  if (player) {
+    if (!player.hand) {
+      player.hand = [];
+    }
+    player.hand.push(card);
+  }
+
+  return card;
+};
+
+/**
+ * Builds the success response for drawing a card.
+ * @param {string} playerId - The ID of the player who drew the card.
+ * @param {object} card - The card that was drawn.
+ * @returns {object} The success response object.
+ */
+export const buildDrawCardSuccessResponse = (playerId, card) => ({
+  message: `${playerId} drew a card from the deck.`,
+  cardDrawn: formatCardForDisplay(card),
+});
+
+/**
+ * Calculates the score of a single card.
+ * @param {object} card - The card object.
  * @returns {number} The point value of the card.
  */
-export const calculateCardPoints = (card) => {
-  // Number cards (0-9): face value
-  if (card.type === 'number') {
-    return parseInt(card.value, 10);
-  }
-
-  // Action cards (Skip, Reverse, Draw Two): 20 points each
-  if (card.type === 'action') {
-    return 20;
-  }
-
-  // Wild cards (Wild, Wild Draw Four): 50 points each
-  if (card.type === 'wild') {
-    return 50;
-  }
-
-  // Default fallback (should not happen with valid cards)
+export const calculateCardScore = (card) => {
+  if (card.type === 'wild') return 50;
+  if (card.type === 'action') return 20;
+  if (card.type === 'number') return parseInt(card.value, 10) || 0;
   return 0;
 };
 
 /**
- * Calculates the total score from a player's hand.
- * @param {Array} hand - Array of card objects in the player's hand.
- * @returns {number} Total point value of all cards in hand.
+ * Calculates the total score of a hand of cards.
+ * @param {Array<object>} hand - The hand of cards.
+ * @returns {number} The total score.
  */
 export const calculateHandScore = (hand) => {
-  if (!hand || !Array.isArray(hand)) {
-    return 0;
-  }
-
-  return hand.reduce((total, card) => total + calculateCardPoints(card), 0);
+  if (!hand || !Array.isArray(hand)) return 0;
+  return hand.reduce((total, card) => total + calculateCardScore(card), 0);
 };
 
 /**
- * Calculates the final score for the winner based on all other players' hands.
- * In UNO, the winner scores points equal to the sum of all cards remaining
- * in the other players' hands.
- * @param {object} game - The game object containing all players.
- * @param {string} winnerId - The ID of the winning player.
- * @returns {number} Total score for the winner.
+ * Calculates the current scores for all players in a game.
+ * @param {object} game - The game object.
+ * @returns {object} An object with player usernames as keys and their current scores as values.
  */
-export const calculateFinalScore = (game, winnerId) => {
-  if (!game || !game.players || !Array.isArray(game.players)) {
-    return 0;
-  }
-
-  let totalScore = 0;
-
-  // Sum points from all losing players' hands
-  for (const player of game.players) {
-    // Skip the winner
-    if (player._id.toString() === winnerId.toString()) {
-      continue;
-    }
-
-    // Add points from this player's remaining cards
-    if (player.hand && Array.isArray(player.hand)) {
-      totalScore += calculateHandScore(player.hand);
-    }
-  }
-
-  return totalScore;
+export const calculateAllPlayerScores = (game) => {
+  const scores = {};
+  game.players.forEach((player) => {
+    // Note: player._id might be populated with player object containing username
+    // but in game object in game.repository it might just be the ID.
+    // However, if we populate it, we can get the username.
+    const username =
+      player._id.username || player.username || player._id.toString();
+    scores[username] = calculateHandScore(player.hand);
+  });
+  return scores;
 };
-
-/**
- * Builds the score data object for saving to the database.
- * @param {string} playerId - The ID of the player.
- * @param {string} matchId - The ID of the match/game.
- * @param {number} score - The score value.
- * @returns {object} Score data object ready for database insertion.
- */
-export const buildScoreData = (playerId, matchId, score) => ({
-  playerId,
-  matchId,
-  score,
-});
