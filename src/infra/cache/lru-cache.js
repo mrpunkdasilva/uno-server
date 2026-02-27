@@ -28,9 +28,10 @@ class LRUCache {
    * @param {string} url - Full request URL
    * @param {Object} query - Query parameters
    * @param {Object} headers - Relevant headers (optional)
+   * @param {string|null} userId - User ID to include in cache key (optional)
    * @returns {string} - Unique cache key
    */
-  generateKey(method, url, query = {}, headers = {}) {
+  generateKey(method, url, query = {}, headers = {}, userId = null) {
     const queryString = Object.keys(query)
       .sort()
       .map((key) => `${key}=${query[key]}`)
@@ -42,9 +43,11 @@ class LRUCache {
       .map((key) => `${key}=${headers[key]}`)
       .join('&');
 
+    const userIdString = userId ? `@${userId}` : '';
+
     return `${method}:${url}${queryString ? '?' + queryString : ''}${
       headerString ? '#' + headerString : ''
-    }`;
+    }${userIdString}`;
   }
 
   /**
