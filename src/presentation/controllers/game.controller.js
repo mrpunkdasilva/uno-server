@@ -645,37 +645,42 @@ class GameController {
       const gameEnded = gameStatus.status === 'Ended';
 
       let nextPlayerId = null;
+      let skipInfo = null;
 
       // Only advance turn if game didn't end
       if (!gameEnded) {
         nextPlayerId = await this.gameService.advanceTurn(gameId);
+
+        // If this was a skip card and we have skip info in the playResult
+        if (playResult.skipInfo) {
+          skipInfo = playResult.skipInfo;
+        }
       }
 
-      res.status(200).json({
+      // Format response based on whether it was a skip card
+      const response = {
         success: true,
         message: playResult.message,
         turnAdvanced: !gameEnded,
         gameEnded: gameEnded,
         nextPlayer: nextPlayerId,
-      });
-    } catch (error) {
-      if (error instanceof GameNotFoundError) {
-        return res.status(error.statusCode).json({
-          success: false,
-          message: error.message,
-        });
-      } else if (error instanceof InvalidGameIdError) {
-        return res.status(error.statusCode).json({
-          success: false,
-          message: error.message,
-        });
-      } else if (error instanceof CannotPerformActionError) {
-        return res.status(error.statusCode).json({
-          success: false,
-          message: error.message,
+      };
+
+      // Add skip-specific response format if applicable
+      if (skipInfo) {
+        // Transform to match the requested output format
+        return res.status(200).json({
+          status: 200,
+          body: {
+            nextPlayerIndex: skipInfo.nextPlayerIndex,
+            nextPlayer: skipInfo.nextPlayer,
+            skippedPlayer: skipInfo.skippedPlayer,
+          },
         });
       }
 
+      res.status(200).json(response);
+    } catch (error) {
       res.status(500).json({
         success: false,
         message: error.message,
