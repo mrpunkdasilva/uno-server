@@ -922,6 +922,11 @@ class GameService {
   /**
    * Draws a card from the deck for a player.
    * Validates that the game is active, the user is the current player, and the deck has cards.
+   *
+   * NEW RULE:
+   * If the player has no playable cards, they must draw cards one by one
+   * until a playable card is found or the deck becomes empty.
+   *
    * @param {string} userId - The ID of the user drawing the card.
    * @param {string} gameId - The ID of the game.
    * @param {string} playerId - The ID of the player drawing the card.
@@ -952,7 +957,7 @@ class GameService {
       .chain(async (result) => {
         try {
           const game = result.game || result;
-          // Validate game object exists
+
           if (!game) {
             logger.error('Game object is null or undefined in drawCard');
             return CommonUtils.Result.failure(
@@ -962,40 +967,6 @@ class GameService {
 
           const topCard = game.discardPile[game.discardPile.length - 1];
           let currentPlayer = game.players[game.currentPlayerIndex];
-
-          if (GameDomain.hasPlayableCards(topCard, currentPlayer.hand)) {
-            return CommonUtils.Result.failure(
-              new GameErrors.CannotPerformActionError(
-                'You have playable cards. You cannot draw from the deck.',
-              ),
-            );
-          }
-
-          // Check if deck has cards
-          if (!game.deck || game.deck.length === 0) {
-            return CommonUtils.Result.failure(
-              new GameErrors.CannotPerformActionError('The deck is empty.'),
-            );
-          }
-
-          // Validate currentPlayerIndex
-          if (
-            game.currentPlayerIndex === undefined ||
-            game.currentPlayerIndex === null
-          ) {
-            logger.error(`currentPlayerIndex is undefined in game ${gameId}`);
-            return CommonUtils.Result.failure(
-              new GameErrors.CannotPerformActionError(
-                'Could not determine current player',
-              ),
-            );
-          }
-
-          // Draw the first card from the deck
-          const drawnCard = game.deck.shift();
-
-          // Find the current player and add the card to their hand
-          currentPlayer = game.players[game.currentPlayerIndex];
 
           if (!currentPlayer) {
             logger.error(
@@ -1011,14 +982,54 @@ class GameService {
           if (!currentPlayer.hand) {
             currentPlayer.hand = [];
           }
-          currentPlayer.hand.push(drawnCard);
 
-          // Save the updated game
+          const topColor = topCard.color;
+          const topValue = topCard.value;
+
+          const hasPlayableCard = currentPlayer.hand.some((card) => {
+            return card.color === topColor || card.value === topValue;
+          });
+
+          if (hasPlayableCard) {
+            return CommonUtils.Result.failure(
+              new GameErrors.CannotPerformActionError(
+                'You have playable cards. You cannot draw from the deck.',
+              ),
+            );
+          }
+
+          if (!game.deck || game.deck.length === 0) {
+            return CommonUtils.Result.failure(
+              new GameErrors.CannotPerformActionError('The deck is empty.'),
+            );
+          }
+
+          let drawnCard = null;
+          let playable = false;
+
+          while (game.deck.length > 0) {
+            drawnCard = game.deck.shift();
+
+            currentPlayer.hand.push(drawnCard);
+
+            const cardColor = drawnCard.color;
+            const cardValue = drawnCard.value;
+
+            if (cardColor === topColor || cardValue === topValue) {
+              playable = true;
+              break;
+            }
+          }
+
           await game.save();
 
-          return CommonUtils.Result.success(
-            GameDomain.buildDrawCardSuccessResponse(userId, drawnCard),
-          );
+          return CommonUtils.Result.success({
+            message: playable
+              ? 'Playable card drawn.'
+              : 'No playable card found.',
+            cardDrawn: drawnCard,
+            playable,
+          });
         } catch (err) {
           logger.error(
             `Exception in drawCard for game ${gameId}: ${err?.message || err}`,
