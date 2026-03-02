@@ -24,6 +24,7 @@ export const defaultCacheConfig = {
     '/api/auth/refresh-token',
   ],
   includeHeaders: true,
+  includeUserId: true, // Include user ID to prevent caching across different users
   enabled: true,
 };
 
@@ -37,6 +38,7 @@ export const shortTermCacheConfig = {
   methods: ['GET'],
   excludePaths: [],
   includeHeaders: false,
+  includeUserId: true, // Include user ID to prevent caching across different users
   enabled: true,
 };
 
@@ -50,6 +52,7 @@ export const longTermCacheConfig = {
   methods: ['GET'],
   excludePaths: ['/api/auth/*'],
   includeHeaders: false,
+  includeUserId: true, // Include user ID to prevent caching across different users
   enabled: true,
 };
 
@@ -63,6 +66,7 @@ export const devCacheConfig = {
   methods: ['GET'],
   excludePaths: [],
   includeHeaders: false,
+  includeUserId: true, // Include user ID to prevent caching across different users
   enabled: process.env.NODE_ENV !== 'development', // Disable in dev
 };
 
@@ -76,6 +80,7 @@ export const productionCacheConfig = {
   methods: ['GET'],
   excludePaths: ['/api/auth/login', '/api/auth/logout', '/api/auth/refresh'],
   includeHeaders: false,
+  includeUserId: true, // Include user ID to prevent caching across different users
   enabled: true,
 };
 
@@ -88,6 +93,7 @@ export const envBasedCacheConfig = {
   methods: process.env.CACHE_METHODS?.split(',') || ['GET'],
   excludePaths: process.env.CACHE_EXCLUDE_PATHS?.split(',') || [],
   includeHeaders: process.env.CACHE_INCLUDE_HEADERS === 'true',
+  includeUserId: process.env.CACHE_INCLUDE_USER_ID !== 'false', // Include user ID by default
   enabled: process.env.CACHE_ENABLED !== 'false',
 };
 

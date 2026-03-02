@@ -922,6 +922,11 @@ class GameService {
   /**
    * Draws a card from the deck for a player.
    * Validates that the game is active, the user is the current player, and the deck has cards.
+   *
+   * NEW RULE:
+   * If the player has no playable cards, they must draw cards one by one
+   * until a playable card is found or the deck becomes empty.
+   *
    * @param {string} userId - The ID of the user drawing the card.
    * @param {string} gameId - The ID of the game.
    * @param {string} playerId - The ID of the player drawing the card.
@@ -952,7 +957,7 @@ class GameService {
       .chain(async (result) => {
         try {
           const game = result.game || result;
-          // Validate game object exists
+
           if (!game) {
             logger.error('Game object is null or undefined in drawCard');
             return CommonUtils.Result.failure(
@@ -961,9 +966,31 @@ class GameService {
           }
 
           const topCard = game.discardPile[game.discardPile.length - 1];
-          const currentPlayer = game.players[game.currentPlayerIndex];
+          let currentPlayer = game.players[game.currentPlayerIndex];
 
-          if (GameDomain.hasPlayableCards(topCard, currentPlayer.hand)) {
+          if (!currentPlayer) {
+            logger.error(
+              `Current player not found at index ${game.currentPlayerIndex} in game ${gameId}`,
+            );
+            return CommonUtils.Result.failure(
+              new GameErrors.CannotPerformActionError(
+                'Current player not found',
+              ),
+            );
+          }
+
+          if (!currentPlayer.hand) {
+            currentPlayer.hand = [];
+          }
+
+          const topColor = topCard.color;
+          const topValue = topCard.value;
+
+          const hasPlayableCard = currentPlayer.hand.some((card) => {
+            return card.color === topColor || card.value === topValue;
+          });
+
+          if (hasPlayableCard) {
             return CommonUtils.Result.failure(
               new GameErrors.CannotPerformActionError(
                 'You have playable cards. You cannot draw from the deck.',
@@ -971,28 +998,38 @@ class GameService {
             );
           }
 
-          // Check if deck has cards
           if (!game.deck || game.deck.length === 0) {
             return CommonUtils.Result.failure(
               new GameErrors.CannotPerformActionError('The deck is empty.'),
             );
           }
 
-          // Draw the card using domain logic
-          const drawnCard = GameDomain.drawCard(game, playerId);
+          let drawnCard = null;
+          let playable = false;
 
-          if (!drawnCard) {
-            return CommonUtils.Result.failure(
-              new GameErrors.CannotPerformActionError('The deck is empty.'),
-            );
+          while (game.deck.length > 0) {
+            drawnCard = game.deck.shift();
+
+            currentPlayer.hand.push(drawnCard);
+
+            const cardColor = drawnCard.color;
+            const cardValue = drawnCard.value;
+
+            if (cardColor === topColor || cardValue === topValue) {
+              playable = true;
+              break;
+            }
           }
 
-          // Save the updated game
-          await this.gameRepository.save(game);
+          await game.save();
 
-          return CommonUtils.Result.success(
-            GameDomain.buildDrawCardSuccessResponse(playerId, drawnCard),
-          );
+          return CommonUtils.Result.success({
+            message: playable
+              ? 'Playable card drawn.'
+              : 'No playable card found.',
+            cardDrawn: drawnCard,
+            playable,
+          });
         } catch (err) {
           logger.error(
             `Exception in drawCard for game ${gameId}: ${err?.message || err}`,
@@ -1010,9 +1047,23 @@ class GameService {
         ),
       )
       .tapError((error) => {
-        logger.error(
-          `Failed for player ${playerId} to draw card in game ${gameId}: ${error.message}`,
-        );
+        if (error instanceof GameErrors.GameNotFoundError) {
+          logger.warn(`Draw card failed: Game ${gameId} not found.`);
+        } else if (error instanceof GameErrors.InvalidGameIdError) {
+          logger.warn(
+            `Draw card failed: Invalid game ID provided - "${gameId}".`,
+          );
+        } else if (error instanceof GameErrors.GameNotActiveError) {
+          logger.warn(`Draw card failed: Game ${gameId} is not active.`);
+        } else if (error instanceof GameErrors.CannotPerformActionError) {
+          logger.warn(
+            `Draw card failed for player ${userId} in game ${gameId}: ${error.message}`,
+          );
+        } else {
+          logger.error(
+            `Failed for player ${userId} to draw card in game ${gameId}: ${error.message}`,
+          );
+        }
       })
       .getOrThrow();
   }
@@ -1033,6 +1084,195 @@ class GameService {
     const scores = GameDomain.calculateAllPlayerScores(game);
 
     return { scores };
+  }
+
+  /**
+   * Declares "UNO" for a player in a specific game.
+   * Players must declare UNO when they have exactly one card left (or are about to play their second-to-last card).
+   *
+   * @param {string} gameId - The unique identifier of the game.
+   * @param {string} userId - The unique identifier of the player declaring UNO.
+   * @returns {Promise<Object>} A Result containing a success message.
+   * @throws {Error} If the game is not found, not active, or the player is not allowed to declare UNO.
+   */
+  async declareUno(gameId, userId) {
+    return new CommonUtils.ResultAsync(GameDomain.validateGameId(gameId))
+      .tap((trimmedId) =>
+        logger.info(
+          `User ${userId} attempting to declare UNO in game ${trimmedId}`,
+        ),
+      )
+      .chain((trimmedId) =>
+        CommonUtils.fetchById(
+          this.gameRepository,
+          trimmedId,
+          logger,
+          'game',
+          new GameErrors.GameNotFoundError(),
+        ),
+      )
+      .chain(GameDomain.validateGameIsActive)
+      .chain(GameDomain.validateUserInGame(userId))
+      .chain(async (game) => {
+        const player = game.players.find(
+          (p) => p._id.toString() === userId.toString(),
+        );
+
+        // A player can only declare UNO if they have 1 or 2 cards left.
+        if (player.hand.length > 2) {
+          return CommonUtils.Result.failure(
+            new GameErrors.CannotPerformActionError(
+              'You can only declare UNO with 1 or 2 cards remaining.',
+            ),
+          );
+        }
+
+        player.hasDeclaredUno = true;
+        await game.save();
+
+        return CommonUtils.Result.success({
+          message: 'UNO declared successfully!',
+        });
+      })
+      .tap(() =>
+        logger.info(
+          `User ${userId} successfully declared UNO in game ${gameId}.`,
+        ),
+      )
+      .tapError((error) =>
+        logger.error(
+          `Failed to declare UNO for user ${userId}: ${error.message}`,
+        ),
+      )
+      .getOrThrow();
+  }
+
+  /**
+   * Challenges a player for not saying "UNO" when they have exactly one card left.
+   * If the challenge is successful, the target player draws 2 penalty cards.
+   *
+   * @param {string} gameId - The unique identifier of the game.
+   * @param {string} challengerId - The ID of the player initiating the challenge.
+   * @param {string} targetPlayerId - The ID of the player being challenged.
+   * @returns {Promise<Object>} A Result containing the challenge outcome.
+   * @throws {Error} If validation fails or the challenge is invalid.
+   */
+  async challengeUno(gameId, challengerId, targetPlayerId) {
+    return new CommonUtils.ResultAsync(GameDomain.validateGameId(gameId))
+      .tap((trimmedId) =>
+        logger.info(
+          `User ${challengerId} challenging ${targetPlayerId} in game ${trimmedId}`,
+        ),
+      )
+      .chain((trimmedId) =>
+        CommonUtils.fetchById(
+          this.gameRepository,
+          trimmedId,
+          logger,
+          'game',
+          new GameErrors.GameNotFoundError(),
+        ),
+      )
+      .chain(GameDomain.validateGameIsActive)
+      .chain(GameDomain.validateUserInGame(challengerId))
+      .chain(async (game) => {
+        const targetPlayer = game.players.find(
+          (p) => p._id.toString() === targetPlayerId.toString(),
+        );
+        if (!targetPlayer) {
+          return CommonUtils.Result.failure(
+            new GameErrors.CannotPerformActionError(
+              'Target player not found in game.',
+            ),
+          );
+        }
+
+        // Challenge condition: Target has exactly 1 card and forgot to declare UNO
+        if (
+          targetPlayer.hand.length === 1 &&
+          targetPlayer.hasDeclaredUno === false
+        ) {
+          const penaltyCards = [];
+          for (let i = 0; i < 2; i++) {
+            if (game.deck.length > 0) penaltyCards.push(game.deck.shift());
+          }
+
+          if (!targetPlayer.hand) targetPlayer.hand = [];
+          targetPlayer.hand.push(...penaltyCards);
+
+          await game.save();
+
+          return CommonUtils.Result.success({
+            message: 'Challenge successful! Target player drew penalty cards.',
+            penaltyApplied: true,
+            cardsDrawn: penaltyCards.length,
+          });
+        }
+
+        return CommonUtils.Result.failure(
+          new GameErrors.CannotPerformActionError(
+            'Invalid challenge. Player is safe or has more than 1 card.',
+          ),
+        );
+      })
+      .tapError((error) =>
+        logger.error(`Challenge failed in game ${gameId}: ${error.message}`),
+      )
+      .getOrThrow();
+  }
+
+  /**
+   * Retrieves a secure and complete snapshot of the current game state.
+   * Masks opponents' hands to prevent cheating while providing necessary UI information.
+   *
+   * @param {string} gameId - The unique identifier of the game.
+   * @param {string} userId - The ID of the user requesting the game state.
+   * @returns {Promise<Object>} A Result containing the game state snapshot.
+   * @throws {Error} If the game is not found or the user is not in the game.
+   */
+  async getFullGameState(gameId, userId) {
+    return new CommonUtils.ResultAsync(GameDomain.validateGameId(gameId))
+      .chain((trimmedId) =>
+        CommonUtils.fetchById(
+          this.gameRepository,
+          trimmedId,
+          logger,
+          'game',
+          new GameErrors.GameNotFoundError(),
+        ),
+      )
+      .chain(GameDomain.validateUserInGame(userId))
+      .chain(async (game) => {
+        const topCard =
+          game.discardPile.length > 0
+            ? game.discardPile[game.discardPile.length - 1]
+            : null;
+
+        const playersSnapshot = game.players.map((p) => ({
+          id: p._id,
+          position: p.position,
+          handSize: p.hand ? p.hand.length : 0,
+          hasDeclaredUno: p.hasDeclaredUno,
+          isCurrentTurn: game.currentPlayerIndex === p.position,
+          isMe: p._id.toString() === userId.toString(),
+        }));
+
+        return CommonUtils.Result.success({
+          gameId: game._id,
+          status: game.status,
+          turnDirection:
+            game.turnDirection === 1 ? 'Clockwise' : 'Counter-clockwise',
+          currentColor: game.currentColor,
+          topCard: topCard,
+          players: playersSnapshot,
+        });
+      })
+      .tapError((error) =>
+        logger.error(
+          `Failed to get full game state for ${gameId}: ${error.message}`,
+        ),
+      )
+      .getOrThrow();
   }
 }
 

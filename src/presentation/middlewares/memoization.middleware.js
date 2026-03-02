@@ -1,4 +1,5 @@
 import LRUCache from '../../infra/cache/lru-cache.js';
+import logger from '../../config/logger.js';
 
 /**
  * Memoization Middleware with LRU Cache
@@ -20,6 +21,7 @@ import LRUCache from '../../infra/cache/lru-cache.js';
  * @param {string[]} [config.methods=['GET']] - HTTP methods to be cached
  * @param {string[]} [config.excludePaths=[]] - Paths to be excluded from cache
  * @param {boolean} [config.includeHeaders=false] - Include headers in cache key
+ * @param {boolean} [config.includeUserId=false] - Include user ID in cache key (from req.user.id)
  * @param {boolean} [config.enabled=true] - Enable/disable cache
  * @returns {Function} - Express middleware
  */
@@ -30,6 +32,7 @@ export function createMemoizationMiddleware(config = {}) {
     methods: ['GET'],
     excludePaths: [],
     includeHeaders: false,
+    includeUserId: false,
     enabled: true,
   };
 
@@ -47,7 +50,7 @@ export function createMemoizationMiddleware(config = {}) {
     cleanupInterval = setInterval(() => {
       const removed = cache.purgeExpired();
       if (removed > 0) {
-        console.log(`[Cache] Removed ${removed} expired items`);
+        logger.info({ removed }, 'Cache: Removed expired items');
       }
     }, Math.min(options.maxAge, 60000)); // Clean every maxAge or at most every 60s
   }
@@ -92,11 +95,13 @@ export function createMemoizationMiddleware(config = {}) {
 
     // Generate cache key
     const headers = options.includeHeaders ? req.headers : {};
+    const userId = options.includeUserId && req.user ? req.user.id : null;
     const cacheKey = cache.generateKey(
       req.method,
       req.path,
       req.query,
       headers,
+      userId,
     );
 
     // Try to get from cache

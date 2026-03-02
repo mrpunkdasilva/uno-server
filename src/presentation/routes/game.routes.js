@@ -58,13 +58,14 @@ router.get('/:id/ready', controller.setReady.bind(controller));
 router.get('/:id/start', controller.startGame.bind(controller));
 router.get('/:id/abandon', controller.abandonGame.bind(controller));
 router.get('/:id/status', controller.getGameStatus.bind(controller));
-router.get('/:id/scores', controller.getGameScores.bind(controller));
+// router.get('/:id/scores', controller.getGameScores.bind(controller));
 router.get('/:id/discard/top', controller.getDiscardTop.bind(controller));
 router.get('/:id/history', controller.getGameHistory.bind(controller));
 router.get(
   '/:id/discard/top/simple',
   controller.getDiscardTopSimple.bind(controller),
 );
+router.get('/:id/state', controller.getFullGameState.bind(controller));
 router.post('/discard/top', controller.getDiscardTop.bind(controller));
 
 router.post('/:id/hand', controller.getPlayerHand.bind(controller));
@@ -76,6 +77,10 @@ router.post(
   controller.playCard.bind(controller),
 );
 router.post('/:id/draw', controller.drawCard.bind(controller));
+
+router.post('/:id/declare-uno', controller.declareUno.bind(controller));
+
+router.post('/:id/challenge', controller.challengeUno.bind(controller));
 
 router.delete('/:id', controller.deleteGame.bind(controller));
 

@@ -580,6 +580,7 @@ export const drawCard = (game, playerId) => {
 export const buildDrawCardSuccessResponse = (playerId, card) => ({
   message: `${playerId} drew a card from the deck.`,
   cardDrawn: formatCardForDisplay(card),
+  card: card,
 });
 
 /**

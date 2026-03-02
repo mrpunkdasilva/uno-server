@@ -14,7 +14,8 @@ import {
   CannotPerformActionError,
   GameNotAcceptingPlayersError,
 } from '../../core/errors/game.errors.js';
-import * as GameDomain from '../../core/domain/game/game.logic.js';
+import logger from '../../config/logger.js';
+import * as GameDomain from '../../core/domain/game/index.js';
 
 /**
  * Controller class for handling game-related HTTP requests.
@@ -22,6 +23,7 @@ import * as GameDomain from '../../core/domain/game/game.logic.js';
  * Provides RESTful API endpoints with proper error handling and response formatting.
  */
 class GameController {
+  skipInfo;
   /**
    * Initializes the GameController with a GameService instance.
    * @param gameService
@@ -649,33 +651,37 @@ class GameController {
       // Only advance turn if game didn't end
       if (!gameEnded) {
         nextPlayerId = await this.gameService.advanceTurn(gameId);
+
+        // If this was a skip card and we have skip info in the playResult
+        if (playResult.skipInfo) {
+          this.skipInfo = playResult.skipInfo;
+        }
       }
 
-      res.status(200).json({
+      // Format response based on whether it was a skip card
+      const response = {
         success: true,
         message: playResult.message,
         turnAdvanced: !gameEnded,
         gameEnded: gameEnded,
         nextPlayer: nextPlayerId,
-      });
-    } catch (error) {
-      if (error instanceof GameNotFoundError) {
-        return res.status(error.statusCode).json({
-          success: false,
-          message: error.message,
-        });
-      } else if (error instanceof InvalidGameIdError) {
-        return res.status(error.statusCode).json({
-          success: false,
-          message: error.message,
-        });
-      } else if (error instanceof CannotPerformActionError) {
-        return res.status(error.statusCode).json({
-          success: false,
-          message: error.message,
+      };
+
+      // Add skip-specific response format if applicable
+      if (this.skipInfo) {
+        // Transform to match the requested output format
+        return res.status(200).json({
+          status: 200,
+          body: {
+            nextPlayerIndex: this.skipInfo.nextPlayerIndex,
+            nextPlayer: this.skipInfo.nextPlayer,
+            skippedPlayer: this.skipInfo.skippedPlayer,
+          },
         });
       }
 
+      res.status(200).json(response);
+    } catch (error) {
       res.status(500).json({
         success: false,
         message: error.message,
@@ -699,7 +705,8 @@ class GameController {
       // - Game exists and is active
       // - User is the current player
       // - Deck has cards available
-      const drawResult = await this.gameService.drawCardFromDeck(
+      const drawResult = await this.gameService.drawCard(
+        userId,
         gameId,
         userId,
       );
@@ -754,18 +761,18 @@ class GameController {
    * @returns {Promise<void>} Returns JSON with the game history
    * @throws {Error} If there is an error in validation or search
    */
-  async getGameHistory(req, res, next) {
+  async getGameHistory(req, res) {
     try {
-      console.log('=== DEBUG GET HISTORY ===');
-      console.log('req.params:', req.params);
-      console.log('req.params.id:', req.params.id);
-      console.log('req.query:', req.query);
+      logger.debug(
+        {
+          params: req.params,
+          query: req.query,
+        },
+        'Getting game history',
+      );
 
       const gameId = req.params.id;
       const { limit } = req.query;
-
-      console.log('gameId:', gameId);
-      console.log('limit:', limit);
 
       // Validar entrada com Zod
       const validated = gameHistoryDtoSchema.parse({
@@ -773,25 +780,139 @@ class GameController {
         limit,
       });
 
-      console.log('validated:', validated);
+      logger.debug({ validated }, 'Validated history request');
 
       const history = await this.gameHistoryService.getGameHistory(
         validated.gameId,
         validated.limit,
       );
 
-      console.log('history retornado:', history);
+      logger.debug(
+        { historyCount: history?.data?.length },
+        'History retrieved successfully',
+      );
 
       return res.status(200).json(history);
     } catch (error) {
-      console.error('ERRO COMPLETO:');
-      console.error('name:', error.name);
-      console.error('message:', error.message);
-      console.error('stack:', error.stack);
-      if (error.errors) {
-        console.error('Zod errors:', error.errors);
+      logger.error(
+        {
+          err: {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+            errors: error.errors,
+          },
+          gameId: req.params.id,
+        },
+        'Error getting game history',
+      );
+
+      throw error;
+    }
+  }
+
+  /**
+   * Handles the request to declare "UNO".
+   *
+   * @param {Object} req - The express request object.
+   * @param {Object} res - The express response object.
+   * @returns {Promise<void>} JSON response indicating success or error.
+   */
+  async declareUno(req, res) {
+    try {
+      const gameId = req.params.id;
+      const userId = req.user.id;
+      const result = await this.gameService.declareUno(gameId, userId);
+
+      return res.status(200).json({
+        success: true,
+        message: result.message,
+      });
+    } catch (error) {
+      if (error instanceof GameNotFoundError) {
+        return res
+          .status(error.statusCode)
+          .json({ success: false, message: error.message });
+      } else if (error instanceof CannotPerformActionError) {
+        return res
+          .status(error.statusCode)
+          .json({ success: false, message: error.message });
       }
-      next(error);
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /**
+   * Handles the request to challenge a player for not declaring "UNO".
+   *
+   * @param {Object} req - The express request object containing the targetPlayerId in the body.
+   * @param {Object} res - The express response object.
+   * @returns {Promise<void>} JSON response with the challenge result or error.
+   */
+  async challengeUno(req, res) {
+    try {
+      const gameId = req.params.id;
+      const challengerId = req.user.id;
+      const { targetPlayerId } = req.body;
+
+      if (!targetPlayerId) {
+        return res.status(400).json({
+          success: false,
+          message: 'targetPlayerId is required in request body',
+        });
+      }
+
+      const result = await this.gameService.challengeUno(
+        gameId,
+        challengerId,
+        targetPlayerId,
+      );
+
+      return res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      if (error instanceof GameNotFoundError) {
+        return res
+          .status(error.statusCode)
+          .json({ success: false, message: error.message });
+      } else if (error instanceof CannotPerformActionError) {
+        return res
+          .status(error.statusCode)
+          .json({ success: false, message: error.message });
+      }
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /**
+   * Handles the request to fetch the complete and secure game state.
+   *
+   * @param {Object} req - The express request object.
+   * @param {Object} res - The express response object.
+   * @returns {Promise<void>} JSON response containing the game state snapshot.
+   */
+  async getFullGameState(req, res) {
+    try {
+      const gameId = req.params.id;
+      const userId = req.user.id;
+      const result = await this.gameService.getFullGameState(gameId, userId);
+
+      return res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      if (
+        error instanceof GameNotFoundError ||
+        error instanceof UserNotInGameError
+      ) {
+        return res
+          .status(error.statusCode)
+          .json({ success: false, message: error.message });
+      }
+      return res.status(500).json({ success: false, message: error.message });
     }
   }
 

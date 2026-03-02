@@ -3,6 +3,7 @@ import * as GameDomain from '../../../domain/game/index.js';
 import * as GameErrors from '../../../errors/index.js';
 import * as CommonUtils from '../../../utils/index.js';
 import { isValidCardPlay } from '../../../domain/game/game.logic.js';
+import { calculateSkipResult } from '../../../utils/skip.utils.js';
 
 /**
  * Coordinates the complex process of playing a card, including strategy execution,
@@ -55,6 +56,11 @@ export class CardPlayCoordinator {
       );
     }
 
+    // Store current player index and direction before strategy execution
+    // to calculate skip information if needed
+    const currentPlayerIndex = game.currentPlayerIndex;
+    const currentDirection = game.direction;
+
     // Now execute the card strategy
     const StrategyClass = getStrategyForCard(cardToPlay);
     const strategy = new StrategyClass();
@@ -72,6 +78,11 @@ export class CardPlayCoordinator {
 
     GameDomain.applyCardPlayEffects(game, currentPlayer, cardIndex, cardToPlay);
 
+    // reset their UNO declaration status to prevent false safety.
+    if (currentPlayer.hand && currentPlayer.hand.length !== 1) {
+      currentPlayer.hasDeclaredUno = false;
+    }
+
     const { action, winnerId } = GameDomain.checkWinConditionAndGetOutcome(
       game,
       currentPlayer,
@@ -83,9 +94,31 @@ export class CardPlayCoordinator {
       winnerId,
     });
 
-    return CommonUtils.Result.success({
+    // Prepare success response
+    const successResponse = {
       success: true,
       message: GameDomain.buildPlayCardSuccessMessage(action),
-    });
+    };
+
+    // If this was a skip card, add skip information to the response
+    if (cardToPlay.value === 'skip' || cardToPlay.type === 'skip') {
+      // Get player names for better response formatting
+      const players = game.players.map((p) => p.username || p.id);
+
+      const skipResult = calculateSkipResult(
+        currentPlayerIndex,
+        players,
+        currentDirection,
+      );
+
+      // Add skip info to the response
+      successResponse.skipInfo = skipResult;
+
+      this.logger.info(
+        `Skip card played: Skipped player ${skipResult.skippedPlayer}, next player is ${skipResult.nextPlayer}`,
+      );
+    }
+
+    return CommonUtils.Result.success(successResponse);
   }
 }
