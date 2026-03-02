@@ -15,6 +15,7 @@ import {
   GameNotAcceptingPlayersError,
 } from '../../core/errors/game.errors.js';
 import logger from '../../config/logger.js';
+import * as GameDomain from '../../core/domain/game/index.js';
 
 /**
  * Controller class for handling game-related HTTP requests.
@@ -22,6 +23,7 @@ import logger from '../../config/logger.js';
  * Provides RESTful API endpoints with proper error handling and response formatting.
  */
 class GameController {
+  skipInfo;
   /**
    * Initializes the GameController with a GameService instance.
    * @param gameService
@@ -645,7 +647,6 @@ class GameController {
       const gameEnded = gameStatus.status === 'Ended';
 
       let nextPlayerId = null;
-      let skipInfo = null;
 
       // Only advance turn if game didn't end
       if (!gameEnded) {
@@ -653,7 +654,7 @@ class GameController {
 
         // If this was a skip card and we have skip info in the playResult
         if (playResult.skipInfo) {
-          skipInfo = playResult.skipInfo;
+          this.skipInfo = playResult.skipInfo;
         }
       }
 
@@ -667,14 +668,14 @@ class GameController {
       };
 
       // Add skip-specific response format if applicable
-      if (skipInfo) {
+      if (this.skipInfo) {
         // Transform to match the requested output format
         return res.status(200).json({
           status: 200,
           body: {
-            nextPlayerIndex: skipInfo.nextPlayerIndex,
-            nextPlayer: skipInfo.nextPlayer,
-            skippedPlayer: skipInfo.skippedPlayer,
+            nextPlayerIndex: this.skipInfo.nextPlayerIndex,
+            nextPlayer: this.skipInfo.nextPlayer,
+            skippedPlayer: this.skipInfo.skippedPlayer,
           },
         });
       }
@@ -913,6 +914,30 @@ class GameController {
       }
       return res.status(500).json({ success: false, message: error.message });
     }
+  }
+
+  /**
+   * Calculates the next player's turn based on the current list of players and index.
+   * @param {Object} req - Express request object.
+   * @param {Object} res - Express response object.
+   * @returns {Promise<void>} JSON response with next player info.
+   */
+  async nextTurn(req, res) {
+    const { players, currentPlayerIndex } = req.body;
+
+    if (!players || currentPlayerIndex === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'Players list and currentPlayerIndex are required',
+      });
+    }
+
+    const nextTurnInfo = GameDomain.calculateNextTurn(
+      players,
+      currentPlayerIndex,
+    );
+
+    res.status(200).json(nextTurnInfo);
   }
 }
 

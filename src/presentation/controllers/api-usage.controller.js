@@ -8,6 +8,7 @@ import ApiUsageRepository from '../../infra/repositories/api-usage.repository.js
 class ApiUsageController {
   /**
    * Creates a new instance of ApiUsageController
+   * @param apiUsageService
    */
   constructor(apiUsageService) {
     this.apiUsageService = apiUsageService;

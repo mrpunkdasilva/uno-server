@@ -5,6 +5,7 @@ import validateDto from '../middlewares/validateDto.middleware.js';
 import createGameDtoSchema from '../dtos/game/create-game.dto.js';
 import updateGameDtoSchema from '../dtos/game/update-game.dto.js';
 import playCardDtoSchema from '../dtos/game/play-card.dto.js';
+import nextTurnDtoSchema from '../dtos/game/next-turn.dto.js';
 
 // Import repositories and service for DI
 import GameRepository from '../../infra/repositories/game.repository.js';
@@ -34,6 +35,11 @@ const controller = new GameController(gameService, gameHistoryService);
 
 router.get('/', controller.getAllGames.bind(controller));
 router.get('/:id', controller.getGameById.bind(controller));
+router.post(
+  '/nextTurn',
+  validateDto(nextTurnDtoSchema),
+  controller.nextTurn.bind(controller),
+);
 
 router.post(
   '/',

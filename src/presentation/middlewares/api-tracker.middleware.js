@@ -6,6 +6,9 @@ const apiUsageRepository = new ApiUsageRepository();
 /**
  * Middleware to track API usage statistics
  * Records endpoint access, response times, status codes, and other metrics
+ * @param req
+ * @param res
+ * @param next
  */
 export const trackApiUsage = (req, res, next) => {
   // Record the start time
