@@ -19,12 +19,23 @@ export const setupTestEnvironment = async () => {
   // Connect to in-memory database
   await mongoose.connect(mongoUri);
 
-  // Connect to Redis (or skip if not available in test environment)
+  // Connect to Redis with timeout (or mock if not available)
+  const connectToRedis = async () => {
+    return Promise.race([
+      redisClient.connect(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Redis connection timeout')), 3000),
+      ),
+    ]);
+  };
+
   try {
     if (!redisClient.isOpen) {
-      await redisClient.connect();
+      await connectToRedis();
+      console.log('Connected to Redis for E2E tests');
     }
   } catch (error) {
+    console.warn('Redis not available, using mock:', error.message);
     // Mock Redis methods to prevent errors
     redisClient.get = async () => null;
     redisClient.set = async () => 'OK';
@@ -32,7 +43,9 @@ export const setupTestEnvironment = async () => {
     redisClient.exists = async () => 0;
     redisClient.setEx = async () => 'OK';
     redisClient.quit = async () => 'OK';
+    redisClient.disconnect = async () => {};
     redisClient.isOpen = true;
+    redisClient.isReady = true;
   }
 
   // Start Express server on a test port
@@ -50,26 +63,47 @@ export const setupTestEnvironment = async () => {
 export const teardownTestEnvironment = async () => {
   // Close server
   if (serverInstance) {
-    await new Promise((resolve) => {
-      serverInstance.close(resolve);
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Server close timeout'));
+      }, 5000);
+
+      serverInstance.close((err) => {
+        clearTimeout(timeout);
+        if (err) reject(err);
+        else resolve();
+      });
+    }).catch((err) => {
+      console.warn('Error closing server:', err.message);
     });
   }
 
   // Disconnect from Redis
   try {
-    if (redisClient.isOpen) {
-      await redisClient.quit();
+    if (redisClient.isOpen && typeof redisClient.quit === 'function') {
+      await Promise.race([
+        redisClient.quit(),
+        new Promise((resolve) => setTimeout(resolve, 2000)),
+      ]);
     }
   } catch (error) {
     console.warn('Error disconnecting from Redis:', error.message);
   }
 
   // Disconnect from database
-  await mongoose.disconnect();
+  try {
+    await mongoose.disconnect();
+  } catch (error) {
+    console.warn('Error disconnecting from MongoDB:', error.message);
+  }
 
   // Stop MongoDB Memory Server
   if (mongoServer) {
-    await mongoServer.stop();
+    try {
+      await mongoServer.stop();
+    } catch (error) {
+      console.warn('Error stopping MongoDB Memory Server:', error.message);
+    }
   }
 };
 
