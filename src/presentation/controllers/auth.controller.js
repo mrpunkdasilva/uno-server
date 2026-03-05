@@ -28,12 +28,20 @@ class AuthController {
       throw new AppError('Email, password and username are required', 400);
     }
 
+    // Validate password strength
+    if (password.length < 6) {
+      throw new AppError('Password must be at least 6 characters long', 400);
+    }
+
     const playerData = { email, password, username };
-    const newPlayer = await this.playerService.createPlayer(playerData);
+    const result = await this.playerService.createPlayer(playerData);
+
+    // Extract player from Result object
+    const player = result._value || result;
 
     res.status(201).json({
       success: true,
-      data: newPlayer,
+      player: player,
       message: 'Player registered successfully',
     });
   }
@@ -106,16 +114,17 @@ class AuthController {
   async getAuthenticatedPlayerProfile(req, res) {
     const userId = req.user.id;
 
-    const player = await this.playerService.getPlayerById(userId);
+    const result = await this.playerService.getPlayerById(userId);
 
-    if (!player) {
-      throw new AppError('Player not found', 404);
+    // Check if result is an error (Result.isFailure property)
+    if (result.isFailure) {
+      throw new AppError(result.error.message || 'Player not found', 404);
     }
 
-    res.status(200).json({
-      success: true,
-      data: player,
-    });
+    // Extract player from Result object
+    const player = result.value;
+
+    res.status(200).json(player);
   }
 }
 

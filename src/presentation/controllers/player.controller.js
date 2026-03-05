@@ -28,11 +28,9 @@ class PlayerController {
           message: error.message,
         });
       },
-      (players) => {
-        res.status(200).json({
-          success: true,
-          data: players,
-        });
+      (result) => {
+        const players = result._value || result;
+        res.status(200).json(players);
       },
     );
   }
@@ -62,11 +60,9 @@ class PlayerController {
           message: error.message,
         });
       },
-      (player) => {
-        res.status(201).json({
-          success: true,
-          data: player,
-        });
+      (result) => {
+        const player = result._value || result;
+        res.status(201).json(player);
       },
     );
   }
@@ -88,11 +84,9 @@ class PlayerController {
           message: error.message,
         });
       },
-      (player) => {
-        res.status(200).json({
-          success: true,
-          data: player,
-        });
+      (result) => {
+        const player = result._value || result;
+        res.status(200).json(player);
       },
     );
   }
@@ -122,11 +116,9 @@ class PlayerController {
           message: error.message,
         });
       },
-      (player) => {
-        res.status(200).json({
-          success: true,
-          data: player,
-        });
+      (result) => {
+        const player = result._value || result;
+        res.status(200).json(player);
       },
     );
   }
@@ -156,11 +148,9 @@ class PlayerController {
           message: error.message,
         });
       },
-      (player) => {
-        res.status(200).json({
-          success: true,
-          data: player,
-        });
+      (result) => {
+        const player = result._value || result;
+        res.status(200).json(player);
       },
     );
   }
@@ -190,11 +180,9 @@ class PlayerController {
           message: error.message,
         });
       },
-      (player) => {
-        res.status(200).json({
-          success: true,
-          data: player,
-        });
+      (result) => {
+        const player = result._value || result;
+        res.status(200).json(player);
       },
     );
   }
