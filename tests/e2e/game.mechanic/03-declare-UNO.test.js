@@ -1,4 +1,3 @@
-// tests/e2e/game.mechanic/03-declare-UNO.test.js
 import {
   setupTestEnvironment,
   teardownTestEnvironment,
