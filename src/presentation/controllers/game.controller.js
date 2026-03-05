@@ -1,5 +1,6 @@
 import getDiscardTopCardDtoSchema from '../dtos/card/get-discard-top-card.dto.js';
 import gameHistoryDtoSchema from '../dtos/game/game.history.dto.js';
+import mongoose from 'mongoose';
 import {
   GameNotFoundError,
   InvalidGameIdError,
@@ -627,6 +628,10 @@ class GameController {
       const userId = req.user.id;
       const { cardId, chosenColor } = req.body;
 
+      if (!mongoose.Types.ObjectId.isValid(gameId)) {
+        throw new InvalidGameIdError();
+      }
+
       if (!cardId) {
         return res.status(400).json({
           success: false,
@@ -682,7 +687,23 @@ class GameController {
 
       res.status(200).json(response);
     } catch (error) {
-      res.status(500).json({
+      if (error instanceof GameNotFoundError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error instanceof InvalidGameIdError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error instanceof CannotPerformActionError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      return res.status(500).json({
         success: false,
         message: error.message,
       });
