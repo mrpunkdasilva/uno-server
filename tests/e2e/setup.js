@@ -2,7 +2,6 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import { server } from '../../src/app.js';
 import redisClient from '../../src/config/redis.js';
-
 let mongoServer;
 let serverInstance;
 
@@ -198,7 +197,9 @@ export const loginPlayer = async (email, password) => {
  */
 export const createTestGame = async (token, gameData = {}) => {
   const defaultGame = {
-    title: `Test Game ${Date.now()}`,
+    name: `Test Game ${Date.now()}`,
+    rules: 'Standard UNO rules for testing',
+    minPlayers: 2,
     maxPlayers: 4,
   };
 
