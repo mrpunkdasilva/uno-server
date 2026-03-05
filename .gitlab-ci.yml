@@ -2,6 +2,7 @@ stages:
   - install
   - lint
   - test
+  - test-e2e
   - deploy
 
 cache:
@@ -19,7 +20,7 @@ lint_check:
   image: node:20
   script:
     - npm run lint
-    - npm run format -- --check
+    - npm run format:check
   dependencies:
     - install_dependencies
 
@@ -27,7 +28,7 @@ test_suite:
   stage: test
   image: node:20
   script:
-    - npm test
+    - npm run test:unit
   dependencies:
     - install_dependencies
   artifacts:
@@ -36,17 +37,44 @@ test_suite:
       - coverage/
   coverage: '/All files[^|]*\|[^|]*\s+([\d.]+)/'
 
+test_e2e:
+  stage: test-e2e
+  image: node:20
+  services:
+    - name: mongo:6.0
+      alias: mongo
+    - name: redis:alpine
+      alias: redis
+  variables:
+    MONGO_URI: 'mongodb://mongo:27017/uno_test'
+    REDIS_HOST: redis
+    REDIS_PORT: '6379'
+    NODE_ENV: test
+    JWT_SECRET: test_jwt_secret_key_for_ci
+    JWT_REFRESH_SECRET: test_jwt_refresh_secret_key_for_ci
+  script:
+    - npm run test:e2e
+  dependencies:
+    - install_dependencies
+  artifacts:
+    when: always
+    paths:
+      - coverage/e2e/
+  allow_failure: false
+
 pages:
   stage: deploy
   image: node:20
   script:
-    - mkdir .public
-    - cp -r coverage/lcov-report/* .public
+    - mkdir -p .public
+    - if [ -d "coverage/lcov-report" ]; then cp -r coverage/lcov-report/* .public/; fi
+    - if [ -d "coverage/e2e/lcov-report" ]; then mkdir -p .public/e2e && cp -r coverage/e2e/lcov-report/* .public/e2e/; fi
     - mv .public public
   artifacts:
     paths:
       - public
   dependencies:
     - test_suite
+    - test_e2e
   only:
     - main
