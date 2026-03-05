@@ -855,16 +855,38 @@ class GameController {
         message: result.message,
       });
     } catch (error) {
-      if (error instanceof GameNotFoundError) {
-        return res
-          .status(error.statusCode)
-          .json({ success: false, message: error.message });
-      } else if (error instanceof CannotPerformActionError) {
-        return res
-          .status(error.statusCode)
-          .json({ success: false, message: error.message });
+      // Log para depuração
+      logger.error(
+        { error, stack: error?.stack },
+        'Error in declareUno controller',
+      );
+
+      if (!error) {
+        return res.status(500).json({
+          success: false,
+          message: 'Unknown error occurred',
+        });
       }
-      return res.status(500).json({ success: false, message: error.message });
+
+      // Mapeamento baseado no nome do erro
+      const errorName = error.name || error.constructor?.name;
+      const statusMap = {
+        InvalidGameIdError: 400,
+        GameNotFoundError: 404,
+        GameNotActiveError: 400,
+        UserNotInGameError: 404,
+        CannotPerformActionError: 400,
+        CastError: 400, // Erro do Mongoose para ID inválido
+      };
+
+      // Usa statusCode do erro se existir, senão usa o mapa, senão 500
+      const statusCode = error.statusCode || statusMap[errorName] || 500;
+      const message = error.message || 'Internal server error';
+
+      return res.status(statusCode).json({
+        success: false,
+        message,
+      });
     }
   }
 

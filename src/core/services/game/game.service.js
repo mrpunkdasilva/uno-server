@@ -1137,6 +1137,15 @@ class GameService {
           );
         }
 
+        //  Verificar se já declarou UNO
+        if (player.hasDeclaredUno === true) {
+          return CommonUtils.Result.failure(
+            new GameErrors.CannotPerformActionError(
+              'You have already declared UNO in this turn.',
+            ),
+          );
+        }
+
         player.hasDeclaredUno = true;
         await game.save();
 
@@ -1149,11 +1158,20 @@ class GameService {
           `User ${userId} successfully declared UNO in game ${gameId}.`,
         ),
       )
-      .tapError((error) =>
-        logger.error(
-          `Failed to declare UNO for user ${userId}: ${error.message}`,
-        ),
-      )
+      .tapError((error) => {
+        // Log específico por tipo de erro
+        if (error instanceof GameErrors.GameNotActiveError) {
+          logger.warn(`Game ${gameId} is not active for UNO declaration`);
+        } else if (error instanceof GameErrors.UserNotInGameError) {
+          logger.warn(
+            `User ${userId} not in game ${gameId} for UNO declaration`,
+          );
+        } else {
+          logger.error(
+            `Failed to declare UNO for user ${userId}: ${error.message}`,
+          );
+        }
+      })
       .getOrThrow();
   }
 
