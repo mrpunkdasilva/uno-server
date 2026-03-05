@@ -162,7 +162,7 @@ class GameService {
                   gameId,
                 );
 
-              if (scoreResult.isFailure()) {
+              if (scoreResult.isFailure) {
                 // Log error but don't fail the game ending
                 logger.error(
                   `Failed to calculate/save score for game ${gameId}: ${scoreResult.error.message}`,
