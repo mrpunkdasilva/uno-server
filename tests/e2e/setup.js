@@ -203,12 +203,10 @@ export const createTestGame = async (token, gameData = {}) => {
     maxPlayers: 4,
   };
 
-  const response = await makeRequest('POST', '/api/games', {
+  return await makeRequest('POST', '/api/games', {
     token,
     body: { ...defaultGame, ...gameData },
   });
-
-  return response;
 };
 
 /**

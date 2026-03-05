@@ -990,6 +990,16 @@ class GameService {
             return card.color === topColor || card.value === topValue;
           });
 
+          if (game.discardPile.length === 0) {
+            // Permite comprar sem validação de jogabilidade
+            const drawnCard = game.deck.shift();
+            if (!drawnCard)
+              throw new GameErrors.CannotPerformActionError('Deck vazio');
+            currentPlayer.hand.push(drawnCard);
+            await game.save();
+            return CommonUtils.Result.success({ cardDrawn: drawnCard });
+          }
+
           if (hasPlayableCard) {
             return CommonUtils.Result.failure(
               new GameErrors.CannotPerformActionError(

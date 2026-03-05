@@ -55,6 +55,10 @@ export const startGame = (game) => {
 
   // Deal 7 cards to each player
   dealCardsSimple(game, 7);
+  if (game.deck.length > 0) {
+    game.discardPile = game.discardPile || [];
+    game.discardPile.push(game.deck.shift());
+  }
 
   return game;
 };

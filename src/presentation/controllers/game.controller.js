@@ -738,7 +738,7 @@ class GameController {
       res.status(200).json({
         success: true,
         message: 'Card drawn successfully',
-        drawnCard: drawResult.card,
+        drawnCard: drawResult.cardDrawn,
         turnAdvanced: true,
         nextPlayer: nextPlayerId,
       });
@@ -757,6 +757,11 @@ class GameController {
         return res.status(error.statusCode).json({
           success: false,
           message: error.message,
+        });
+      } else if (error.name === 'CastError') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid game ID format',
         });
       }
 
