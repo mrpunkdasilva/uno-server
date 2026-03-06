@@ -2,7 +2,6 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import { server } from '../../src/app.js';
 import redisClient from '../../src/config/redis.js';
-
 let mongoServer;
 let serverInstance;
 
@@ -44,8 +43,6 @@ export const setupTestEnvironment = async () => {
     redisClient.setEx = async () => 'OK';
     redisClient.quit = async () => 'OK';
     redisClient.disconnect = async () => {};
-    redisClient.isOpen = true;
-    redisClient.isReady = true;
   }
 
   // Start Express server on a test port
@@ -119,6 +116,9 @@ export const clearDatabase = async () => {
 
 /**
  * Helper function to make HTTP requests
+ * @param method
+ * @param endpoint
+ * @param options
  */
 export const makeRequest = async (method, endpoint, options = {}) => {
   const url = `${BASE_URL}${endpoint}`;
@@ -161,6 +161,7 @@ export const makeRequest = async (method, endpoint, options = {}) => {
 
 /**
  * Helper to create a test player
+ * @param playerData
  */
 export const createTestPlayer = async (playerData = {}) => {
   const defaultPlayer = {
@@ -178,6 +179,8 @@ export const createTestPlayer = async (playerData = {}) => {
 
 /**
  * Helper to login a player
+ * @param email
+ * @param password
  */
 export const loginPlayer = async (email, password) => {
   const response = await makeRequest('POST', '/api/auth/login', {
@@ -189,23 +192,28 @@ export const loginPlayer = async (email, password) => {
 
 /**
  * Helper to create a test game
+ * @param token
+ * @param gameData
  */
 export const createTestGame = async (token, gameData = {}) => {
   const defaultGame = {
-    title: `Test Game ${Date.now()}`,
+    name: `Test Game ${Date.now()}`,
+    rules: 'Standard UNO rules for testing',
+    minPlayers: 2,
     maxPlayers: 4,
   };
 
-  const response = await makeRequest('POST', '/api/games', {
+  return await makeRequest('POST', '/api/games', {
     token,
     body: { ...defaultGame, ...gameData },
   });
-
-  return response;
 };
 
 /**
  * Wait for a condition to be true
+ * @param condition
+ * @param timeout
+ * @param interval
  */
 export const waitFor = async (condition, timeout = 5000, interval = 100) => {
   const startTime = Date.now();
@@ -222,5 +230,6 @@ export const waitFor = async (condition, timeout = 5000, interval = 100) => {
 
 /**
  * Sleep utility
+ * @param ms
  */
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

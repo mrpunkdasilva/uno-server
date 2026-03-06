@@ -1,5 +1,6 @@
 import getDiscardTopCardDtoSchema from '../dtos/card/get-discard-top-card.dto.js';
 import gameHistoryDtoSchema from '../dtos/game/game.history.dto.js';
+import mongoose from 'mongoose';
 import {
   GameNotFoundError,
   InvalidGameIdError,
@@ -627,6 +628,10 @@ class GameController {
       const userId = req.user.id;
       const { cardId, chosenColor } = req.body;
 
+      if (!mongoose.Types.ObjectId.isValid(gameId)) {
+        throw new InvalidGameIdError();
+      }
+
       if (!cardId) {
         return res.status(400).json({
           success: false,
@@ -682,7 +687,23 @@ class GameController {
 
       res.status(200).json(response);
     } catch (error) {
-      res.status(500).json({
+      if (error instanceof GameNotFoundError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error instanceof InvalidGameIdError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      } else if (error instanceof CannotPerformActionError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      return res.status(500).json({
         success: false,
         message: error.message,
       });
@@ -717,7 +738,7 @@ class GameController {
       res.status(200).json({
         success: true,
         message: 'Card drawn successfully',
-        drawnCard: drawResult.card,
+        drawnCard: drawResult.cardDrawn,
         turnAdvanced: true,
         nextPlayer: nextPlayerId,
       });
@@ -736,6 +757,11 @@ class GameController {
         return res.status(error.statusCode).json({
           success: false,
           message: error.message,
+        });
+      } else if (error.name === 'CastError') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid game ID format',
         });
       }
 
@@ -829,16 +855,38 @@ class GameController {
         message: result.message,
       });
     } catch (error) {
-      if (error instanceof GameNotFoundError) {
-        return res
-          .status(error.statusCode)
-          .json({ success: false, message: error.message });
-      } else if (error instanceof CannotPerformActionError) {
-        return res
-          .status(error.statusCode)
-          .json({ success: false, message: error.message });
+      // Log para depuração
+      logger.error(
+        { error, stack: error?.stack },
+        'Error in declareUno controller',
+      );
+
+      if (!error) {
+        return res.status(500).json({
+          success: false,
+          message: 'Unknown error occurred',
+        });
       }
-      return res.status(500).json({ success: false, message: error.message });
+
+      // Mapeamento baseado no nome do erro
+      const errorName = error.name || error.constructor?.name;
+      const statusMap = {
+        InvalidGameIdError: 400,
+        GameNotFoundError: 404,
+        GameNotActiveError: 400,
+        UserNotInGameError: 404,
+        CannotPerformActionError: 400,
+        CastError: 400, // Erro do Mongoose para ID inválido
+      };
+
+      // Usa statusCode do erro se existir, senão usa o mapa, senão 500
+      const statusCode = error.statusCode || statusMap[errorName] || 500;
+      const message = error.message || 'Internal server error';
+
+      return res.status(statusCode).json({
+        success: false,
+        message,
+      });
     }
   }
 
@@ -873,16 +921,31 @@ class GameController {
         data: result,
       });
     } catch (error) {
-      if (error instanceof GameNotFoundError) {
+      logger.error(
+        { error, stack: error?.stack },
+        'Error in challengeUno controller',
+      );
+
+      if (!error) {
         return res
-          .status(error.statusCode)
-          .json({ success: false, message: error.message });
-      } else if (error instanceof CannotPerformActionError) {
-        return res
-          .status(error.statusCode)
-          .json({ success: false, message: error.message });
+          .status(500)
+          .json({ success: false, message: 'Unknown error' });
       }
-      return res.status(500).json({ success: false, message: error.message });
+
+      const errorName = error.name || error.constructor?.name;
+      const statusMap = {
+        InvalidGameIdError: 400,
+        GameNotFoundError: 404,
+        GameNotActiveError: 400,
+        UserNotInGameError: 404,
+        CannotPerformActionError: 400,
+        CastError: 400,
+      };
+
+      const statusCode = error.statusCode || statusMap[errorName] || 500;
+      return res
+        .status(statusCode)
+        .json({ success: false, message: error.message });
     }
   }
 
@@ -904,15 +967,29 @@ class GameController {
         data: result,
       });
     } catch (error) {
-      if (
-        error instanceof GameNotFoundError ||
-        error instanceof UserNotInGameError
-      ) {
+      logger.error(
+        { error, stack: error?.stack },
+        'Error in getFullGameState controller',
+      );
+
+      if (!error) {
         return res
-          .status(error.statusCode)
-          .json({ success: false, message: error.message });
+          .status(500)
+          .json({ success: false, message: 'Unknown error' });
       }
-      return res.status(500).json({ success: false, message: error.message });
+
+      const errorName = error.name || error.constructor?.name;
+      const statusMap = {
+        InvalidGameIdError: 400,
+        GameNotFoundError: 404,
+        UserNotInGameError: 404,
+        CastError: 400,
+      };
+
+      const statusCode = error.statusCode || statusMap[errorName] || 500;
+      return res
+        .status(statusCode)
+        .json({ success: false, message: error.message });
     }
   }
 

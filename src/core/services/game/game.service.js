@@ -990,6 +990,16 @@ class GameService {
             return card.color === topColor || card.value === topValue;
           });
 
+          if (game.discardPile.length === 0) {
+            // Permite comprar sem validação de jogabilidade
+            const drawnCard = game.deck.shift();
+            if (!drawnCard)
+              throw new GameErrors.CannotPerformActionError('Deck vazio');
+            currentPlayer.hand.push(drawnCard);
+            await game.save();
+            return CommonUtils.Result.success({ cardDrawn: drawnCard });
+          }
+
           if (hasPlayableCard) {
             return CommonUtils.Result.failure(
               new GameErrors.CannotPerformActionError(
@@ -1127,6 +1137,15 @@ class GameService {
           );
         }
 
+        //  Verificar se já declarou UNO
+        if (player.hasDeclaredUno === true) {
+          return CommonUtils.Result.failure(
+            new GameErrors.CannotPerformActionError(
+              'You have already declared UNO in this turn.',
+            ),
+          );
+        }
+
         player.hasDeclaredUno = true;
         await game.save();
 
@@ -1139,11 +1158,20 @@ class GameService {
           `User ${userId} successfully declared UNO in game ${gameId}.`,
         ),
       )
-      .tapError((error) =>
-        logger.error(
-          `Failed to declare UNO for user ${userId}: ${error.message}`,
-        ),
-      )
+      .tapError((error) => {
+        // Log específico por tipo de erro
+        if (error instanceof GameErrors.GameNotActiveError) {
+          logger.warn(`Game ${gameId} is not active for UNO declaration`);
+        } else if (error instanceof GameErrors.UserNotInGameError) {
+          logger.warn(
+            `User ${userId} not in game ${gameId} for UNO declaration`,
+          );
+        } else {
+          logger.error(
+            `Failed to declare UNO for user ${userId}: ${error.message}`,
+          );
+        }
+      })
       .getOrThrow();
   }
 
@@ -1248,12 +1276,12 @@ class GameService {
             ? game.discardPile[game.discardPile.length - 1]
             : null;
 
-        const playersSnapshot = game.players.map((p) => ({
+        const playersSnapshot = game.players.map((p, index) => ({
           id: p._id,
           position: p.position,
           handSize: p.hand ? p.hand.length : 0,
           hasDeclaredUno: p.hasDeclaredUno,
-          isCurrentTurn: game.currentPlayerIndex === p.position,
+          isCurrentTurn: game.currentPlayerIndex === index,
           isMe: p._id.toString() === userId.toString(),
         }));
 
