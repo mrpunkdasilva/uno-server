@@ -967,15 +967,29 @@ class GameController {
         data: result,
       });
     } catch (error) {
-      if (
-        error instanceof GameNotFoundError ||
-        error instanceof UserNotInGameError
-      ) {
+      logger.error(
+        { error, stack: error?.stack },
+        'Error in getFullGameState controller',
+      );
+
+      if (!error) {
         return res
-          .status(error.statusCode)
-          .json({ success: false, message: error.message });
+          .status(500)
+          .json({ success: false, message: 'Unknown error' });
       }
-      return res.status(500).json({ success: false, message: error.message });
+
+      const errorName = error.name || error.constructor?.name;
+      const statusMap = {
+        InvalidGameIdError: 400,
+        GameNotFoundError: 404,
+        UserNotInGameError: 404,
+        CastError: 400,
+      };
+
+      const statusCode = error.statusCode || statusMap[errorName] || 500;
+      return res
+        .status(statusCode)
+        .json({ success: false, message: error.message });
     }
   }
 

@@ -1276,12 +1276,12 @@ class GameService {
             ? game.discardPile[game.discardPile.length - 1]
             : null;
 
-        const playersSnapshot = game.players.map((p) => ({
+        const playersSnapshot = game.players.map((p, index) => ({
           id: p._id,
           position: p.position,
           handSize: p.hand ? p.hand.length : 0,
           hasDeclaredUno: p.hasDeclaredUno,
-          isCurrentTurn: game.currentPlayerIndex === p.position,
+          isCurrentTurn: game.currentPlayerIndex === index,
           isMe: p._id.toString() === userId.toString(),
         }));
 
