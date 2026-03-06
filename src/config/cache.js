@@ -25,7 +25,7 @@ export const defaultCacheConfig = {
   ],
   includeHeaders: true,
   includeUserId: true, // Include user ID to prevent caching across different users
-  enabled: true,
+  enabled: process.env.NODE_ENV !== 'test',
 };
 
 /**
