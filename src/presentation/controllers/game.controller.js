@@ -649,7 +649,7 @@ class GameController {
 
       // Check if the game ended (player won)
       const gameStatus = await this.gameService.getGameStatus(gameId);
-      const gameEnded = gameStatus.status === 'Ended';
+      const gameEnded = gameStatus === 'Ended';
 
       let nextPlayerId = null;
 
