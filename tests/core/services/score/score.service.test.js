@@ -57,7 +57,11 @@ describe('ScoreService Unit Tests', () => {
   describe('createScore', () => {
     it('should successfully create a score and return a Success Result', async () => {
       // Arrange
-      const inputData = { playerId: mockPlayerId, score: 50 };
+      const inputData = {
+        playerId: mockPlayerId,
+        matchId: mockMatchId,
+        score: 50,
+      };
       const createdScore = { ...mockScoreData, score: 50 };
       mockScoreRepository.create.mockResolvedValue(createdScore);
 
@@ -75,10 +79,15 @@ describe('ScoreService Unit Tests', () => {
 
     it('should return a Failure Result when repository returns null', async () => {
       // Arrange
+      const inputData = {
+        playerId: mockPlayerId,
+        matchId: mockMatchId,
+        score: 50,
+      };
       mockScoreRepository.create.mockResolvedValue(null);
 
       // Act
-      const result = await scoreService.createScore({ playerId: mockPlayerId });
+      const result = await scoreService.createScore(inputData);
 
       // Assert
       expect(result.isFailure).toBe(true);
@@ -177,7 +186,9 @@ describe('ScoreService Unit Tests', () => {
       mockScoreRepository.update.mockResolvedValue(null);
 
       // Act
-      const result = await scoreService.updateScore('invalid-id', {});
+      const result = await scoreService.updateScore('invalid-id', {
+        score: 100,
+      });
 
       // Assert
       expect(result.isFailure).toBe(true);

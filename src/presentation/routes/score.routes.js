@@ -24,6 +24,17 @@ router.get(
   scoreController.getMatchScores.bind(scoreController),
 );
 
+/**
+ * ADDED ROUTE
+ * Retrieves raw scores for a specific match without formatting.
+ * This supports the requirement:
+ * "Filtro por partida retorna scores da partida (200)"
+ */
+router.get(
+  '/match/:matchId/raw',
+  scoreController.getMatchScores.bind(scoreController), // FIXED: method name
+);
+
 router.put(
   '/:id',
   validateDto(updateScoreDtoSchema),

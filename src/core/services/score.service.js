@@ -146,33 +146,59 @@ class ScoreService {
   async createScore(scoreData) {
     const playerId = scoreData.playerId;
 
-    return Result.success(scoreData)
-      .toAsync()
-      .tap(() =>
-        logger.info(
-          `Attempting to create a new score entry for player ${playerId}.`,
-        ),
-      )
-      .chain(async (data) => {
-        const score = await this.scoreRepository.create(data);
+    return (
+      Result.success(scoreData)
+        .toAsync()
+        .tap(() =>
+          logger.info(
+            `Attempting to create a new score entry for player ${playerId}.`,
+          ),
+        )
 
-        if (!score) {
-          throw new Error('Failed to create score - repository returned null');
-        }
+        // ADDED VALIDATION: ensure required fields exist and score is valid
+        .map((data) => {
+          if (!data.playerId) {
+            throw new Error('playerId is required');
+          }
 
-        return Result.success(score);
-      })
-      .tap((score) =>
-        logger.info(
-          `Score created successfully for player ${playerId} with ID ${score._id}.`,
-        ),
-      )
-      .tapError((error) =>
-        logger.error(
-          `Failed to create score for player ${playerId}: ${error.message}`,
-        ),
-      )
-      .toResult();
+          if (!data.matchId) {
+            throw new Error('matchId is required');
+          }
+
+          if (data.score === undefined || data.score === null) {
+            throw new Error('score is required');
+          }
+
+          if (data.score < 0) {
+            throw new Error('score cannot be negative');
+          }
+
+          return data;
+        })
+
+        .chain(async (data) => {
+          const score = await this.scoreRepository.create(data);
+
+          if (!score) {
+            throw new Error(
+              'Failed to create score - repository returned null',
+            );
+          }
+
+          return Result.success(score);
+        })
+        .tap((score) =>
+          logger.info(
+            `Score created successfully for player ${playerId} with ID ${score._id}.`,
+          ),
+        )
+        .tapError((error) =>
+          logger.error(
+            `Failed to create score for player ${playerId}: ${error.message}`,
+          ),
+        )
+        .toResult()
+    );
   }
 
   /**
@@ -245,37 +271,55 @@ class ScoreService {
   async updateScore(id, scoreData) {
     const scoreId = id;
 
-    return Result.success({ id: scoreId, data: scoreData })
-      .toAsync()
-      .tap(() => logger.info(`Attempting to update score with ID: ${scoreId}`))
-      .chain(async ({ id: idToUpdate, data }) => {
-        const updatedScore = await this.scoreRepository.update(
-          idToUpdate,
-          data,
-        );
+    return (
+      Result.success({ id: scoreId, data: scoreData })
+        .toAsync()
+        .tap(() =>
+          logger.info(`Attempting to update score with ID: ${scoreId}`),
+        )
 
-        if (!updatedScore) {
-          throw new Error('Score not found');
-        }
+        // ADDED VALIDATION: prevent empty update and negative score
+        .map(({ id, data }) => {
+          if (!data || Object.keys(data).length === 0) {
+            throw new Error('No data provided for update');
+          }
 
-        return Result.success(updatedScore);
-      })
-      .tap((score) =>
-        logger.info(`Score with ID ${scoreId} updated successfully.`),
-      )
-      .tapError((error) => {
-        const logMessage =
-          error.message === 'Score not found'
-            ? `Score with ID ${scoreId} not found for update.`
-            : `Failed to update score with ID ${scoreId}: ${error.message}`;
+          if (data.score !== undefined && data.score < 0) {
+            throw new Error('score cannot be negative');
+          }
 
-        if (error.message === 'Score not found') {
-          logger.warn(logMessage);
-        } else {
-          logger.error(logMessage);
-        }
-      })
-      .toResult();
+          return { id, data };
+        })
+
+        .chain(async ({ id: idToUpdate, data }) => {
+          const updatedScore = await this.scoreRepository.update(
+            idToUpdate,
+            data,
+          );
+
+          if (!updatedScore) {
+            throw new Error('Score not found');
+          }
+
+          return Result.success(updatedScore);
+        })
+        .tap((score) =>
+          logger.info(`Score with ID ${scoreId} updated successfully.`),
+        )
+        .tapError((error) => {
+          const logMessage =
+            error.message === 'Score not found'
+              ? `Score with ID ${scoreId} not found for update.`
+              : `Failed to update score with ID ${scoreId}: ${error.message}`;
+
+          if (error.message === 'Score not found') {
+            logger.warn(logMessage);
+          } else {
+            logger.error(logMessage);
+          }
+        })
+        .toResult()
+    );
   }
 
   /**
@@ -315,6 +359,7 @@ class ScoreService {
       })
       .toResult();
   }
+
   /**
    * Retrieves scores for a specific match/game.
    * @param {string} matchId - The ID of the match.
@@ -327,7 +372,6 @@ class ScoreService {
         logger.info(`Attempting to retrieve scores for match: ${matchId}`),
       )
       .chain(async (id) => {
-        // Chama o método específico do repositório que filtra pelo ID
         const scores = await this.scoreRepository.findByMatchId(id);
         return Result.success(scores);
       })

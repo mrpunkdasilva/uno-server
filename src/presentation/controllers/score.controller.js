@@ -63,6 +63,36 @@ class ScoreController {
   }
 
   /**
+   * ADDED METHOD
+   * Handles the request to retrieve scores for a specific match without formatting.
+   * This covers the requirement:
+   * "Filtro por partida retorna scores da partida (200)"
+   * @param {Object} req - The express request object.
+   * @param {Object} res - The express response object.
+   * @returns {Promise<void>}
+   */
+  async getScoresByMatchId(req, res) {
+    const { matchId } = req.params;
+
+    const result = await this.scoreService.getScoresByMatchId(matchId);
+
+    result.fold(
+      (error) => {
+        res.status(500).json({
+          success: false,
+          message: error.message,
+        });
+      },
+      (scores) => {
+        res.status(200).json({
+          success: true,
+          data: scores,
+        });
+      },
+    );
+  }
+
+  /**
    * Handles the request to update a score.
    * @param req
    * @param res
