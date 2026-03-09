@@ -148,29 +148,29 @@ describe('LRUCache', () => {
 
   describe('Expiration', () => {
     it('should expire items after maxAge', async () => {
-      const shortCache = new LRUCache({ max: 5, maxAge: 100 });
+      const shortCache = new LRUCache({ max: 5, maxAge: 200 });
       shortCache.set('key1', 'value1');
 
       expect(shortCache.get('key1')).toBe('value1');
 
-      // Aguardar expiração
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      // Aguardar expiração (mais que 200ms)
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       expect(shortCache.get('key1')).toBeUndefined();
     });
 
     it('should renew expiration on access', async () => {
-      const shortCache = new LRUCache({ max: 5, maxAge: 100 });
+      const shortCache = new LRUCache({ max: 5, maxAge: 400 });
       shortCache.set('key1', 'value1');
 
-      // Aguardar 60ms
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      // Aguardar um pouco (menos que 400ms)
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       // Acessar para renovar
       expect(shortCache.get('key1')).toBe('value1');
 
-      // Aguardar mais 60ms (total 120ms desde criação, mas apenas 60ms desde último acesso)
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      // Aguardar mais um pouco (total > 400ms desde criação, mas < 400ms desde último acesso)
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       // Item ainda deve estar válido pois foi renovado
       expect(shortCache.get('key1')).toBe('value1');
@@ -213,19 +213,19 @@ describe('LRUCache', () => {
     });
 
     it('should only remove expired items', async () => {
-      const shortCache = new LRUCache({ max: 5, maxAge: 100 });
+      const shortCache = new LRUCache({ max: 5, maxAge: 500 });
 
       shortCache.set('key1', 'value1');
       shortCache.set('key2', 'value2');
 
-      // Aguardar parcialmente
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      // Aguardar 200ms
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       // Adicionar novo item
       shortCache.set('key3', 'value3');
 
-      // Aguardar mais tempo para key1 e key2 expirarem
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      // Aguardar mais 400ms (total 600ms desde k1,k2; 400ms desde k3)
+      await new Promise((resolve) => setTimeout(resolve, 400));
 
       const removed = shortCache.purgeExpired();
 

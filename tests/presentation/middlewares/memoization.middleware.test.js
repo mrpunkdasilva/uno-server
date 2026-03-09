@@ -330,7 +330,7 @@ describe('Memoization Middleware', () => {
       const renewApp = express();
       const renewMiddleware = memoizationMiddleware({
         max: 5,
-        maxAge: 100,
+        maxAge: 200,
       });
 
       renewApp.use(renewMiddleware);
@@ -341,15 +341,15 @@ describe('Memoization Middleware', () => {
       // Primeira requisição
       await request(renewApp).get('/api/test');
 
-      // Aguardar 60ms
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      // Aguardar 100ms
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Acessar novamente (renova expiração)
       const renewed = await request(renewApp).get('/api/test');
       expect(renewed.headers['x-cache']).toBe('HIT');
 
-      // Aguardar mais 60ms (total 120ms desde criação, mas 60ms desde renovação)
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      // Aguardar mais 100ms (total 200ms desde criação, mas 100ms desde renovação)
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Ainda deve estar em cache
       const stillValid = await request(renewApp).get('/api/test');

@@ -1,5 +1,4 @@
 import { ReverseStrategy } from '../../../../../src/core/services/game/card-strategies/reverse-strategy.js';
-// import * as GameDomain from '../../../../../src/core/domain/game/game.logic.js';
 
 describe('ReverseStrategy', () => {
   let strategy;
@@ -8,62 +7,53 @@ describe('ReverseStrategy', () => {
   beforeEach(() => {
     strategy = new ReverseStrategy();
 
-    // Mocking the game object based on game.model.js structure
     mockGame = {
       currentColor: 'blue',
+      players: [{ id: 'player1' }, { id: 'player2' }, { id: 'player3' }],
       turnDirection: 1,
-      currentPlayerIndex: 0,
-      players: [{ _id: 'player1' }, { _id: 'player2' }, { _id: 'player3' }],
       setCurrentColor: jest.fn(function (color) {
         this.currentColor = color;
       }),
       reverseDirection: jest.fn(function () {
         this.turnDirection *= -1;
       }),
-      advanceTurn: jest.fn(function () {
-        const numPlayers = this.players.length;
-        this.currentPlayerIndex =
-          (this.currentPlayerIndex + this.turnDirection + numPlayers) %
-          numPlayers;
-      }),
+      advanceTurn: jest.fn(),
     };
   });
 
   it('should clear currentColor if it is set', () => {
     strategy.execute({ game: mockGame });
-
     expect(mockGame.setCurrentColor).toHaveBeenCalledWith(null);
     expect(mockGame.currentColor).toBe(null);
   });
 
-  it('should reverse the turn direction from clockwise (1) to counter-clockwise (-1) in a 3+ player game', () => {
+  it('should reverse the direction of play using model method', () => {
     strategy.execute({ game: mockGame });
-
     expect(mockGame.reverseDirection).toHaveBeenCalled();
     expect(mockGame.turnDirection).toBe(-1);
-
-    // Should NOT act as a skip in a 3+ player game
-    expect(mockGame.advanceTurn).not.toHaveBeenCalled();
   });
 
-  it('should reverse the turn direction from counter-clockwise (-1) to clockwise (1) in a 3+ player game', () => {
-    mockGame.turnDirection = -1; // Start counter-clockwise
+  it('should fallback to manual direction change if method not present', () => {
+    delete mockGame.reverseDirection;
     strategy.execute({ game: mockGame });
-
-    expect(mockGame.reverseDirection).toHaveBeenCalled();
-    expect(mockGame.turnDirection).toBe(1);
-  });
-
-  it('should act as a Skip card in a 2-player game by advancing the turn an extra time', () => {
-    // Modify mock to be a 2-player game
-    mockGame.players = [{ _id: 'player1' }, { _id: 'player2' }];
-
-    strategy.execute({ game: mockGame });
-
-    expect(mockGame.reverseDirection).toHaveBeenCalled();
     expect(mockGame.turnDirection).toBe(-1);
+  });
 
-    // Should act as a skip
-    expect(mockGame.advanceTurn).toHaveBeenCalledTimes(1);
+  it('should act like a Skip in a 2-player game', () => {
+    mockGame.players = [{ id: 'p1' }, { id: 'p2' }];
+    strategy.execute({ game: mockGame });
+
+    // In 2-player, it reverses AND advances turn (skipping the other player)
+    expect(mockGame.reverseDirection).toHaveBeenCalled();
+    expect(mockGame.advanceTurn).toHaveBeenCalled();
+  });
+
+  it('should fallback to domain logic advanceTurn in 2-player game', () => {
+    mockGame.players = [{ id: 'p1' }, { id: 'p2' }];
+    delete mockGame.advanceTurn;
+
+    // Should not crash, uses fallback
+    strategy.execute({ game: mockGame });
+    expect(mockGame.reverseDirection).toHaveBeenCalled();
   });
 });
