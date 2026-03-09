@@ -1,50 +1,329 @@
 {
   "info": {
-    "_postman_id": "34f34d2b-fc5f-4da3-b994-efda61f2b18d",
-    "name": "UnoAPI",
-    "description": "Postman Collection for uno project endpoints",
+    "_postman_id": "c9aa8ba7-7d83-4d4e-b137-419cc6494333",
+    "name": "UNO API - Knights of Vampeta",
+    "description": "Coleção completa da UNO API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "29720494",
-    "_collection_link": "https://go.postman.co/collection/29720494-34f34d2b-fc5f-4da3-b994-efda61f2b18d?source=collection_link"
+    "_collection_link": "https://go.postman.co/collection/29720494-c9aa8ba7-7d83-4d4e-b137-419cc6494333?source=collection_link"
   },
   "item": [
     {
-      "name": "Games",
+      "name": "Partida Completa (Player1 vs Player2)",
       "item": [
         {
-          "name": "getGames",
+          "name": "1. Registrar Player1",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Gerar credenciais únicas para evitar conflitos",
+                  "const timestamp = Date.now();",
+                  "const email = `player1_${timestamp}@unoapi.com`;",
+                  "const password = `pass_${timestamp}_1`;",
+                  "",
+                  "pm.collectionVariables.set('player1Email', email);",
+                  "pm.collectionVariables.set('player1Password', password);",
+                  "",
+                  "console.log('Player1 Email:', email);",
+                  "console.log('Player1 Password:', password);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    const playerId = response.player?.id || response.player?._id || response.id || response._id;",
+                  "    pm.collectionVariables.set('player1Id', playerId);",
+                  "    console.log('Player1 registrado com sucesso!');",
+                  "    console.log('Player1 ID:', playerId);",
+                  "} else {",
+                  "    console.log('Erro ao registrar Player1:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"player1_demo\",\n  \"email\": \"{{player1Email}}\",\n  \"password\": \"{{player1Password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2. Login Player1",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Pequeno delay para garantir que o registro foi processado",
+                  "setTimeout(() => {}, 200);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('player1Token', response.accessToken);",
+                  "    console.log('Player1 fez login com sucesso!');",
+                  "    console.log('Token obtido:', response.accessToken.substring(0, 20) + '...');",
+                  "} else {",
+                  "    console.log('Erro no login do Player1');",
+                  "    console.log('Response:', pm.response.text());",
+                  "    console.log('Email usado:', pm.collectionVariables.get('player1Email'));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{player1Email}}\",\n  \"password\": \"{{player1Password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3. Registrar Player2",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Gerar credenciais únicas diferentes do Player1",
+                  "const timestamp = Date.now();",
+                  "const email = `player2_${timestamp}@unoapi.com`;",
+                  "const password = `pass_${timestamp}_2`;",
+                  "",
+                  "pm.collectionVariables.set('player2Email', email);",
+                  "pm.collectionVariables.set('player2Password', password);",
+                  "",
+                  "console.log('Player2 Email:', email);",
+                  "console.log('Player2 Password:', password);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    const playerId = response.player?.id || response.player?._id || response.id || response._id;",
+                  "    pm.collectionVariables.set('player2Id', playerId);",
+                  "    console.log('Player2 registrado com sucesso!');",
+                  "    console.log('Player2 ID:', playerId);",
+                  "} else {",
+                  "    console.log('Erro ao registrar Player2:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"player2_demo\",\n  \"email\": \"{{player2Email}}\",\n  \"password\": \"{{player2Password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4. Login Player2",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Pequeno delay para garantir que o registro foi processado",
+                  "setTimeout(() => {}, 200);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('player2Token', response.accessToken);",
+                  "    console.log('Player2 fez login com sucesso!');",
+                  "    console.log('Token obtido:', response.accessToken.substring(0, 20) + '...');",
+                  "} else {",
+                  "    console.log('Erro no login do Player2');",
+                  "    console.log('Response:', pm.response.text());",
+                  "    console.log('Email usado:', pm.collectionVariables.get('player2Email'));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{player2Email}}\",\n  \"password\": \"{{player2Password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5. Player1 Cria o Jogo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    let gameId = null;",
+                  "    ",
+                  "    // Tentar diferentes estruturas de resposta",
+                  "    if (response.id) gameId = response.id;",
+                  "    else if (response.game_id) gameId = response.game_id;",
+                  "    else if (response._id) gameId = response._id;",
+                  "    else if (response.data?.id) gameId = response.data.id;",
+                  "    else if (response.data?._id) gameId = response.data._id;",
+                  "    else if (response.game?.id) gameId = response.game.id;",
+                  "    else if (response.game?._id) gameId = response.game._id;",
+                  "    ",
+                  "    if (gameId) {",
+                  "        pm.collectionVariables.set('gameId', gameId);",
+                  "        console.log('Jogo criado com sucesso!');",
+                  "        console.log('Game ID:', gameId);",
+                  "    } else {",
+                  "        console.log('GameId não encontrado na resposta');",
+                  "        console.log('Response:', JSON.stringify(response, null, 2));",
+                  "    }",
+                  "} else {",
+                  "    console.log('Erro ao criar jogo:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "",
+                  "value": "{{player1Token}}",
                   "type": "string"
                 }
               ]
             },
-            "method": "GET",
-            "header": [],
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Partida Demo - Player1 vs Player2\",\n  \"rules\": \"Regras clássicas do UNO - partida automática\",\n  \"maxPlayers\": 2,\n  \"minPlayers\": 2\n}"
+            },
             "url": {
-              "raw": "http://localhost:3000/api/games",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
+              "raw": "{{baseUrl}}/api/games",
+              "host": ["{{baseUrl}}"],
               "path": ["api", "games"]
             }
           },
           "response": []
         },
         {
-          "name": "getGamebyID",
+          "name": "6. Player2 Entra no Jogo (Join)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('Player2 entrou no jogo!');",
+                  "    console.log('Agora temos 2 jogadores na partida');",
+                  "} else {",
+                  "    console.log('Erro ao entrar no jogo:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "",
+                  "value": "{{player2Token}}",
                   "type": "string"
                 }
               ]
@@ -52,179 +331,785 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3000/api/games/id",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "games", "id"]
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/join",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "join"]
             }
           },
           "response": []
         },
         {
-          "name": "createGame",
+          "name": "7. Player1 Marca Ready",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('Player1 está pronto!');",
+                  "    console.log('Aguardando Player2...');",
+                  "} else {",
+                  "    console.log('Erro ao marcar ready:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/ready",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "ready"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "8. Player2 Marca Ready",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('Player2 está pronto!');",
+                  "    console.log('Todos os jogadores prontos!');",
+                  "} else {",
+                  "    console.log('Erro ao marcar ready:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player2Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/ready",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "ready"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "9. Iniciar o Jogo (Start)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('Jogo iniciado com sucesso!');",
+                  "    console.log('A partida começou!');",
+                  "    console.log('Deck de 108 cartas criado automaticamente');",
+                  "    console.log('7 cartas distribuídas para cada jogador');",
+                  "    console.log('Primeira carta virada no descarte');",
+                  "} else {",
+                  "    console.log('Erro ao iniciar jogo:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "start"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "10. Verificar Status do Jogo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    const data = response.data || response;",
+                  "    ",
+                  "    console.log('Status do jogo obtido!');",
+                  "    console.log('Informações:');",
+                  "    console.log('  - Status:', data.status);",
+                  "    console.log('  - Vez de:', data.currentPlayer || 'Verificar currentPlayerIndex');",
+                  "    console.log('  - Direção:', data.direction || data.turnDirection);",
+                  "    console.log('  - Total de jogadores:', data.players?.length || 'N/A');",
+                  "} else {",
+                  "    console.log('Erro ao verificar status:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "11. Ver Mão do Player1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    const cards = response.cards || response.data?.cards || response;",
+                  "    ",
+                  "    console.log('Mão do Player1:');",
+                  "    console.log('  - Total de cartas:', Array.isArray(cards) ? cards.length : 'N/A');",
+                  "    ",
+                  "    if (Array.isArray(cards) && cards.length > 0) {",
+                  "        // Salvar ID da primeira carta para teste",
+                  "        const firstCard = cards[0];",
+                  "        const cardId = firstCard._id || firstCard.id;",
+                  "        pm.collectionVariables.set('cardId', cardId);",
+                  "        ",
+                  "        console.log('  - Primeiras cartas:');",
+                  "        cards.slice(0, 3).forEach((card, index) => {",
+                  "            console.log(`    ${index + 1}. ${card.color || 'wild'} ${card.value} (${card.type})`);",
+                  "        });",
+                  "        console.log('  - ID da 1ª carta salvo:', cardId);",
+                  "    }",
+                  "} else {",
+                  "    console.log('Erro ao ver mão:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"player\": \"{{player1Id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/hand",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "hand"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "12. Ver Carta do Topo (Discard)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    const card = response.card || response.data || response;",
+                  "    ",
+                  "    console.log('Carta do topo do descarte:');",
+                  "    if (card.color || card.value) {",
+                  "        console.log(`  - ${card.color || 'wild'} ${card.value} (${card.type})`);",
+                  "        console.log('  - Você deve jogar carta da mesma cor ou valor');",
+                  "    } else {",
+                  "        console.log('  - Informações:', JSON.stringify(card, null, 2));",
+                  "    }",
+                  "} else {",
+                  "    console.log('Erro ao ver carta do topo:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/discard/top",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "discard", "top"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "13. Remover Cartas Jogáveis (Debug)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    const data = response.data || response;",
+                  "    console.log('Cartas jogáveis removidas com sucesso!');",
+                  "    console.log('Player1 agora só tem cartas não jogáveis');",
+                  "    console.log('Informações:');",
+                  "    console.log('  - Cartas removidas:', data.removedCardsCount || 'N/A');",
+                  "    console.log('  - Cartas restantes:', data.newHandSize || 'N/A');",
+                  "    console.log('  - Próxima ação: Comprar carta do deck');",
+                  "} else {",
+                  "    console.log('Erro ao remover cartas jogáveis:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"playerId\": \"{{player1Id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/debug/remove-playable-cards",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "games",
+                "{{gameId}}",
+                "debug",
+                "remove-playable-cards"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "14. Player1 Compra Carta (Draw)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('Player1 comprou 1 carta do deck!');",
+                  "    console.log('Vez passou automaticamente para o próximo jogador');",
+                  "    console.log('Use esta ação quando não tiver carta válida para jogar');",
+                  "} else {",
+                  "    console.log('Erro ao comprar carta:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
                   "type": "string"
                 }
               ]
             },
             "method": "POST",
             "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/draw",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "draw"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "15. Ver Estado Completo do Jogo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    const data = response.data || response;",
+                  "    ",
+                  "    console.log('Estado completo do jogo obtido!');",
+                  "    console.log('Dados disponíveis:');",
+                  "    ",
+                  "    const keys = Object.keys(data);",
+                  "    console.log('  - Propriedades:', keys.join(', '));",
+                  "    ",
+                  "    if (data.players) {",
+                  "        console.log('  - Jogadores:', data.players.length);",
+                  "    }",
+                  "    if (data.deck) {",
+                  "        console.log('  - Cartas no deck:', data.deck.length);",
+                  "    }",
+                  "    if (data.discardPile) {",
+                  "        console.log('  - Cartas no descarte:', data.discardPile.length);",
+                  "    }",
+                  "} else {",
+                  "    console.log('Erro ao ver estado do jogo:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/state",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "state"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "16. Ver Histórico do Jogo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    const history = response.history || response.data?.history || response;",
+                  "    ",
+                  "    console.log('Histórico do jogo:');",
+                  "    ",
+                  "    if (Array.isArray(history)) {",
+                  "        console.log(`  - Total de ações registradas: ${history.length}`);",
+                  "        ",
+                  "        if (history.length > 0) {",
+                  "            console.log('  - Últimas 3 ações:');",
+                  "            history.slice(-3).forEach((action, index) => {",
+                  "                console.log(`    ${index + 1}. ${action.action || action.type} - ${action.player || 'N/A'}`);",
+                  "            });",
+                  "        }",
+                  "    } else {",
+                  "        console.log('  - Formato:', typeof history);",
+                  "    }",
+                  "} else {",
+                  "    console.log('Erro ao ver histórico:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "history"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "17. Ver Pontuações da Partida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    const scores = response.scores || response.data || response;",
+                  "    ",
+                  "    console.log('Pontuações:');",
+                  "    ",
+                  "    if (Array.isArray(scores) && scores.length > 0) {",
+                  "        console.log(`  - Total de registros: ${scores.length}`);",
+                  "        scores.forEach((score, index) => {",
+                  "            console.log(`    ${index + 1}. Player: ${score.playerId} - Score: ${score.score}`);",
+                  "        });",
+                  "    } else {",
+                  "        console.log('  - Nenhuma pontuação registrada ainda');",
+                  "        console.log('  - O jogo ainda está em andamento');",
+                  "    }",
+                  "    ",
+                  "    console.log('');",
+                  "    console.log('═══════════════════════════════════════');",
+                  "    console.log('AUTOMAÇÃO COMPLETA EXECUTADA!');",
+                  "    console.log('═══════════════════════════════════════');",
+                  "    console.log('');",
+                  "    console.log('Todas as 16 etapas foram executadas:');",
+                  "    console.log('  1-4: Autenticação (Registro + Login)');",
+                  "    console.log('  5-6: Criação e Entrada no Jogo');",
+                  "    console.log('  7-9: Preparação e Início');",
+                  "    console.log('  10-13: Gameplay');",
+                  "    console.log('  14-16: Consultas Finais');",
+                  "    console.log('');",
+                  "    console.log('O deck foi inicializado automaticamente no START');",
+                  "    console.log('Credenciais foram geradas de forma única');",
+                  "    console.log('Todos os tokens e IDs foram capturados');",
+                  "    console.log('');",
+                  "    console.log('═══════════════════════════════════════');",
+                  "} else {",
+                  "    console.log('Erro ao ver pontuações:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/scores/match/{{gameId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "scores", "match", "{{gameId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "18. Acelerar Fim do Jogo (Debug)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('Jogo acelerado com sucesso!');",
+                  "    console.log('Player1 agora tem 1 carta jogável na mão');",
+                  "    console.log('Response:', JSON.stringify(response, null, 2));",
+                  "} else {",
+                  "    console.log('Erro ao acelerar fim do jogo:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Uno Game 5\",\n  \"status\": \"Waiting\",\n  \"maxPlayers\": 4\n}\n",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\r\n  \"winnerId\": \"{{player1Id}}\"\r\n}"
             },
             "url": {
-              "raw": "http://localhost:3000/api/games/",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "games", ""]
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/debug/accelerate-end",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "debug", "accelerate-end"]
             }
           },
           "response": []
         },
         {
-          "name": "updateGameById",
+          "name": "19. Ver Mão do Player1 (Última Carta)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    // const cards = response.cards || response.data?.cards || response;",
+                  "    const cards = response.hand || response.cards || response.data?.hand || [];",
+                  "    ",
+                  "    console.log('Mão do Player1 após acelerar:');",
+                  "    console.log('  - Total de cartas:', Array.isArray(cards) ? cards.length : 'N/A');",
+                  "    ",
+                  "    if (Array.isArray(cards) && cards.length > 0) {",
+                  "        const lastCard = cards[0];",
+                  "        // const cardId = lastCard._id || lastCard.id;",
+                  "        const cardId = lastCard.cardId || lastCard._id || lastCard.id;",
+                  "        pm.collectionVariables.set('lastCardId', cardId);",
+                  "        ",
+                  "        console.log('  - Última carta:');",
+                  "        console.log(`    ${lastCard.color || 'wild'} ${lastCard.value} (${lastCard.type})`);",
+                  "        console.log('  - ID da última carta salvo:', cardId);",
+                  "        ",
+                  "        if (cards.length !== 1) {",
+                  "            console.log('ATENÇÃO: Player1 deveria ter exatamente 1 carta, mas tem:', cards.length);",
+                  "        }",
+                  "    } else {",
+                  "        console.log('ERRO: Player1 não tem cartas na mão!');",
+                  "    }",
+                  "} else {",
+                  "    console.log('Erro ao ver mão:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
           "request": {
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "",
+                  "value": "{{player1Token}}",
                   "type": "string"
                 }
               ]
             },
-            "method": "PUT",
-            "header": [],
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"title\": \"uno 2\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
+              "raw": "{\n  \"player\": \"{{player1Id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/hand",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "hand"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "20. Jogar Última Carta e Finalizar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('Última carta jogada com sucesso!');",
+                  "    console.log('JOGO FINALIZADO!');",
+                  "    console.log('Player1 venceu a partida!');",
+                  "    console.log('');",
+                  "    console.log('Response:', JSON.stringify(response, null, 2));",
+                  "    ",
+                  "    // Verificar se o jogo terminou",
+                  "    const data = response.data || response;",
+                  "    if (data.status === 'Ended' || data.gameStatus === 'Ended') {",
+                  "        console.log('Status do jogo: FINALIZADO');",
+                  "    } else {",
+                  "        console.log('Status do jogo:', data.status || data.gameStatus || 'Desconhecido');",
+                  "    }",
+                  "} else if (pm.response.code === 400) {",
+                  "    console.log('Erro 400 ao jogar carta');",
+                  "    console.log('Response:', pm.response.text());",
+                  "    console.log('');",
+                  "    console.log('Possíveis causas:');",
+                  "    console.log('  - Carta não é válida para jogar');",
+                  "    console.log('  - Não é a vez do Player1');",
+                  "    console.log('  - ID da carta incorreto');",
+                  "} else {",
+                  "    console.log('Erro ao jogar última carta:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
               }
-            },
-            "url": {
-              "raw": "http://localhost:3000/api/games/<id>",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "games", "<id>"]
             }
-          },
-          "response": []
-        },
-        {
-          "name": "deleteGameById",
+          ],
           "request": {
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "",
+                  "value": "{{player1Token}}",
                   "type": "string"
                 }
               ]
             },
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/games/id",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "games", "id"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "startGame",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/games/<id>/start",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "games", "<id>", "start"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "joinGame",
-          "protocolProfileBehavior": {
-            "disableBodyPruning": true
-          },
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"gameId\": \"697ac57bf3e42caefe81d9a0\"\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
+              "raw": "{\n  \"cardId\": \"{{lastCardId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/play",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "play"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "21. Verificar Status Final",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    const data = response.data || response;",
+                  "    ",
+                  "} else {",
+                  "    console.log('Erro ao verificar status final:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
               }
-            },
-            "url": {
-              "raw": "http://localhost:3000/api/games/<id>/join",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "games", "<id>", "join"]
             }
-          },
-          "response": []
-        },
-        {
-          "name": "abandonGame",
+          ],
           "request": {
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "",
+                  "value": "{{player1Token}}",
                   "type": "string"
                 }
               ]
@@ -232,24 +1117,54 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3000/api/games/<id>/abandon",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "games", "<id>", "abandon"]
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "status"]
             }
           },
           "response": []
         },
         {
-          "name": "setReady",
+          "name": "22. Ver Estado Completo do Jogo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    const data = response.data || response;",
+                  "    ",
+                  "    console.log('Estado completo do jogo obtido!');",
+                  "    console.log('Dados disponíveis:');",
+                  "    ",
+                  "    const keys = Object.keys(data);",
+                  "    console.log('  - Propriedades:', keys.join(', '));",
+                  "    ",
+                  "    if (data.players) {",
+                  "        console.log('  - Jogadores:', data.players.length);",
+                  "    }",
+                  "    if (data.deck) {",
+                  "        console.log('  - Cartas no deck:', data.deck.length);",
+                  "    }",
+                  "    if (data.discardPile) {",
+                  "        console.log('  - Cartas no descarte:', data.discardPile.length);",
+                  "    }",
+                  "} else {",
+                  "    console.log('Erro ao ver estado do jogo:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "",
+                  "value": "{{player1Token}}",
                   "type": "string"
                 }
               ]
@@ -257,11 +1172,123 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3000/api/games/<id>/ready",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "games", "<id>", "ready"]
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/state",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "state"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "23. Ver Histórico do Jogo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    const history = response.history || response.data?.history || response;",
+                  "    ",
+                  "    console.log('Histórico do jogo:');",
+                  "    ",
+                  "    if (Array.isArray(history)) {",
+                  "        console.log(`  - Total de ações registradas: ${history.length}`);",
+                  "        ",
+                  "        if (history.length > 0) {",
+                  "            console.log('  - Últimas 3 ações:');",
+                  "            history.slice(-3).forEach((action, index) => {",
+                  "                console.log(`    ${index + 1}. ${action.action || action.type} - ${action.player || 'N/A'}`);",
+                  "            });",
+                  "        }",
+                  "    } else {",
+                  "        console.log('  - Formato:', typeof history);",
+                  "    }",
+                  "} else {",
+                  "    console.log('Erro ao ver histórico:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "history"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "24. Ver Pontuações da Partida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    const scores = response.scores || response.data || response;",
+                  "    ",
+                  "    console.log('Pontuações:');",
+                  "    ",
+                  "    if (Array.isArray(scores) && scores.length > 0) {",
+                  "        console.log(`  - Total de registros: ${scores.length}`);",
+                  "        scores.forEach((score, index) => {",
+                  "            console.log(`    ${index + 1}. Player: ${score.playerId} - Score: ${score.score}`);",
+                  "        });",
+                  "    } else {",
+                  "        console.log('  - Nenhuma pontuação registrada ainda');",
+                  "        console.log('  - O jogo ainda está em andamento');",
+                  "    }",
+                  "    ",
+                  "    console.log('');",
+                  "    console.log('═══════════════════════════════════════');",
+                  "    console.log('AUTOMAÇÃO COMPLETA EXECUTADA!');",
+                  "    console.log('═══════════════════════════════════════');",
+                  "    console.log('');",
+                  "    console.log('Todas as 24 etapas foram executadas:');",
+                  "    console.log('');",
+                  "    console.log('═══════════════════════════════════════');",
+                  "} else {",
+                  "    console.log('Erro ao ver pontuações:', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/scores/match/{{gameId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "scores", "match", "{{gameId}}"]
             }
           },
           "response": []
@@ -272,14 +1299,72 @@
       "name": "Authentication",
       "item": [
         {
-          "name": "getAuthenticatedPlayerProfile",
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"newuser\",\n  \"email\": \"newuser@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('player1Token', response.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Profile",
           "request": {
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "",
+                  "value": "{{player1Token}}",
                   "type": "string"
                 }
               ]
@@ -287,112 +1372,44 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3000/api/auth/profile",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
+              "raw": "{{baseUrl}}/api/auth/profile",
+              "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "profile"]
             }
           },
           "response": []
         },
         {
-          "name": "register",
+          "name": "Refresh Token",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"username\": \"kadymo\",\r\n    \"email\": \"kadymo@email.com\",\r\n    \"password\": \"123456\"\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"refreshToken\": \"your_refresh_token_here\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3000/api/auth/register",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "auth", "register"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "login",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n    \"email\": \"santana@email.com\",\r\n    \"password\": \"123456\"\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "http://localhost:3000/api/auth/login",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "auth", "login"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "refreshToken",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n    \"refreshToken\": \"...\"\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "http://localhost:3000/api/auth/refresh-token",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
+              "raw": "{{baseUrl}}/api/auth/refresh-token",
+              "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "refresh-token"]
             }
           },
           "response": []
         },
         {
-          "name": "logout",
+          "name": "Logout",
           "request": {
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "",
+                  "value": "{{player1Token}}",
                   "type": "string"
                 }
               ]
@@ -400,11 +1417,9 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "http://localhost:3000/api/auth/logout/",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "auth", "logout", ""]
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
             }
           },
           "response": []
@@ -415,14 +1430,14 @@
       "name": "Players",
       "item": [
         {
-          "name": "getPlayers",
+          "name": "Get All Players",
           "request": {
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "",
+                  "value": "{{player1Token}}",
                   "type": "string"
                 }
               ]
@@ -430,24 +1445,22 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3000/api/players",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
+              "raw": "{{baseUrl}}/api/players",
+              "host": ["{{baseUrl}}"],
               "path": ["api", "players"]
             }
           },
           "response": []
         },
         {
-          "name": "getPlayerById",
+          "name": "Get Player by ID",
           "request": {
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "",
+                  "value": "{{player1Token}}",
                   "type": "string"
                 }
               ]
@@ -455,92 +1468,86 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3000/api/players/id",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "players", "id"]
+              "raw": "{{baseUrl}}/api/players/{{player1Id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "players", "{{player1Id}}"]
             }
           },
           "response": []
         },
         {
-          "name": "createPlayer",
+          "name": "Create Player",
           "request": {
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "",
+                  "value": "{{player1Token}}",
                   "type": "string"
                 }
               ]
             },
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"username\": \"kadymo\",\r\n    \"email\": \"kadymo@email.com\",\r\n    \"password\": \"123456\"\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"username\": \"player_test\",\n  \"email\": \"player.test@example.com\",\n  \"password\": \"password123\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3000/api/players/",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "players", ""]
+              "raw": "{{baseUrl}}/api/players",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "players"]
             }
           },
           "response": []
         },
         {
-          "name": "updatePlayer",
+          "name": "Update Player",
           "request": {
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "",
+                  "value": "{{player1Token}}",
                   "type": "string"
                 }
               ]
             },
             "method": "PUT",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"email\": \"kadymo3@gmail.com\"\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"username\": \"updated_username\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3000/api/players/id",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "players", "id"]
+              "raw": "{{baseUrl}}/api/players/{{player1Id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "players", "{{player1Id}}"]
             }
           },
           "response": []
         },
         {
-          "name": "deletePlayer",
+          "name": "Delete Player",
           "request": {
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "",
+                  "value": "{{player1Token}}",
                   "type": "string"
                 }
               ]
@@ -548,11 +1555,689 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "http://localhost:3000/api/players/id",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["api", "players", "id"]
+              "raw": "{{baseUrl}}/api/players/{{player1Id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "players", "{{player1Id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Games",
+      "item": [
+        {
+          "name": "Get All Games",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Game by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Game",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Meu Jogo UNO\",\n  \"rules\": \"Regras clássicas do UNO\",\n  \"maxPlayers\": 4,\n  \"minPlayers\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/games",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Game",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nome Atualizado\",\n  \"maxPlayers\": 6\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Game",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Join Game",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player2Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/join",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "join"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Set Player Ready",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/ready",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "ready"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Start Game",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "start"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Abandon Game",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/abandon",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "abandon"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Game Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Full Game State",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/state",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "state"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Game History",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "history"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Discard Top Card",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/discard/top",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "discard", "top"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Discard Top Card (Simple)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/discard/top/simple",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "discard", "top", "simple"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Player Hand",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"player\": \"{{player1Id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/hand",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "hand"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Play Card",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardId\": \"{{cardId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/play",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "play"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Play Wild Card",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardId\": \"{{cardId}}\",\n  \"chosenColor\": \"red\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/play",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "play"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Draw Card",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/draw",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "draw"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Declare UNO",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/declare-uno",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "declare-uno"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Challenge UNO",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player2Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/games/{{gameId}}/challenge",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "{{gameId}}", "challenge"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Next Turn",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gameId\": \"{{gameId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/games/nextTurn",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "nextTurn"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Cards",
+      "item": [
+        {
+          "name": "Get All Cards",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cards",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cards"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Card by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cards/{{cardId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cards", "{{cardId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Card",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"color\": \"red\",\n  \"value\": \"5\",\n  \"type\": \"number\",\n  \"game\": \"{{gameId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cards",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cards"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Card",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"color\": \"blue\",\n  \"value\": \"7\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cards/{{cardId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cards", "{{cardId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Card",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cards/{{cardId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cards", "{{cardId}}"]
             }
           },
           "response": []
@@ -563,14 +2248,14 @@
       "name": "Scores",
       "item": [
         {
-          "name": "getScores",
+          "name": "Get All Scores",
           "request": {
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "",
+                  "value": "{{player1Token}}",
                   "type": "string"
                 }
               ]
@@ -578,50 +2263,315 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3000/api/scores",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
+              "raw": "{{baseUrl}}/api/scores",
+              "host": ["{{baseUrl}}"],
               "path": ["api", "scores"]
             }
           },
           "response": []
         },
         {
-          "name": "createScore",
+          "name": "Get Scores by Match ID",
           "request": {
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/scores/match/{{gameId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "scores", "match", "{{gameId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Score",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
                   "type": "string"
                 }
               ]
             },
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"playerId\": \"\",\r\n    \"matchId\": \"\",\r\n    \"score\": 5\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"playerId\": \"{{player1Id}}\",\n  \"matchId\": \"{{gameId}}\",\n  \"score\": 100\n}"
             },
             "url": {
-              "raw": "http://localhost:3000/api/scores",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "3000",
+              "raw": "{{baseUrl}}/api/scores",
+              "host": ["{{baseUrl}}"],
               "path": ["api", "scores"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Score",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 150\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/scores/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "scores", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "score_id_here"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Score",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{player1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/scores/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "scores", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "score_id_here"
+                }
+              ]
             }
           },
           "response": []
         }
       ]
+    },
+    {
+      "name": "API Stats",
+      "item": [
+        {
+          "name": "Get API Requests",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stats/requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stats", "requests"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Popular Endpoints",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stats/popular-endpoints",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stats", "popular-endpoints"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Status Codes",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stats/status-codes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stats", "status-codes"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Response Times",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stats/response-times",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stats", "response-times"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "player1Token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "player2Token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "player1Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "player2Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "player1Email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "player2Email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "player1Password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "player2Password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "gameId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cardId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "currentToken",
+      "value": ""
+    },
+    {
+      "key": "currentPlayerId",
+      "value": ""
+    },
+    {
+      "key": "currentPlayerName",
+      "value": ""
+    },
+    {
+      "key": "lastPlayerIndex",
+      "value": ""
+    },
+    {
+      "key": "actionType",
+      "value": ""
+    },
+    {
+      "key": "lastCardId",
+      "value": "",
+      "type": "string"
     }
   ]
 }
