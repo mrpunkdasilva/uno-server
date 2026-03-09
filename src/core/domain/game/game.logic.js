@@ -521,7 +521,13 @@ export const formatCardForDisplay = (card) => {
  */
 export const buildPlayerHandResponse = (playerId, hand) => ({
   player: playerId,
-  hand: hand.map((card) => formatCardForDisplay(card)),
+  hand: hand.map((card) => ({
+    cardId: card.cardId || card._id,
+    color: card.color,
+    value: card.value,
+    type: card.type,
+    displayName: formatCardForDisplay(card),
+  })),
 });
 
 /**
