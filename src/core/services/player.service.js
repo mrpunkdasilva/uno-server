@@ -3,6 +3,7 @@ import PlayerRepository from '../../infra/repositories/player.repository.js';
 import logger from '../../config/logger.js';
 import playerResponseDtoSchema from '../../presentation/dtos/player/player-response.dto.js';
 import Result from '../utils/Result.js';
+import AppError from '../errors/AppError.js';
 
 /**
  * Service class for managing player operations including CRUD operations,
@@ -78,7 +79,10 @@ class PlayerService {
           data.email,
         );
         if (existingByEmail) {
-          throw new Error(`Player with email ${data.email} already exists`);
+          throw new AppError(
+            `Player with email ${data.email} already exists`,
+            409,
+          );
         }
         return Result.success(data);
       })
@@ -87,8 +91,9 @@ class PlayerService {
           data.username,
         );
         if (existingByUsername) {
-          throw new Error(
+          throw new AppError(
             `Player with username ${data.username} already exists`,
+            409,
           );
         }
         return Result.success(data);
@@ -101,7 +106,9 @@ class PlayerService {
       .chain(async (data) => {
         const newPlayer = await this.playerRepository.create(data);
         if (!newPlayer) {
-          throw new Error('Failed to create player - repository returned null');
+          throw new AppError(
+            'Failed to create player - repository returned null',
+          );
         }
         return Result.success(newPlayer);
       })
@@ -135,7 +142,7 @@ class PlayerService {
         const player = await this.playerRepository.findById(playerId);
 
         if (!player) {
-          throw new Error('Player not found');
+          throw new AppError('Player not found');
         }
 
         return Result.success(player);
@@ -172,7 +179,7 @@ class PlayerService {
         const player = await this.playerRepository.findByEmail(playerEmail);
 
         if (!player) {
-          throw new Error('Player not found');
+          throw new AppError('Player not found');
         }
 
         return Result.success(player);
@@ -213,7 +220,7 @@ class PlayerService {
         );
 
         if (!player) {
-          throw new Error('Player not found');
+          throw new AppError('Player not found');
         }
 
         return Result.success(player);
@@ -250,7 +257,7 @@ class PlayerService {
       .chain(async ({ id: playerId, updateData: data }) => {
         const existingPlayer = await this.playerRepository.findById(playerId);
         if (!existingPlayer) {
-          throw new Error('Player not found');
+          throw new AppError('Player not found');
         }
         return Result.success({ player: existingPlayer, data });
       })
@@ -260,7 +267,7 @@ class PlayerService {
             data.email,
           );
           if (conflictingPlayer) {
-            throw new Error(`Email ${data.email} already in use`);
+            throw new AppError(`Email ${data.email} already in use`);
           }
         }
         return Result.success({ player: existingPlayer, data });
@@ -271,7 +278,7 @@ class PlayerService {
             data.username,
           );
           if (conflictingPlayer) {
-            throw new Error(`Username ${data.username} already in use`);
+            throw new AppError(`Username ${data.username} already in use`);
           }
         }
         return Result.success({ data });
@@ -290,7 +297,7 @@ class PlayerService {
           updatePayload,
         );
         if (!updatedPlayer) {
-          throw new Error('Failed to update player');
+          throw new AppError('Failed to update player');
         }
         return Result.success(updatedPlayer);
       })
@@ -329,7 +336,7 @@ class PlayerService {
         const player = await this.playerRepository.findById(playerId);
 
         if (!player) {
-          throw new Error('Player not found');
+          throw new AppError('Player not found');
         }
 
         return Result.success(player);
