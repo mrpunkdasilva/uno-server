@@ -112,7 +112,7 @@ describe('AuthController', () => {
 
     it('should fail if player not found', async () => {
       mockPlayerService.getPlayerById.mockResolvedValue(
-        Result.failure(new Error('Not found')),
+        Result.failure(new Error('Player not found')),
       );
 
       const response = await request(app).get('/auth/profile');

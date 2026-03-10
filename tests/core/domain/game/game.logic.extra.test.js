@@ -21,7 +21,11 @@ describe('GameLogic Extra Coverage Tests', () => {
       const result = GameLogic.buildPlayerHandResponse('p1', hand);
       expect(result.player).toBe('p1');
       expect(result.hand).toHaveLength(1);
-      expect(result.hand[0]).toContain('Blue Zero');
+      expect(result.hand[0]).toMatchObject({
+        color: 'blue',
+        value: '0',
+        displayName: expect.stringContaining('Blue Zero'),
+      });
     });
   });
 
