@@ -26,11 +26,18 @@ class GameService {
    * @param gameRepository
    * @param playerRepository
    * @param scoreService
+   * @param historyService
    */
-  constructor(gameRepository, playerRepository, scoreService = null) {
+  constructor(
+    gameRepository,
+    playerRepository,
+    scoreService = null,
+    historyService = null,
+  ) {
     this.gameRepository = gameRepository;
     this.playerRepository = playerRepository;
     this.scoreService = scoreService || new ScoreService();
+    this.historyService = historyService;
     this.postAbandonmentActionExecutor = new PostAbandonmentActionExecutor(
       this,
     );
@@ -833,7 +840,7 @@ class GameService {
         GameDomain.validatePlayerHasCard(playerId, cardId)(game),
       )
       .chain(async ({ game, currentPlayer, cardIndex, cardToPlay }) => {
-        return await this.cardPlayCoordinator.execute(
+        const result = await this.cardPlayCoordinator.execute(
           game,
           gameId,
           playerId,
@@ -842,6 +849,37 @@ class GameService {
           cardToPlay,
           chosenColor,
         );
+
+        // Record card play in history
+        if (result.isSuccess && this.historyService) {
+          try {
+            await this.historyService.recordCardPlay(
+              gameId,
+              playerId,
+              cardToPlay,
+            );
+
+            // If wild card, record color change
+            if (
+              chosenColor &&
+              (cardToPlay.type === 'wild' ||
+                cardToPlay.value === 'wild' ||
+                cardToPlay.value === 'wild_draw_four')
+            ) {
+              await this.historyService.recordWildColorChange(
+                gameId,
+                playerId,
+                chosenColor,
+              );
+            }
+          } catch (error) {
+            logger.warn(
+              `Failed to record card play in history: ${error.message}`,
+            );
+          }
+        }
+
+        return result;
       })
       .tapError((error) => {
         if (error instanceof GameErrors.GameNotFoundError) {
@@ -1032,6 +1070,17 @@ class GameService {
           }
 
           await game.save();
+
+          // Record draw card in history
+          if (this.historyService) {
+            try {
+              await this.historyService.recordDrawCard(gameId, playerId);
+            } catch (error) {
+              logger.warn(
+                `Failed to record draw card in history: ${error.message}`,
+              );
+            }
+          }
 
           return CommonUtils.Result.success({
             message: playable

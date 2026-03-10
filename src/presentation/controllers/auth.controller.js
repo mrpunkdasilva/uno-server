@@ -25,25 +25,40 @@ class AuthController {
     const { email, password, username } = req.body;
 
     if (!email || !password || !username) {
-      throw new AppError('Email, password and username are required', 400);
+      return res.status(400).json({
+        success: false,
+        message: 'Email, password and username are required',
+      });
     }
 
     // Validate password strength
     if (password.length < 6) {
-      throw new AppError('Password must be at least 6 characters long', 400);
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long',
+      });
     }
 
     const playerData = { email, password, username };
     const result = await this.playerService.createPlayer(playerData);
 
-    // Extract player from Result object
-    const player = result._value || result;
-
-    res.status(201).json({
-      success: true,
-      player: player,
-      message: 'Player registered successfully',
-    });
+    result.fold(
+      (error) => {
+        const status = error.statusCode || 400;
+        res.status(status).json({
+          success: false,
+          message: error.message,
+        });
+      },
+      (result) => {
+        const player = result._value || result;
+        res.status(201).json({
+          success: true,
+          player: player,
+          message: 'Player registered successfully',
+        });
+      },
+    );
   }
 
   /**
@@ -116,15 +131,19 @@ class AuthController {
 
     const result = await this.playerService.getPlayerById(userId);
 
-    // Check if result is an error (Result.isFailure property)
-    if (result.isFailure) {
-      throw new AppError(result.error.message || 'Player not found', 404);
-    }
-
-    // Extract player from Result object
-    const player = result.value;
-
-    res.status(200).json(player);
+    result.fold(
+      (error) => {
+        const status = error.message === 'Player not found' ? 404 : 500;
+        res.status(status).json({
+          success: false,
+          message: error.message,
+        });
+      },
+      (result) => {
+        const player = result._value || result;
+        res.status(200).json(player);
+      },
+    );
   }
 }
 

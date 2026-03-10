@@ -14,6 +14,7 @@ import ScoreRepository from '../../infra/repositories/score.repository.js';
 import GameService from '../../core/services/game/game.service.js';
 import GameHistoryServices from '../../core/services/game/game.history.service.js';
 import ScoreService from '../../core/services/score.service.js';
+import { createDebugRoutes } from './debug.routes.js';
 
 const router = Router();
 
@@ -30,6 +31,7 @@ const gameService = new GameService(
   gameRepository,
   playerRepository,
   scoreService,
+  gameHistoryService,
 );
 const controller = new GameController(gameService, gameHistoryService);
 
@@ -83,5 +85,9 @@ router.post('/:id/declare-uno', controller.declareUno.bind(controller));
 router.post('/:id/challenge', controller.challengeUno.bind(controller));
 
 router.delete('/:id', controller.deleteGame.bind(controller));
+
+// Debug routes
+const debugRoutes = createDebugRoutes(gameService, scoreService);
+router.use('/', debugRoutes);
 
 export default router;
