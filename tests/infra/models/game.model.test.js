@@ -249,4 +249,78 @@ describe('Game Model Instance Methods', () => {
       expect(gameInstance.players[0].hand).toEqual([handCard]);
     });
   });
+
+  describe('drawCards', () => {
+    it('should draw the specified number of cards from the deck', () => {
+      gameInstance.deck = [
+        { cardId: 'c1', color: 'red', value: '1', type: 'number' },
+        { cardId: 'c2', color: 'blue', value: '2', type: 'number' },
+        { cardId: 'c3', color: 'green', value: '3', type: 'number' },
+      ];
+
+      const drawn = gameInstance.drawCards(2);
+
+      expect(drawn).toHaveLength(2);
+      expect(drawn[0].cardId).toBe('c1');
+      expect(drawn[1].cardId).toBe('c2');
+      expect(gameInstance.deck).toHaveLength(1);
+      expect(gameInstance.deck[0].cardId).toBe('c3');
+    });
+
+    it('should draw all available cards if deck has fewer than requested', () => {
+      gameInstance.deck = [
+        { cardId: 'c1', color: 'red', value: '1', type: 'number' },
+      ];
+
+      const drawn = gameInstance.drawCards(5);
+
+      expect(drawn).toHaveLength(1);
+      expect(gameInstance.deck).toHaveLength(0);
+    });
+
+    it('should return an empty array if deck is empty', () => {
+      gameInstance.deck = [];
+      const drawn = gameInstance.drawCards(1);
+      expect(drawn).toEqual([]);
+    });
+  });
+
+  describe('addCardsToPlayerHand', () => {
+    it('should add cards to the specified player hand', () => {
+      const player1Id = gameInstance.players[0]._id;
+      const cardsToAdd = [
+        { cardId: 'n1', color: 'yellow', value: '5', type: 'number' },
+        { cardId: 'n2', color: 'green', value: '6', type: 'number' },
+      ];
+
+      gameInstance.addCardsToPlayerHand(player1Id, cardsToAdd);
+
+      expect(gameInstance.players[0].hand).toHaveLength(2);
+      expect(gameInstance.players[0].hand).toEqual(
+        expect.arrayContaining(cardsToAdd),
+      );
+    });
+
+    it('should do nothing if player ID is not found', () => {
+      const nonExistentId = new mongoose.Types.ObjectId();
+      const cardsToAdd = [
+        { cardId: 'n1', color: 'yellow', value: '5', type: 'number' },
+      ];
+
+      gameInstance.addCardsToPlayerHand(nonExistentId, cardsToAdd);
+
+      expect(gameInstance.players[0].hand).toHaveLength(0);
+      expect(gameInstance.players[1].hand).toHaveLength(0);
+    });
+
+    it('should initialize hand array if it is missing', () => {
+      const player1Id = gameInstance.players[0]._id;
+      gameInstance.players[0].hand = null;
+      const cardsToAdd = [{ cardId: 'n1' }];
+
+      gameInstance.addCardsToPlayerHand(player1Id, cardsToAdd);
+
+      expect(gameInstance.players[0].hand).toEqual(cardsToAdd);
+    });
+  });
 });

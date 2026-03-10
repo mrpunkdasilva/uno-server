@@ -39,6 +39,7 @@ describe('ScoreService Unit Tests', () => {
       update: jest.fn(),
       delete: jest.fn(),
       findByMatchId: jest.fn(),
+      save: jest.fn(),
     };
 
     // Apply mock implementation
@@ -75,6 +76,38 @@ describe('ScoreService Unit Tests', () => {
       expect(logger.info).toHaveBeenCalledWith(
         expect.stringContaining(`Attempting to create a new score`),
       );
+    });
+
+    it('should return a Failure Result when playerId is missing', async () => {
+      const inputData = { matchId: mockMatchId, score: 50 };
+      const result = await scoreService.createScore(inputData);
+      expect(result.isFailure).toBe(true);
+      expect(result.error.message).toBe('playerId is required');
+    });
+
+    it('should return a Failure Result when matchId is missing', async () => {
+      const inputData = { playerId: mockPlayerId, score: 50 };
+      const result = await scoreService.createScore(inputData);
+      expect(result.isFailure).toBe(true);
+      expect(result.error.message).toBe('matchId is required');
+    });
+
+    it('should return a Failure Result when score is missing', async () => {
+      const inputData = { playerId: mockPlayerId, matchId: mockMatchId };
+      const result = await scoreService.createScore(inputData);
+      expect(result.isFailure).toBe(true);
+      expect(result.error.message).toBe('score is required');
+    });
+
+    it('should return a Failure Result when score is negative', async () => {
+      const inputData = {
+        playerId: mockPlayerId,
+        matchId: mockMatchId,
+        score: -10,
+      };
+      const result = await scoreService.createScore(inputData);
+      expect(result.isFailure).toBe(true);
+      expect(result.error.message).toBe('score cannot be negative');
     });
 
     it('should return a Failure Result when repository returns null', async () => {
@@ -160,6 +193,15 @@ describe('ScoreService Unit Tests', () => {
         expect.stringContaining('not found'),
       );
     });
+
+    it('should log error for unexpected exceptions', async () => {
+      mockScoreRepository.findById.mockRejectedValue(
+        new Error('Unexpected error'),
+      );
+      const result = await scoreService.getScoreById(mockScoreId);
+      expect(result.isFailure).toBe(true);
+      expect(logger.error).toHaveBeenCalled();
+    });
   });
 
   describe('updateScore', () => {
@@ -181,6 +223,18 @@ describe('ScoreService Unit Tests', () => {
       expect(result.value.score).toBe(200);
     });
 
+    it('should return Failure when no data is provided for update', async () => {
+      const result = await scoreService.updateScore(mockScoreId, {});
+      expect(result.isFailure).toBe(true);
+      expect(result.error.message).toBe('No data provided for update');
+    });
+
+    it('should return Failure when updating to negative score', async () => {
+      const result = await scoreService.updateScore(mockScoreId, { score: -5 });
+      expect(result.isFailure).toBe(true);
+      expect(result.error.message).toBe('score cannot be negative');
+    });
+
     it('should return Failure when updating a non-existent score', async () => {
       // Arrange
       mockScoreRepository.update.mockResolvedValue(null);
@@ -193,6 +247,16 @@ describe('ScoreService Unit Tests', () => {
       // Assert
       expect(result.isFailure).toBe(true);
       expect(result.error.message).toBe('Score not found');
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('should log error for unexpected update exceptions', async () => {
+      mockScoreRepository.update.mockRejectedValue(new Error('DB Error'));
+      const result = await scoreService.updateScore(mockScoreId, {
+        score: 100,
+      });
+      expect(result.isFailure).toBe(true);
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 
@@ -219,6 +283,14 @@ describe('ScoreService Unit Tests', () => {
       // Assert
       expect(result.isFailure).toBe(true);
       expect(result.error.message).toBe('Score not found');
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('should log error for unexpected delete exceptions', async () => {
+      mockScoreRepository.delete.mockRejectedValue(new Error('DB Error'));
+      const result = await scoreService.deleteScore(mockScoreId);
+      expect(result.isFailure).toBe(true);
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 
@@ -246,6 +318,45 @@ describe('ScoreService Unit Tests', () => {
       expect(result.isSuccess).toBe(true);
       expect(result.value).toHaveLength(2);
       expect(result.value[0].playerId).toBe('p1');
+    });
+
+    it('should handle repository error in getScoresByMatchId', async () => {
+      mockScoreRepository.findByMatchId.mockRejectedValue(
+        new Error('DB error'),
+      );
+      const result = await scoreService.getScoresByMatchId(mockMatchId);
+      expect(result.isFailure).toBe(true);
+      expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('getMatchScores', () => {
+    it('should retrieve and format match scores', async () => {
+      const matchScores = [
+        { playerId: { username: 'user1' }, score: 10 },
+        { playerId: { username: 'user2' }, score: 20 },
+        { playerId: null, score: 5 }, // Unknown user
+      ];
+      mockScoreRepository.findByMatchId.mockResolvedValue(matchScores);
+
+      const result = await scoreService.getMatchScores(mockMatchId);
+
+      expect(result.isSuccess).toBe(true);
+      expect(result.value.scores).toEqual({
+        user1: 10,
+        user2: 20,
+        Unknown: 5,
+      });
+      expect(logger.info).toHaveBeenCalled();
+    });
+
+    it('should handle errors in getMatchScores', async () => {
+      mockScoreRepository.findByMatchId.mockRejectedValue(
+        new Error('DB error'),
+      );
+      const result = await scoreService.getMatchScores(mockMatchId);
+      expect(result.isFailure).toBe(true);
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 
